@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.0**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
+Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.1**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
 
 It stores clock-in, lunch-start, lunch-end, and clock-out punches and computes worked time from those punches.
 
@@ -76,7 +76,7 @@ Accepted time input supports 24-hour values or AM/PM notation. Empty input clear
 
 ## Worked-time calculation
 
-Worked time is calculated as Out minus In. If a valid lunch start/end pair is present, lunch duration is subtracted.
+Worked time is calculated as Out minus In. If a valid lunch start/end pair is present, only the intersection of lunch with the In–Out interval is subtracted. A lunch entirely outside the shift subtracts nothing; one covering the whole shift yields zero worked time.
 
 If In/Out are incomplete or invalid, worked time is left unavailable. Negative results are clamped to zero.
 
@@ -90,3 +90,7 @@ Touch uses the shared UI hit-test API. Confirm activates the selected row; Previ
 
 - `Apps/timecard.c`
 - `Apps/timecard.json`
+
+## Migration verification
+
+Source and manifest match Reader `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.0**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
+Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.1**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
 
 Supported file types declared by the manifest are:
 
@@ -55,6 +55,8 @@ The app supports:
 
 The file picker enumerates documents and exposes `.md` / `.txt` files. Save As refuses to overwrite an existing different path and validates filenames before use.
 
+Discard reloads the saved document before continuing. A missing/unreadable, oversized, short-read, or invalid saved file leaves the edits in memory and keeps the unsaved-change prompt open. Discarding an unnamed document clears its buffer and file identity.
+
 Writes use `write_file_atomic`; the editor does not directly perform partial in-place writes.
 
 ## Keyboard workflow
@@ -93,3 +95,7 @@ The app disables default Back-to-exit so Back can participate in unsaved-change 
 - `Apps/text_editor.c`
 - `Apps/text_editor.json`
 - `Apps/text_editor_core.h`
+
+## Migration verification
+
+Source and manifest match Reader `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.

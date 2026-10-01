@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "source_repository": "michaelrolphone-cmyk/T5S3-Reader",
+  "source_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa",
+  "toolchain": "espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "git_blob": "b8c074800342d88eb4892d9ef79a65485d1bfcf9",
+      "sha256": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640"
+    },
+    {
+      "path": "scripts/app_manifest.py",
+      "upstream_path": "scripts/app_manifest.py",
+      "git_blob": "f1a86b0a6946036a012bfcd92bb61e09f7aad2a2",
+      "sha256": "22b8d525c586dd1a24e5318a894c0c666a3483aae35df202e47cf685082b5fcd"
+    },
+    {
+      "path": "scripts/package_integrity.py",
+      "upstream_path": "scripts/package_integrity.py",
+      "git_blob": "11b9bc5a9329b4d2024326ef0c838e3a2144807c",
+      "sha256": "d8fc39aaf8dcaa3dadbaeaa8e51ef14771c7e4b0d4f1f035f03c648299c316d4"
+    },
+    {
+      "path": "lib/NativeApps/src/SingleFloatDivisionCompat.c",
+      "upstream_path": "lib/NativeApps/src/SingleFloatDivisionCompat.c",
+      "git_blob": "26a63947ae37f9b8c62610826a825b91d3c911d1",
+      "sha256": "e7e54837bbbd6c99be51367729a03b09d6df0553b635e692fad9b4264442befb"
+    },
+    {
+      "path": "lib/NativeApps/src/UnsignedDivisionCompat.c",
+      "upstream_path": "lib/NativeApps/src/UnsignedDivisionCompat.c",
+      "git_blob": "6c692b28aae97379f5daf017861d3dc651339830",
+      "sha256": "cf49adc0be03fbf852a95018be1342dbebdf9953047a9f7e2600728d7f070fff"
+    },
+    {
+      "path": "lib/elf_loader/include/private/elf_types.h",
+      "upstream_path": "lib/elf_loader/include/private/elf_types.h",
+      "git_blob": "c9b4f7a15378f5118219107a4824e5a72c7e72a7",
+      "sha256": "13a6aa3f2977c9da9d83ed7101a6deed9c01e96d0c614be3f84963be0c1a3eda"
+    },
+    {
+      "path": "lib/elf_loader/src/esp_elf_validate.c",
+      "upstream_path": "lib/elf_loader/src/esp_elf_validate.c",
+      "git_blob": "6a2aaf8245690df8f09d1f2badd3f7607a65470a",
+      "sha256": "67b6a0c09038821cb51c7d04a0c00d8c7e25eb974f3d4df6e51fa95febbf46fe"
+    },
+    {
+      "path": "test/native_apps/stubs/sdkconfig.h",
+      "upstream_path": "test/native_apps/stubs/sdkconfig.h",
+      "git_blob": "c27490ad1599092b07c362ca280830625b0f6914",
+      "sha256": "d18f0fce9e3255f9b1f5f934c5441b0685edd310375c68745c61ec0ce275e4ae"
+    },
+    {
+      "path": "test/native_apps/validate_test.c",
+      "upstream_path": "test/native_apps/validate_test.c",
+      "git_blob": "cfe444ddf8a1e8451887cef29c1ee6c7564b4baa",
+      "sha256": "1fcb4274a6b8df77fd5c31dee8ee7dfb929c7fd62a634071a19cd6c9697b42a2"
+    },
+    {
+      "path": "test/native_apps/text_editor_core_test.c",
+      "upstream_path": "test/native_apps/text_editor_core_test.c",
+      "git_blob": "4f532e6af9b9a9edb18fc609f3cf0f3f78046596",
+      "sha256": "75561b522891fa9c421d18449417e9ae825866a14edcefc3222f03e5ef2656a9"
+    },
+    {
+      "path": "test/native_apps/text_editor_ui_test.c",
+      "upstream_path": "test/native_apps/text_editor_ui_test.c",
+      "git_blob": "0d49922ea26ca6694d70ea75690d471f32a7b4e6",
+      "sha256": "4d27f4ce0f64df48b0b8ac30b9a0473963c6b4eab44d3a59e8498a9045d8b218"
+    },
+    {
+      "path": "test/native_apps/text_editor_discard_source_test.py",
+      "upstream_path": "test/native_apps/text_editor_discard_source_test.py",
+      "git_blob": "6ddc9383303627fa6bcf7e57205a6007bc876967",
+      "sha256": "cf1fbbba98b648f1f6a6383106628ab324438e4dfddc3655ade66902bac0a3d1"
+    },
+    {
+      "path": "test/native_apps/timecard_ui_test.c",
+      "upstream_path": "test/native_apps/timecard_ui_test.c",
+      "git_blob": "b3927f94aec387f7aa8175635587ff0926c81123",
+      "sha256": "787714aeb51ca039b22cf31b2c90e1d0669d3e716639b25758601680aeed5929"
+    },
+    {
+      "path": "lib/NativeApps/include/T5AppApi.h",
+      "upstream_path": "lib/NativeApps/include/T5AppApi.h",
+      "git_blob": "b5d5cc0162aa6c5caa055563b928c8ceaf3e5cfd",
+      "sha256": "eb0acebe0b1a151916b9f05afd98025e8e516c251337b8fe48fd3961bd58a981"
+    },
+    {
+      "path": "lib/NativeApps/include/T5FileOpenApi.h",
+      "upstream_path": "lib/NativeApps/include/T5FileOpenApi.h",
+      "git_blob": "4b697ae5bc8e2613959954556ceab0c48e6ac4f6",
+      "sha256": "c1b873e364dba81ce39d8c8a62668db618735407a6291dca87b9795ce4accc30"
+    },
+    {
+      "path": "lib/NativeApps/include/T5StorageApi.h",
+      "upstream_path": "lib/NativeApps/include/T5StorageApi.h",
+      "git_blob": "e6c49d4b7c665d8c07bf4e756fc46acef9cf7c98",
+      "sha256": "be0d63a89943a75a58723b703284992e8c6e95956c7cb39a9b3523af2c5d23ba"
+    },
+    {
+      "path": "lib/NativeApps/include/T5ProviderCapabilityApi.h",
+      "upstream_path": "lib/NativeApps/include/T5ProviderCapabilityApi.h",
+      "git_blob": "1d4a90561b53002147a4aec06b547b66482f3269",
+      "sha256": "f348bc6b64017607ada44f5370631693e240c0cbef45251cae52a7dbcbe9894c"
+    },
+    {
+      "path": "lib/NativeApps/include/T5SystemApi.h",
+      "upstream_path": "lib/NativeApps/include/T5SystemApi.h",
+      "git_blob": "51e734eaf633126d5c18c500c6984a77821aa77b",
+      "sha256": "56179941cac6dac7c71c2fe43013015a2d286620172a4d5945425c9cebc6d2d2"
+    },
+    {
+      "path": "lib/NativeApps/include/T5SystemUiApi.h",
+      "upstream_path": "lib/NativeApps/include/T5SystemUiApi.h",
+      "git_blob": "41d06ae089ddb7d7e4e7378123ff7c6854e642d2",
+      "sha256": "aea03c2fe4ea5944dbda4ad6cfc499baa69fc2711bb55167a1e10461d500c8d1"
+    },
+    {
+      "path": "lib/NativeApps/include/T5UiApi.h",
+      "upstream_path": "lib/NativeApps/include/T5UiApi.h",
+      "git_blob": "ef09b405fc2518ee7ecf039f8b251939d80b14a6",
+      "sha256": "88dbfde2a45ab385c69ee0b8192e8025446c9872711e4810f799251479b1057a"
+    },
+    {
+      "path": "sdk/driver/RiscUsbHidV1.h",
+      "upstream_path": "sdk/driver/RiscUsbHidV1.h",
+      "git_blob": "47913ebeda94dcc4138173be45eafe9315191e91",
+      "sha256": "5b5549c4cb718dec55f2aca8bc93f401b2d5a703d30aaa1a78d1bcdd26755b5c"
+    },
+    {
+      "path": "sdk/driver/RiscUsbControllerV1.h",
+      "upstream_path": "sdk/driver/RiscUsbControllerV1.h",
+      "git_blob": "348b5b478f23f5893ff33dffcb4359f694712fd0",
+      "sha256": "2fb2908caee99b0822838956f33cf8302db9d2cbd0600a9eed21fcce5f68232b"
+    },
+    {
+      "path": "sdk/driver/RiscUsbProviderV1.h",
+      "upstream_path": "sdk/driver/RiscUsbProviderV1.h",
+      "git_blob": "7e6a7512c332fd2014ecf4b44fa0c56de18a1e07",
+      "sha256": "77f67cf5db7ed3fd7c6e148807bc705b5f8443c90d401b546069d756eb997b9a"
+    },
+    {
+      "path": "sdk/driver/RiscProviderV2.h",
+      "upstream_path": "sdk/driver/RiscProviderV2.h",
+      "git_blob": "4bdba1740d5788485ea10cad65a13be739c192fc",
+      "sha256": "358ac93f86a3e228c2a9c9cfca0b758571db43453bce1e4c5e38402096064ea0"
+    }
+  ],
+  "exports_sha256": "a88ca6059db7ab70ee41f5557f30e41158812de58eb6d898902a48b0a19c1649",
+  "export_inputs": [
+    {
+      "path": "lib/NativeApps/src/NativeAppLauncher.c",
+      "git_blob": "b033b3df223958ab055499e2aeb78ad65a03e2ac"
+    },
+    {
+      "path": "lib/elf_loader/src/esp_elf_symbol.c",
+      "git_blob": "7b548136aa87b8acc035809993fab82a03005556"
+    },
+    {
+      "path": "lib/NativeApps/include/NativeHardwareCompatSymbols.def",
+      "git_blob": "75b54556a96d2a798a1230369f11fc25b836f279"
+    },
+    {
+      "path": "src/native/NativeHardwareCompat.cpp",
+      "git_blob": "b8452540f01dccedd29fac926eb91d82604e9aa6"
+    },
+    {
+      "path": "platformio.ini",
+      "git_blob": "789e3b2f126957e602bd0661a4785550c5ea8159"
+    }
+  ]
+}

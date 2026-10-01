@@ -5,15 +5,32 @@
   "apps": [
     {
       "id": "text_editor",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "min_firmware_version": "1.2.85",
-      "classification": "productivity"
+      "classification": "productivity",
+      "file_name": "text_editor.elf",
+      "source_path": "Apps/text_editor.c",
+      "manifest_path": "Apps/text_editor.json",
+      "upstream_source_sha": "96a2ed60828f3fb3ff5aeb2b3d66e44c2592e56b",
+      "upstream_manifest_sha": "c709ed51524688a4659dfca5287150fba30e5d22",
+      "additional_sources": [
+        {
+          "path": "Apps/text_editor_core.h",
+          "upstream_blob": "48a5a7bcf3078d8d975f5f56c8066c5bfa3ab654"
+        }
+      ]
     },
     {
       "id": "timecard",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "min_firmware_version": "1.1.8",
-      "classification": "productivity"
+      "classification": "productivity",
+      "file_name": "timecard.elf",
+      "source_path": "Apps/timecard.c",
+      "manifest_path": "Apps/timecard.json",
+      "upstream_source_sha": "103313ec92d281eed983c394df73bb628f5b8036",
+      "upstream_manifest_sha": "7c1cd7b3954ed9dbbcd41befb37bd158459c5616"
     }
-  ]
+  ],
+  "upstream_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa"
 }
