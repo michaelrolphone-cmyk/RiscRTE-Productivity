@@ -5,14 +5,14 @@
   "apps": [
     {
       "id": "text_editor",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "min_firmware_version": "1.2.85",
       "classification": "productivity",
       "file_name": "text_editor.elf",
       "source_path": "Apps/text_editor.c",
       "manifest_path": "Apps/text_editor.json",
-      "upstream_source_sha": "96a2ed60828f3fb3ff5aeb2b3d66e44c2592e56b",
-      "upstream_manifest_sha": "c709ed51524688a4659dfca5287150fba30e5d22",
+      "upstream_source_sha": "8000ec13817cf23f55f84139ed7ec6702f6eb1bc",
+      "upstream_manifest_sha": "b1b7302997b8a9ad773a64e8395ece4cc032a4b6",
       "additional_sources": [
         {
           "path": "Apps/text_editor_core.h",
@@ -22,15 +22,15 @@
     },
     {
       "id": "timecard",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "min_firmware_version": "1.1.8",
       "classification": "productivity",
       "file_name": "timecard.elf",
       "source_path": "Apps/timecard.c",
       "manifest_path": "Apps/timecard.json",
-      "upstream_source_sha": "103313ec92d281eed983c394df73bb628f5b8036",
-      "upstream_manifest_sha": "7c1cd7b3954ed9dbbcd41befb37bd158459c5616"
+      "upstream_source_sha": "4b77261977b4d76f254605beee7a64472de12c87",
+      "upstream_manifest_sha": "26a8b13dda98e990e1235cf80322e448b76a3a55"
     }
   ],
-  "upstream_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa"
+  "upstream_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
 }

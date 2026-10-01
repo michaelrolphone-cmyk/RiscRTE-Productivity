@@ -24,10 +24,11 @@ and a release-parity report. CI uploads these as 14-day development artifacts.
 
 `sdk/baseline.json` pins the required headers (including USB keyboard interface
 transitive headers), compiler helpers, integrity/manifest validation, ELF validator
-and three upstream fixtures by Git blob and SHA-256. All originate at Reader
+and upstream fixtures by Git blob and SHA-256. The SDK and three original fixtures originate at Reader
 `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The pinned public firmware export list
 is derived from that commit's app/libc/compat tables, whose source blobs are also
-recorded. It does not import the privileged provider inventory or grant capability
+recorded. Three additional opening/clock-failure regression files are pinned to Reader
+`4530c8b23b13a64f29c212cd64f1e86b05885287`; the SDK itself is unchanged. It does not import the privileged provider inventory or grant capability
 access. Original license and comments are retained. The repository's small build
 and audit wrappers are adapted from System-Apps main `b64e1c99`; they read only
 this repository and the pinned SDK, not a remote moving branch.
@@ -45,13 +46,18 @@ IDs, manifest/version disagreement and modified SDK snapshots are rejected.
 - Three unchanged upstream C fixtures exercise editor core, editor UI/keyboard
   behavior and Timecard UI navigation.
 - The upstream discard source contract is retained.
-- Two new UBSan-enabled C regression fixtures call the actual app functions:
+- Two retained UBSan-enabled C regression fixtures call the actual app functions:
   discard restore/failure/no-file paths and 12 lunch/shift boundary cases plus
   null input. The discard fixture verifies failed discard does not exit or drop
   edits, including an invalid saved document and mismatched read length.
 
+- Two additional UBSan fixtures exercise actual editor opening and clock-failure paths:
+  retained-cursor pagination, unsupported entries, cancellation and read/open retry;
+  all four punches, repeated clock failure, recovery, date rollover and save retry.
+  The Timecard clock source contract also runs through the regression runner.
+
 Both generated ELFs match the existing Reader app release assets byte-for-byte
-(Text Editor 0.2.1 and Timecard 1.0.1); CI enforces both against immutable expected
+(Text Editor 0.2.2 and Timecard 1.0.2); CI enforces both against immutable expected
 sizes/digests and versions in `sdk/release-baseline.json`. The snapshot was checked
 against those releases on 2026-10-01. Nothing is re-released under an old identity.
 These are host/ELF/build checks, not device, capability hotplug, package-install,

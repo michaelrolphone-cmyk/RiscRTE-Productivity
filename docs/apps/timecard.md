@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.1**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
+Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.2**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
 
 It stores clock-in, lunch-start, lunch-end, and clock-out punches and computes worked time from those punches.
 
@@ -64,6 +64,8 @@ The app has three screen states:
 
 From the week screen, selecting a day opens its punches. Selecting one of the punch-action rows records the current local time for today's corresponding punch.
 
+Each current-time punch uses one successful clock snapshot for both date and minutes. If the clock is unavailable, the app shows `Clock unavailable` and leaves stored and in-memory punches unchanged; retry after recovery uses the recovered time. Storage failures remain visible and can be retried; this does not imply rollback of the in-memory punch after a failed save.
+
 The day screen lets the user edit an individual punch through the firmware keyboard.
 
 ## Keyboard handoff
@@ -93,4 +95,4 @@ Touch uses the shared UI hit-test API. Confirm activates the selected row; Previ
 
 ## Migration verification
 
-Source and manifest match Reader `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
+Source and manifest match Reader `4530c8b23b13a64f29c212cd64f1e86b05885287`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
