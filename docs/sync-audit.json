@@ -1,0 +1,41 @@
+{
+  "source_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa",
+  "target_base": "d06ff80fa8d862cb139d45d0e70b861181f518da",
+  "files": [
+    {
+      "path": "Apps/text_editor.c",
+      "previous_external_blob": "30d36550739c770717fc7ce8b9d38b9e9829f094",
+      "verified_source_base_blob": "30d36550739c770717fc7ce8b9d38b9e9829f094",
+      "new_upstream_blob": "96a2ed60828f3fb3ff5aeb2b3d66e44c2592e56b",
+      "classification": "upstream-only"
+    },
+    {
+      "path": "Apps/text_editor.json",
+      "previous_external_blob": "79d1b74ff0e4d8af46b02de70d9a9c0ea26a80de",
+      "verified_source_base_blob": "79d1b74ff0e4d8af46b02de70d9a9c0ea26a80de",
+      "new_upstream_blob": "c709ed51524688a4659dfca5287150fba30e5d22",
+      "classification": "upstream-only"
+    },
+    {
+      "path": "Apps/text_editor_core.h",
+      "previous_external_blob": "48a5a7bcf3078d8d975f5f56c8066c5bfa3ab654",
+      "verified_source_base_blob": "48a5a7bcf3078d8d975f5f56c8066c5bfa3ab654",
+      "new_upstream_blob": "48a5a7bcf3078d8d975f5f56c8066c5bfa3ab654",
+      "classification": "unchanged"
+    },
+    {
+      "path": "Apps/timecard.c",
+      "previous_external_blob": "eaa4dc6e84a65401365115dc9990a4ffd63c2d19",
+      "verified_source_base_blob": "eaa4dc6e84a65401365115dc9990a4ffd63c2d19",
+      "new_upstream_blob": "103313ec92d281eed983c394df73bb628f5b8036",
+      "classification": "upstream-only"
+    },
+    {
+      "path": "Apps/timecard.json",
+      "previous_external_blob": "ae428cf0e2354754c4d36887d423d33948d2e18d",
+      "verified_source_base_blob": "ae428cf0e2354754c4d36887d423d33948d2e18d",
+      "new_upstream_blob": "7c1cd7b3954ed9dbbcd41befb37bd158459c5616",
+      "classification": "upstream-only"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "repository": "michaelrolphone-cmyk/T5S3-Reader",
+  "release_index_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa",
+  "required_byte_parity": [
+    "text_editor",
+    "timecard"
+  ],
+  "apps": [
+    {
+      "id": "text_editor",
+      "version": "0.2.1",
+      "file_name": "text_editor.elf",
+      "sha256": "22c1bceb19ac23a6138a57dc2593f4366343b20d52255244f3b49ef88773a2b8",
+      "size": 17992,
+      "tag": "app-text_editor-v0.2.1",
+      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-text_editor-v0.2.1/text_editor.elf"
+    },
+    {
+      "id": "timecard",
+      "version": "1.0.1",
+      "file_name": "timecard.elf",
+      "sha256": "e849789e37428c1bdd3d92fe828db68ce3c9655f908f6e4f3ea4eaf652608a97",
+      "size": 13976,
+      "tag": "app-timecard-v1.0.1",
+      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-timecard-v1.0.1/timecard.elf"
+    }
+  ]
+}

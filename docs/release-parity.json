@@ -1,0 +1,23 @@
+{
+  "release_index_commit": "3300229d0a232b4e6047a7c93b2f518c033c3cfa",
+  "apps": [
+    {
+      "id": "text_editor",
+      "version": "0.2.1",
+      "published_version": "0.2.1",
+      "byte_parity": true,
+      "required": true,
+      "built_sha256": "22c1bceb19ac23a6138a57dc2593f4366343b20d52255244f3b49ef88773a2b8",
+      "published_sha256": "22c1bceb19ac23a6138a57dc2593f4366343b20d52255244f3b49ef88773a2b8"
+    },
+    {
+      "id": "timecard",
+      "version": "1.0.1",
+      "published_version": "1.0.1",
+      "byte_parity": true,
+      "required": true,
+      "built_sha256": "e849789e37428c1bdd3d92fe828db68ce3c9655f908f6e4f3ea4eaf652608a97",
+      "published_sha256": "e849789e37428c1bdd3d92fe828db68ce3c9655f908f6e4f3ea4eaf652608a97"
+    }
+  ]
+}
