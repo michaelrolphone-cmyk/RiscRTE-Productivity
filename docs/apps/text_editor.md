@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.1**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
+Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.2**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
 
 Supported file types declared by the manifest are:
 
@@ -53,11 +53,13 @@ The app supports:
 - File-open handoff from another RiscRTE workflow
 - Unsaved-change handling before destructive transitions or exit
 
-The file picker enumerates documents and exposes `.md` / `.txt` files. Save As refuses to overwrite an existing different path and validates filenames before use.
+File-open handoffs retain the full `/sd/...` storage path. Failed, short, or invalid reads preserve the current document and path for retry.
+
+The file picker retains a directory cursor across pages of up to 64 `.md` / `.txt` names. Each pass examines at most 128 entries or 100 ms between directory calls, servicing events after eight entries or 10 ms. PgDn advances without rescanning the prefix; Home explicitly restarts. Back cancels, and exit or poll failure stops iteration. Cursor cleanup accompanies close and state transitions. Directory-open failures remain visible and can be retried with Home. The ABI does not distinguish end-of-directory from a directory-read error, and these between-call budgets cannot interrupt a blocking directory call. Save As refuses to overwrite an existing different path and validates filenames before use.
 
 Discard reloads the saved document before continuing. A missing/unreadable, oversized, short-read, or invalid saved file leaves the edits in memory and keeps the unsaved-change prompt open. Discarding an unnamed document clears its buffer and file identity.
 
-Writes use `write_file_atomic`; the editor does not directly perform partial in-place writes.
+Failed writes preserve the dirty document for retry. Writes use `write_file_atomic`; the editor does not directly perform partial in-place writes.
 
 ## Keyboard workflow
 
@@ -98,4 +100,4 @@ The app disables default Back-to-exit so Back can participate in unsaved-change 
 
 ## Migration verification
 
-Source and manifest match Reader `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
+Source and manifest match Reader `4530c8b23b13a64f29c212cd64f1e86b05885287`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.

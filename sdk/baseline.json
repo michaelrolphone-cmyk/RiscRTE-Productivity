@@ -147,6 +147,27 @@
       "upstream_path": "sdk/driver/RiscProviderV2.h",
       "git_blob": "4bdba1740d5788485ea10cad65a13be739c192fc",
       "sha256": "358ac93f86a3e228c2a9c9cfca0b758571db43453bce1e4c5e38402096064ea0"
+    },
+    {
+      "path": "test/native_apps/text_editor_open_test.c",
+      "upstream_path": "test/native_apps/text_editor_open_test.c",
+      "git_blob": "5c2efda0147c98b07af0daa1173a84a5704e8c5d",
+      "sha256": "c2a96c179bc4d79e53d0eaee744ea038d83416514fe73d630ee76d7aec4995ed",
+      "source_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
+    },
+    {
+      "path": "test/native_apps/timecard_clock_failure_test.c",
+      "upstream_path": "test/native_apps/timecard_clock_failure_test.c",
+      "git_blob": "e1cfe094fb53e3c315058df1c050bd13fefa5552",
+      "sha256": "50c9f03b895703ac5cab42a82226e82aded907b4e030927edff37467d9b9672d",
+      "source_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
+    },
+    {
+      "path": "test/native_apps/timecard_clock_failure_source_test.py",
+      "upstream_path": "test/native_apps/timecard_clock_failure_source_test.py",
+      "git_blob": "83b962f9fe4a0a5e33429b5cd44f5d740dc173be",
+      "sha256": "7e3e4d2d00ca413754f5b155a63c83488bba0b119a99023d79504d76f9bb9c69",
+      "source_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
     }
   ],
   "exports_sha256": "a88ca6059db7ab70ee41f5557f30e41158812de58eb6d898902a48b0a19c1649",
