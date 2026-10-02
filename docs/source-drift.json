@@ -56,6 +56,14 @@
       "external_blob": "57ad553d7ed25344fb401bf2c750cfb149e279c8",
       "upstream_blob": "57ad553d7ed25344fb401bf2c750cfb149e279c8",
       "state": "converged"
+    },
+    {
+      "id": "timecard",
+      "path": "test/native_apps/timecard_clock_failure_test.c",
+      "baseline_blob": "e1cfe094fb53e3c315058df1c050bd13fefa5552",
+      "external_blob": "d4d4e501531c3327b228e58a0e4dde974788e7be",
+      "upstream_blob": "d4d4e501531c3327b228e58a0e4dde974788e7be",
+      "state": "converged"
     }
   ]
 }
