@@ -1,5 +1,5 @@
 {
-  "reader_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287",
+  "reader_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
   "files": [
     {
       "id": "text_editor",
@@ -13,9 +13,9 @@
       "id": "text_editor",
       "path": "Apps/text_editor.json",
       "baseline_blob": "b1b7302997b8a9ad773a64e8395ece4cc032a4b6",
-      "external_blob": "b1b7302997b8a9ad773a64e8395ece4cc032a4b6",
-      "upstream_blob": "b1b7302997b8a9ad773a64e8395ece4cc032a4b6",
-      "state": "unchanged"
+      "external_blob": "6c278d17521eaea1b9bcec29791f5eccd5a7f2bc",
+      "upstream_blob": "6c278d17521eaea1b9bcec29791f5eccd5a7f2bc",
+      "state": "converged"
     },
     {
       "id": "text_editor",
@@ -29,17 +29,33 @@
       "id": "timecard",
       "path": "Apps/timecard.c",
       "baseline_blob": "4b77261977b4d76f254605beee7a64472de12c87",
-      "external_blob": "4b77261977b4d76f254605beee7a64472de12c87",
-      "upstream_blob": "4b77261977b4d76f254605beee7a64472de12c87",
-      "state": "unchanged"
+      "external_blob": "fee216e8b5507b7b2fd4ee5488e34767f4bc13d2",
+      "upstream_blob": "fee216e8b5507b7b2fd4ee5488e34767f4bc13d2",
+      "state": "converged"
     },
     {
       "id": "timecard",
       "path": "Apps/timecard.json",
       "baseline_blob": "26a8b13dda98e990e1235cf80322e448b76a3a55",
-      "external_blob": "26a8b13dda98e990e1235cf80322e448b76a3a55",
-      "upstream_blob": "26a8b13dda98e990e1235cf80322e448b76a3a55",
-      "state": "unchanged"
+      "external_blob": "409a9112effa6548d7ad891265e85b1d91c53c40",
+      "upstream_blob": "409a9112effa6548d7ad891265e85b1d91c53c40",
+      "state": "converged"
+    },
+    {
+      "id": "timecard_store_failure_source",
+      "path": "test/native_apps/timecard_store_failure_source_test.py",
+      "baseline_blob": null,
+      "external_blob": "b3ba2550b4192da82987c4501d4c14ff94f082ad",
+      "upstream_blob": "b3ba2550b4192da82987c4501d4c14ff94f082ad",
+      "state": "converged"
+    },
+    {
+      "id": "timecard_store_failure",
+      "path": "test/native_apps/timecard_store_failure_test.c",
+      "baseline_blob": null,
+      "external_blob": "57ad553d7ed25344fb401bf2c750cfb149e279c8",
+      "upstream_blob": "57ad553d7ed25344fb401bf2c750cfb149e279c8",
+      "state": "converged"
     }
   ]
 }

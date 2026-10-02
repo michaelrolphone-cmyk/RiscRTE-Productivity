@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.2**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
+Text Editor is a keyboard-oriented plain-text editor for RiscRTE. Its manifest identifies `text_editor.elf`, version **0.2.3**, minimum firmware **1.2.85**, categories `Productivity` and `Files`.
 
 Supported file types declared by the manifest are:
 
@@ -100,4 +100,4 @@ The app disables default Back-to-exit so Back can participate in unsaved-change 
 
 ## Migration verification
 
-Source and manifest match Reader `4530c8b23b13a64f29c212cd64f1e86b05885287`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
+App C and helper sources remain unchanged; its manifest matches Reader master `00f9b2458dbfdae2188f2695634edb40c65c7ab0`. The current released RTE package SHA-256 is `6d3963b8e42460ed80a877b60796a93fadd72d44c4447b45fb7965a678798df0` (19,411 B); the nested ELF matches its previous 0.2.2 identity `54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f` (18,256 B). See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.

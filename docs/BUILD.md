@@ -27,8 +27,7 @@ transitive headers), compiler helpers, integrity/manifest validation, ELF valida
 and upstream fixtures by Git blob and SHA-256. The SDK and three original fixtures originate at Reader
 `3300229d0a232b4e6047a7c93b2f518c033c3cfa`. The pinned public firmware export list
 is derived from that commit's app/libc/compat tables, whose source blobs are also
-recorded. Three additional opening/clock-failure regression files are pinned to Reader
-`4530c8b23b13a64f29c212cd64f1e86b05885287`; the SDK itself is unchanged. It does not import the privileged provider inventory or grant capability
+recorded. Opening and clock-failure regression files remain pinned to Reader `4530c8b23b13a64f29c212cd64f1e86b05885287`. Current Timecard store-failure fixtures are pinned to Reader `00f9b2458dbfdae2188f2695634edb40c65c7ab0`; the SDK itself is unchanged. It does not import the privileged provider inventory or grant capability
 access. Original license and comments are retained. The repository's small build
 and audit wrappers are adapted from System-Apps main `b64e1c99`; they read only
 this repository and the pinned SDK, not a remote moving branch.
@@ -51,15 +50,9 @@ IDs, manifest/version disagreement and modified SDK snapshots are rejected.
   null input. The discard fixture verifies failed discard does not exit or drop
   edits, including an invalid saved document and mismatched read length.
 
-- Two additional UBSan fixtures exercise actual editor opening and clock-failure paths:
-  retained-cursor pagination, unsupported entries, cancellation and read/open retry;
-  all four punches, repeated clock failure, recovery, date rollover and save retry.
-  The Timecard clock source contract also runs through the regression runner.
+- Three additional UBSan fixtures exercise actual editor opening, Timecard clock failure, and store failure/recovery: retained-cursor pagination, unsupported entries, cancellation and read/open retry; all four punches, repeated clock failure, recovery, date rollover and save retry; staged store loading, malformed/trailing data rejection, read-only recovery and retry. Timecard source-contract checks run through the regression runner.
 
-Both generated ELFs match the existing Reader app release assets byte-for-byte
-(Text Editor 0.2.2 and Timecard 1.0.2); CI enforces both against immutable expected
-sizes/digests and versions in `sdk/release-baseline.json`. The snapshot was checked
-against those releases on 2026-10-01. Nothing is re-released under an old identity.
+Both generated ELFs are checked against current Reader release identities (Text Editor 0.2.3 and Timecard 1.0.4); CI enforces sizes/digests and versions in `sdk/release-baseline.json`. Text Editor's ELF bytes reproduce 0.2.2; Timecard 1.0.4 has a distinct current ELF hash. Current Reader RTE package archive digests/sizes and their release-action evidence are recorded alongside the nested ELF identities. Nothing is re-released under an old identity.
 These are host/ELF/build checks, not device, capability hotplug, package-install,
 rollback or prospective U1 acceptance tests.
 

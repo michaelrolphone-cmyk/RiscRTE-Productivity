@@ -1,29 +1,19 @@
 # Productivity migration readiness
 
-Audited 2026-10-01 against Reader master
-`4530c8b23b13a64f29c212cd64f1e86b05885287`. Reader and U1 are read-only references.
+Audited 2026-10-02 against Reader master
+`00f9b2458dbfdae2188f2695634edb40c65c7ab0`. Reader and U1 are read-only references.
 This index separates current-master parity from future cutover readiness.
 
 | App | Source/manifest/helper | Version transition | Independent build and published ELF | Documentation |
 | --- | --- | --- | --- | --- |
-| [Text Editor](apps/text_editor.md) | Exact, 3 files | 0.2.1 → 0.2.2 | Pass, byte-identical to app-text_editor-v0.2.2 | Opening, retry and pagination |
-| [Timecard](apps/timecard.md) | Exact, 2 files | 1.0.1 → 1.0.2 | Pass, byte-identical to app-timecard-v1.0.2 | Clock failure and recovery |
+| [Text Editor](apps/text_editor.md) | C/helper unchanged; current manifest synchronized | 0.2.2 → 0.2.3 | Pass, nested ELF `54f609bf…` / 18,256 B | Opening, retry and pagination |
+| [Timecard](apps/timecard.md) | Current app source, manifest, and store-failure fixtures synchronized | 1.0.2 → 1.0.3 → 1.0.4 | Pass, nested ELF `80d6c1db…` / 14,572 B | Clock and store failure/recovery |
 
 ## What changed and was checked
 
-Text Editor preserves `/sd` handoffs and maintains a bounded, cancellable picker
-cursor across pages. Failed opens/reads preserve the document for retry. Timecard
-uses one clock snapshot per current-time punch and performs no punch mutation or
-storage write when that snapshot fails. Existing discard/lunch fixes remain.
-The external base `0a2d189f2470dc38cb2e52edbefe6cc1de3e4fca` was compared
-with its recorded source baseline: four changed inputs were upstream-only and the
-helper was unchanged. No external-only edits were overwritten. [Sync audit](sync-audit.json)
-and [current drift report](source-drift.json) record exact blobs. SDK, compiler,
-external regression fixtures and packaging remain unchanged.
+Text Editor behavior and helper remain unchanged. Timecard now validates the complete stored document before committing loaded history; failed reads or malformed/trailing data leave prior history intact and set a read-only state until a clean retry. Clock-failure, storage-failure, and source-contract tests cover those paths. The external base `4c9ae58cf172babd4405a0d6b095d1517eb1fa5a` was compared with current Reader. The Text Editor manifest and Timecard app/test inputs were upstream-only against their recorded source baseline; scoped target files now converge to that source. No external-only changes were overwritten. The SDK, compiler, and ELF builder remain unchanged. [Current drift report](source-drift.json) records exact blobs.
 
-Release index `a8763df20c1e5d42ecac6e166b48d0d13b3e4c70` records the existing
-Reader releases copied here; no additional version bump is required for identical
-bytes. Host regressions cover failure/retry and cancellation. Directory-read
+Reader's current RTE release assets are verified from workflow runs `36965130240` (Text Editor) and `37020390546` (Timecard) against public GitHub Release asset SHA-256/size. Text Editor's nested ELF remains byte-identical to 0.2.2; Timecard 1.0.4 has its own verified nested ELF identity. No further version bump is justified. Host regressions cover failure/retry and cancellation. Directory-read
 EOF/error ambiguity and blocking-call deadlines remain ABI limits; failed Timecard
 saves do not promise in-memory rollback. See the per-app documents for details.
 

@@ -1,7 +1,6 @@
 {
   "schema": 1,
   "repository": "michaelrolphone-cmyk/T5S3-Reader",
-  "release_index_commit": "a8763df20c1e5d42ecac6e166b48d0d13b3e4c70",
   "required_byte_parity": [
     "text_editor",
     "timecard"
@@ -9,21 +8,51 @@
   "apps": [
     {
       "id": "text_editor",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "file_name": "text_editor.elf",
       "sha256": "54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f",
       "size": 18256,
-      "tag": "app-text_editor-v0.2.2",
-      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-text_editor-v0.2.2/text_editor.elf"
+      "tag": "app-text_editor-v0.2.3",
+      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-text_editor-v0.2.3/application-text_editor-0.2.3-xtensa-esp32s3.rte.zip",
+      "package_asset": "application-text_editor-0.2.3-xtensa-esp32s3.rte.zip",
+      "package_sha256": "6d3963b8e42460ed80a877b60796a93fadd72d44c4447b45fb7965a678798df0",
+      "package_size": 19411
     },
     {
       "id": "timecard",
-      "version": "1.0.2",
+      "version": "1.0.4",
       "file_name": "timecard.elf",
-      "sha256": "38ea52335fcb8adf0ea7b31768e1162623c5c95d8dadb5e181f1f065fd95c33f",
-      "size": 14016,
-      "tag": "app-timecard-v1.0.2",
-      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-timecard-v1.0.2/timecard.elf"
+      "sha256": "80d6c1dbeae61fb322601c227a10cac15d64b652573632fd3847d5888fcd4047",
+      "size": 14572,
+      "tag": "app-timecard-v1.0.4",
+      "url": "https://github.com/michaelrolphone-cmyk/T5S3-Reader/releases/download/app-timecard-v1.0.4/application-timecard-1.0.4-xtensa-esp32s3.rte.zip",
+      "package_asset": "application-timecard-1.0.4-xtensa-esp32s3.rte.zip",
+      "package_sha256": "5b95019fb2fbd2f95737a02af14b0c3abbbefcc89174d1fbc74fa98a5346558c",
+      "package_size": 15598
     }
-  ]
+  ],
+  "legacy_release_index_commit": "a8763df20c1e5d42ecac6e166b48d0d13b3e4c70",
+  "reader_source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
+  "release_evidence": {
+    "packages": [
+      {
+        "id": "text_editor",
+        "version": "0.2.3",
+        "source_commit": "f7f006f78bf1f83c28f3ce05728b8973e895956b",
+        "workflow_run_id": 36965130240,
+        "artifact_id": 11209466823,
+        "artifact_sha256": "sha256:b361650f521e33d0c79d480a46c55a30fce36539006484ce4c3e27c5844bfbcb"
+      },
+      {
+        "id": "timecard",
+        "version": "1.0.4",
+        "source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
+        "workflow_run_id": 37020390546,
+        "artifact_id": 11232663876,
+        "artifact_sha256": "sha256:27d516c15638f7e91e7914d5407f5cd8fda66b7facd8c148c5b8fbba83ac3460"
+      }
+    ],
+    "checked_at": "2026-10-02T14:37:07Z",
+    "note": "Reader Actions app-package artifacts contain the versioned .rte.zip archives; each archive digest and size was cross-checked against the public GitHub Release asset, and the nested ELF digest/size was read from .package.json."
+  }
 }
