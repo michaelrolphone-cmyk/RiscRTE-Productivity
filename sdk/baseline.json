@@ -158,9 +158,9 @@
     {
       "path": "test/native_apps/timecard_clock_failure_test.c",
       "upstream_path": "test/native_apps/timecard_clock_failure_test.c",
-      "git_blob": "e1cfe094fb53e3c315058df1c050bd13fefa5552",
-      "sha256": "50c9f03b895703ac5cab42a82226e82aded907b4e030927edff37467d9b9672d",
-      "source_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
+      "git_blob": "d4d4e501531c3327b228e58a0e4dde974788e7be",
+      "sha256": "5c73821184ffadd1fabb73377dd2f4752ce49794f054ef7c0a92e7b43d613a1d",
+      "source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0"
     },
     {
       "path": "test/native_apps/timecard_clock_failure_source_test.py",
@@ -168,6 +168,20 @@
       "git_blob": "83b962f9fe4a0a5e33429b5cd44f5d740dc173be",
       "sha256": "7e3e4d2d00ca413754f5b155a63c83488bba0b119a99023d79504d76f9bb9c69",
       "source_commit": "4530c8b23b13a64f29c212cd64f1e86b05885287"
+    },
+    {
+      "path": "test/native_apps/timecard_store_failure_source_test.py",
+      "upstream_path": "test/native_apps/timecard_store_failure_source_test.py",
+      "git_blob": "b3ba2550b4192da82987c4501d4c14ff94f082ad",
+      "sha256": "342a062f7802c2f27c31e6d0d65f8d53937904e2f297b3ec0b936558c78b562d",
+      "source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0"
+    },
+    {
+      "path": "test/native_apps/timecard_store_failure_test.c",
+      "upstream_path": "test/native_apps/timecard_store_failure_test.c",
+      "git_blob": "57ad553d7ed25344fb401bf2c750cfb149e279c8",
+      "sha256": "a161c380bd70426371082f0301227624f2c07cf9839209064c7baff38dbfb457",
+      "source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0"
     }
   ],
   "exports_sha256": "a88ca6059db7ab70ee41f5557f30e41158812de58eb6d898902a48b0a19c1649",

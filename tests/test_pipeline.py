@@ -20,6 +20,21 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(rows), 5)
         self.assertTrue(all(row['state'] == 'unchanged' for row in rows))
 
+    def test_current_source_drift_records_upstream_convergence(self):
+        inventory = json.loads((ROOT / 'productivity-manifest.json').read_text())
+        report = json.loads((ROOT / 'docs/source-drift.json').read_text())
+        self.assertEqual(report['reader_commit'], inventory['upstream_commit'])
+        states = {row['path']: row['state'] for row in report['files']}
+        self.assertEqual(inventory['upstream_commit'],
+                         '00f9b2458dbfdae2188f2695634edb40c65c7ab0')
+        for path in ('Apps/text_editor.json', 'Apps/timecard.json', 'Apps/timecard.c',
+                     'test/native_apps/timecard_clock_failure_test.c'):
+            self.assertEqual(states[path], 'converged')
+        self.assertEqual(states['Apps/text_editor.c'], 'unchanged')
+        self.assertEqual(states['Apps/text_editor_core.h'], 'unchanged')
+        self.assertEqual(states['test/native_apps/timecard_store_failure_test.c'], 'converged')
+        self.assertEqual(states['test/native_apps/timecard_store_failure_source_test.py'], 'converged')
+
     def test_three_way_conflict_preservation(self):
         for base, local, upstream, state in [('a','a','a','unchanged'), ('a','b','b','converged'),
                                             ('a','a','b','upstream-only'), ('a','b','a','external-only'),

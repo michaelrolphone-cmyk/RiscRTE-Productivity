@@ -1,23 +1,49 @@
 {
-  "release_index_commit": "a8763df20c1e5d42ecac6e166b48d0d13b3e4c70",
-  "apps": [
+  "reader_source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
+  "package_releases": [
     {
       "id": "text_editor",
-      "version": "0.2.2",
-      "published_version": "0.2.2",
-      "byte_parity": true,
-      "required": true,
-      "built_sha256": "54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f",
-      "published_sha256": "54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f"
+      "version": "0.2.3",
+      "source_commit": "f7f006f78bf1f83c28f3ce05728b8973e895956b",
+      "workflow_run_id": 36965130240,
+      "artifact_id": 11209466823,
+      "artifact_sha256": "b361650f521e33d0c79d480a46c55a30fce36539006484ce4c3e27c5844bfbcb"
     },
     {
       "id": "timecard",
-      "version": "1.0.2",
-      "published_version": "1.0.2",
+      "version": "1.0.4",
+      "source_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
+      "workflow_run_id": 37020390546,
+      "artifact_id": 11232663876,
+      "artifact_sha256": "sha256:27d516c15638f7e91e7914d5407f5cd8fda66b7facd8c148c5b8fbba83ac3460"
+    }
+  ],
+  "apps": [
+    {
+      "id": "text_editor",
+      "version": "0.2.3",
+      "published_version": "0.2.3",
       "byte_parity": true,
       "required": true,
-      "built_sha256": "38ea52335fcb8adf0ea7b31768e1162623c5c95d8dadb5e181f1f065fd95c33f",
-      "published_sha256": "38ea52335fcb8adf0ea7b31768e1162623c5c95d8dadb5e181f1f065fd95c33f"
+      "built_sha256": "54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f",
+      "published_sha256": "54f609bf6e38190f5c5cde8b40da55420af4e3e354da42b182ccf99acb60e36f",
+      "size_bytes": 18256,
+      "release_asset": "application-text_editor-0.2.3-xtensa-esp32s3.rte.zip",
+      "release_asset_size": 19411,
+      "release_asset_sha256": "6d3963b8e42460ed80a877b60796a93fadd72d44c4447b45fb7965a678798df0"
+    },
+    {
+      "id": "timecard",
+      "version": "1.0.4",
+      "published_version": "1.0.4",
+      "byte_parity": true,
+      "required": true,
+      "built_sha256": "80d6c1dbeae61fb322601c227a10cac15d64b652573632fd3847d5888fcd4047",
+      "published_sha256": "80d6c1dbeae61fb322601c227a10cac15d64b652573632fd3847d5888fcd4047",
+      "size_bytes": 14572,
+      "release_asset": "application-timecard-1.0.4-xtensa-esp32s3.rte.zip",
+      "release_asset_size": 15598,
+      "release_asset_sha256": "5b95019fb2fbd2f95737a02af14b0c3abbbefcc89174d1fbc74fa98a5346558c"
     }
   ]
 }

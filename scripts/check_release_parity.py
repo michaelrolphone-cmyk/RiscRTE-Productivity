@@ -44,10 +44,16 @@ def main():
         match = compare(expected, app, data)
         rows.append({'id': app['id'], 'version': app['version'], 'published_version': expected['version'],
                      'byte_parity': match, 'required': app['id'] in required,
-                     'built_sha256': hashlib.sha256(data).hexdigest(), 'published_sha256': expected['sha256']})
+                     'built_sha256': hashlib.sha256(data).hexdigest(), 'published_sha256': expected['sha256'],
+                     'release_asset': expected['package_asset'],
+                     'release_asset_sha256': expected['package_sha256'],
+                     'release_asset_size': expected['package_size']})
         if app['id'] in required and not match:
             failed.append(app['id'])
-    report = {'release_index_commit': baseline['release_index_commit'], 'apps': rows}
+    evidence = baseline['release_evidence']
+    report = {'reader_source_commit': baseline['reader_source_commit'],
+              'package_releases': evidence['packages'],
+              'apps': rows}
     (ROOT / 'dist/apps/release-parity.json').write_text(json.dumps(report, indent=2) + '\n')
     if failed:
         raise ValueError('Required published-byte parity failed: ' + ', '.join(failed))

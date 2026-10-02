@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.2**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
+Timecard is a local weekly time-tracking application. Its manifest identifies `timecard.elf`, version **1.0.4**, minimum firmware **1.1.8**, categories `Productivity` and `Time`.
 
 It stores clock-in, lunch-start, lunch-end, and clock-out punches and computes worked time from those punches.
 
@@ -52,7 +52,7 @@ The current JSON shape is:
 
 Only punch fields that are set are emitted. Storage uses `write_file_atomic`.
 
-The in-memory JSON working buffer is 49,152 bytes. Invalid/unreadable stored data causes the load operation to fail rather than being silently reinterpreted.
+The in-memory JSON working buffer is 49,152 bytes. Invalid, incomplete, or unreadable stored data causes a load failure instead of being silently reinterpreted. History updates are staged until the full document parses; a failed read preserves previously loaded history and switches the app to read-only mode until a clean retry.
 
 ## Screens and workflow
 
@@ -95,4 +95,4 @@ Touch uses the shared UI hit-test API. Confirm activates the selected row; Previ
 
 ## Migration verification
 
-Source and manifest match Reader `4530c8b23b13a64f29c212cd64f1e86b05885287`. The independent pinned build reproduces the existing app release ELF exactly. See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
+Source and manifest match Reader master `00f9b2458dbfdae2188f2695634edb40c65c7ab0`. The current released RTE package SHA-256 is `5b95019fb2fbd2f95737a02af14b0c3abbbefcc89174d1fbc74fa98a5346558c` (15,598 B); its nested ELF SHA-256 is `80d6c1dbeae61fb322601c227a10cac15d64b652573632fd3847d5888fcd4047` (14,572 B). See [readiness and removal criteria](../MIGRATION_READINESS.md), [build instructions](../BUILD.md), and [byte-parity evidence](../release-parity.json). This establishes current-master source/build parity, not prospective U1 package/runtime acceptance.
