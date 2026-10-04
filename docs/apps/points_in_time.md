@@ -1,33 +1,27 @@
-# Points in Time 0.1.0
+# Points in Time 0.2.0
 
 An original shared Productivity app for up to eight recurring daily points:
 Work start, Work end, Lunch, Break and Bedtime. This is separate from the existing
 Timecard app. Meetings, birthdays and arbitrary appointment categories are outside
-this version's scope. No demonstration schedule is installed.
+this version's scope. No demonstration schedule is installed. The attached NOVA-7 mockup also illustrates custom point kinds and a separate three-minute warning; those controls are intentionally omitted because the current shared 64-byte record and two-edge ledger cannot persist or schedule them.
 
 ## Touch workflow on a 240 × 240 display
 
-- The list has two pages of four numbered slots. Prev/Next changes the page.
-- Tap an empty or existing slot. Type, Time, Days, Alert and Duration each open a
-  focused editor. Back returns to the point; Back from the point discards the draft.
-- Time editing is explicitly labeled 24-hour HH:MM. Hour/minute up/down wraps at
-  23/59. The list and point summary respect the shared 12-/24-hour preference;
-  missing, invalid or unavailable preference falls back to 12-hour AM/PM.
-- Select any Sunday-through-Saturday combination, All, M-F, or Clear. An enabled
+- The watch-native NOVA-7 view uses a black/cyan 240×240 presentation with a chronological scrolling point list, active/total count, per-type color accents and a `+ ADD POINT` row. Disabled points remain visible but dimmed.
+- Tap a point to open a scrolling edit sheet for Type, Time, Duration, Days, Notify, Enabled, Save and Delete. Back from a nested editor returns to the point; Back from the point discards the draft.
+- Time and duration use drum-style five-row pickers. Dragging a column or tapping an adjacent row changes it; minutes move in five-minute steps. The list and point summary respect the shared 12-/24-hour preference; missing, invalid or unavailable preference falls back to 12-hour AM/PM.
+- Select any Sunday-through-Saturday combination, Every day, Mon-Fri, Weekend, or None. An enabled
   point requires at least one selected weekday. Disabled points may have none.
 - Alert modes are System default (0), Vibrate (1), Sound (2), and Sound and vibrate
   (3). Output selection and the global default belong to the alarm service.
-- Lunch and Break optionally have a 0–720 minute duration, with one-hour, five-minute and
-  one-minute controls. Zero means no end alert. Choosing another type clears its draft duration.
+- Lunch and Break optionally have a 0–720 minute duration selected from the drum control. Zero means no end alert. Choosing another type clears its draft duration.
 - On/Off changes the draft only. Save opens a confirmation explaining the catalog
   reset. Save now commits; Back returns without writing.
 - Tap the bottom status line to refresh/retry. Failed dependencies and invalid
   storage have an explicit Retry button. An uncertain save has a dedicated Retry
   save button and locks all editing and normal Back navigation until confirmed.
 
-Empty slots have an all-zero record. Opening an empty editor merely chooses Work
-start as an unsaved type. It does not enable the point, choose weekdays, or write
-anything. There are no periodic app writes, default repairs or heartbeat saves.
+Empty slots have an all-zero record. `+ ADD POINT` creates only an in-memory draft (Break, next five-minute boundary, weekdays, vibrate, 15-minute duration) until Save is confirmed; it does not write anything before that explicit save. There are no periodic app writes, default repairs or heartbeat saves.
 
 ## Important: each save resets the whole catalog
 
