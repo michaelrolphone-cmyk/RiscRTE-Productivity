@@ -21,7 +21,7 @@ This repository contains applications for writing, tracking, organization, and o
 
 The preserved Reader migration pipeline builds only Text Editor and Timecard; a Reader checkout is not required. CI produces development ELF/sidecar evidence, never releases or changes live catalogs. Reader remains a read-only reference.
 
-Points in Time 0.1.0 is an original, separate portable application. Its exact-pinned System adapter and Utilities records/service inputs are built through a separate development workflow. It does not extend the migration baseline, duplicate Runtime, or turn Timecard into a Watch app. See [Points build and verification](docs/POINTS_IN_TIME_BUILD.md).
+Points in Time 0.2.0 is an original, separate portable application with the NOVA-7 watch-native list/editor UX. Its exact-pinned System adapter and Utilities records/service inputs are built through a separate development workflow. It does not extend the migration baseline, duplicate Runtime, or turn Timecard into a Watch app. See [Points build and verification](docs/POINTS_IN_TIME_BUILD.md).
 
 ## Documentation and parity policy
 
