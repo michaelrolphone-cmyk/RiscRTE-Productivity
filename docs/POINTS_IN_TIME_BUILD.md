@@ -1,6 +1,6 @@
 # Points in Time shared development build
 
-Points in Time 0.1.0 is an original application under `portable_apps`, separate from
+Points in Time 0.2.0 is an original application under `portable_apps`, separate from
 `apps` (Text Editor 0.2.3 / Timecard 1.0.4). The pinned legacy SDK, Reader parity
 baselines, previous build workflow and existing app sources remain unchanged.
 
@@ -62,9 +62,7 @@ normal and ASan/UBSan (six binaries). It checks:
   read failures block changes. Save/readback/reload preserves all eight slots.
 - Failed put with and without persistence, failed readback after commit, byte-exact
   retry, editing/Back lock while uncertain, monotonic revision and no implicit save.
-- Every edit page, both list pages, slot eight, selection hit regions, enabled/day
-  validation, all four alert modes, all five types, hour/minute wrap, duration clamps,
-  type-change duration clearing and draft discard.
+- The compatibility fixture still exercises every persisted edit page, slot eight, selection hit regions, enabled/day validation, all four alert modes, all five persisted types, hour/minute wrap, duration clamps, type-change duration clearing and draft discard. Target builds additionally compile the NOVA-7 presentation path and private shared presentation contract.
 - 12-hour midnight/noon AM/PM formatting, shared 24-hour preference, zero-write default.
 - RTC/service failures, each missing dependency, exactly sized 240×240 UI bounds,
   labels fitting the actual adapter's 6-pixel character cells, native alert dismissal,
