@@ -444,12 +444,14 @@ static void nova_tap(int x,int y) {
     if(writer.uncertain||!writer.loaded){if(y>=130)retry_action();return;}
     if(page!=PAGE_LIST&&page!=PAGE_SAVE)notice="Draft only - not saved";
     if(page==PAGE_LIST) {
-        if(y<60||y>=216)return;unsigned order[POINTS_MAX],count=nova_configured(order);
+        if(y<60||y>=216)return;
+        unsigned order[POINTS_MAX],count=nova_configured(order);
         unsigned index=nova_list_scroll+(unsigned)(y-60)/38u;
         if(index<count){edit_slot(order[index]);nova_edit_scroll=0;nova_delete_confirm=false;}
         else if(index==count&&count<POINTS_MAX)nova_new_point();
     } else if(page==PAGE_EDIT) {
-        if(y<60||y>=216)return;unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;
+        if(y<60||y>=216)return;
+        unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;
         if(row==0)page=PAGE_TYPE;
         else if(row==1)page=PAGE_TIME;
         else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration only for Lunch / Break";}
