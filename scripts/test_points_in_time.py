@@ -11,7 +11,7 @@ def main():
     parser.add_argument('--system-apps', required=True, type=Path)
     parser.add_argument('--utilities', required=True, type=Path)
     args = parser.parse_args()
-    includes = [args.utilities/'lib/Alarm/include', args.system_apps/'lib/PortableApps/include', args.system_apps/'lib/NativeApps/include']
+    includes = [args.utilities/'lib/Alarm/include', args.system_apps/'lib/PortableApps/include', args.system_apps/'lib/NativeApps/include', args.system_apps/'Apps']
     output = ROOT/'build/points-in-time'
     output.mkdir(parents=True, exist_ok=True)
     for variant, defines in [('bare', []), ('shared', ['-DPORTABLE_ALARM_CLIENT']),
