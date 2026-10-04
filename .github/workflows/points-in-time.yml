@@ -1,0 +1,43 @@
+name: Points in Time development build
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  points-in-time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 911be9e8042f1bcc46038fb70189eebe4ca106c5
+          path: .deps/system-apps
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: 06104e746c6b83542c260250b91dab5ed5386eaf
+          path: .deps/utilities
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify new inventory and preserve Reader migration baselines
+        run: python -m unittest discover -s tests -v
+      - name: Test Points UI, storage uncertainty and foreground lifecycle
+        run: python scripts/test_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities
+      - name: Install pinned public compiler
+        run: |
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+      - name: Build development ELF with exact shared dependencies
+        run: python scripts/build_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities
+      - uses: actions/upload-artifact@v4
+        with:
+          name: points-in-time-development-${{ github.sha }}
+          path: dist/points-in-time/
+          if-no-files-found: error
+          retention-days: 14
