@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.1.0', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.2.0', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
@@ -72,7 +72,7 @@ def main():
     defines = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_ALARM_CLIENT']
     if args.denver:
         defines.append('-DPORTABLE_RTC_UTC8_DENVER')
-    includes = [utilities/'lib/Alarm/include', system/'lib/PortableApps/include', system/'lib/NativeApps/include']
+    includes = [utilities/'lib/Alarm/include', system/'lib/PortableApps/include', system/'lib/NativeApps/include', system/'Apps']
     sources = [ROOT/app['source_path'], system/'lib/PortableApps/src/adapter.c', catalog]
     subprocess.run([cc, '-std=c11', '-Os', '-fPIC', '-mtext-section-literals', '-mlongcalls', '-fvisibility=hidden',
                     '-ffreestanding', '-fno-builtin', '-nostdlib', '-nostartfiles', '-shared', '-Wl,--no-relax',
@@ -124,6 +124,6 @@ def main():
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.1.0: exact pins, target ELF validator and import/export checks passed')
+    print('Points in Time 0.2.0: exact pins, target ELF validator and import/export checks passed')
 if __name__ == '__main__':
     main()
