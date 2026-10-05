@@ -15,7 +15,8 @@ def main():
     output = ROOT/'build/points-in-time'
     output.mkdir(parents=True, exist_ok=True)
     for variant, defines in [('bare', []), ('shared', ['-DPORTABLE_ALARM_CLIENT']),
-                             ('return', ['-DPORTABLE_ALARM_CLIENT', '-DPOINTS_RETURN_APP="springboard.elf"'])]:
+                             ('return', ['-DPORTABLE_ALARM_CLIENT', '-DPOINTS_RETURN_APP="springboard.elf"']),
+                             ('nova', ['-DPORTABLE_ALARM_CLIENT', '-DPORTABLE_NOVA_UI'])]:
         for sanitized in (False, True):
             binary = output/f'ui-{variant}-{int(sanitized)}'
             flags = list(defines)
@@ -24,6 +25,6 @@ def main():
             subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', *flags,
                             *['-I'+str(path) for path in includes], str(ROOT/'test/native_apps/points_in_time_test.c'), '-o', str(binary)], check=True, timeout=120)
             subprocess.run([str(binary)], check=True, timeout=120)
-    print('Points app bare/shared-client/root-return normal and ASan/UBSan production-source tests passed')
+    print('Points app bare/shared-client/root-return/NOVA-keyboard normal and ASan/UBSan production-source tests passed')
 if __name__ == '__main__':
     main()
