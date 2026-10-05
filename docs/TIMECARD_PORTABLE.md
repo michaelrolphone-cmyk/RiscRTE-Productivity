@@ -1,10 +1,12 @@
 # Timecard portable UI/model profile 0.1.0
 
-This is development work toward the existing Timecard on small displays. It is
-not an installable Watch application yet: the current paired Watch has no writable
-user-data filesystem with the required atomic replacement contract. The builder
-therefore emits `timecard-ui-development.elf`, provenance and an explicit
-`NOT_INSTALLABLE.txt`, with **no deployable manifest or launcher entry**.
+This profile adapts the existing Timecard to small displays. The default builder
+emits `timecard-ui-development.elf` and `NOT_INSTALLABLE.txt` for UI/model tests.
+The explicit `--package-profile --runtime-appdata /exact/Runtime` path emits
+`timecard.elf` and its ordinary capability manifest after verifying the clean,
+exact published Runtime dependency. The package requires writable app-data;
+the Watch integrator selects the opt-in ABI 2 layout and provisions its separate
+LittleFS volume. Preparing this package does not install or migrate a device.
 
 ## One authoritative model
 
@@ -23,7 +25,7 @@ Editing is invocation-local: DONE saves, Back cancels, and the same opaque core
 cookie identifies the original day/punch. An external app handoff exits without
 queuing a competing Home request.
 
-System dependency: `a708a45ef47a4d625c1da9fd334bbbd817aa3e15` (PR46). This profile
+System dependency: `dbd358746bc8f1254619ca42073e1d44f6ad45df` (PR46). This profile
 requires no edits to System Apps, Runtime or Watch for its independent UI tests.
 All drawing uses the existing shared renderer and embedded font/FontAwesome
 assets. Shared functions, not board or pin constants, own display/touch/RTC.
@@ -81,7 +83,8 @@ preference loads and navigation do not write history.
 The app-local `timecard_portable_file_storage()` link seam returns the existing
 `T5StorageApi` complete-file callbacks. Its default is NULL, which renders an
 honest unavailable screen and never interprets missing storage as an empty
-writable history. Only host fixtures supply an implementation in this increment.
+writable history. Host fixtures supply an implementation for independent model tests;
+`TIMECARD_APP_DATA` supplies the real versioned capability bridge.
 There is no new Runtime import or arbitrary KV-based file representation.
 
 A real adapter must map only `/sd/.crosspoint/timecard.json` to its admitted
@@ -92,8 +95,8 @@ preserve the prior file until complete replacement; ambiguous commits remain
 explicit. No bootfs writes, formatting, partition changes or installed-files
 capability are hidden in this frontend.
 
-KV@2's 2,048-byte values and shared 24 KiB NVS are still insufficient. The separate
-app-data prototype investigates a dedicated LittleFS partition and explicitly
+KV@2's 2,048-byte values and shared 24 KiB NVS are still insufficient.
+Runtime 0.1.30 supplies a dedicated LittleFS partition and explicitly
 scoped ordinary files, preserving both boot stores. A new paired layout must
 remain opt-in and incompatible old OTA must be rejected. This document does not
 claim that backend, provisioning, layout transition or reflash preservation is
@@ -103,9 +106,13 @@ implemented by the UI profile.
 
 ```
 python scripts/test_timecard_portable.py --system-apps /exact/System-Apps
+bash scripts/test_timecard_app_data.sh /exact/Runtime
 python -m unittest discover -s tests -v
 NATIVE_APP_CC=/path/to/xtensa-esp32s3-elf-gcc \
   python scripts/build_timecard_portable.py --system-apps /exact/System-Apps
+NATIVE_APP_CC=/path/to/xtensa-esp32s3-elf-gcc \
+  python scripts/build_timecard_portable.py --system-apps /exact/System-Apps \
+    --runtime-appdata /exact/Runtime --package-profile --denver
 ```
 
 The tests run normal and ASan/UBSan variants for strict parsing, unchanged legacy
@@ -126,7 +133,15 @@ builds both legacy apps and checks their old release identities. These are host
 and target-build results, not execution of Xtensa instructions on a device,
 physical file durability, power-cut qualification, installation or deployment.
 
-## Explicit app-data prototype bridge
+The consumer/backend check links the production Timecard facade and strict
+validator directly to Runtime's production `AppDataFiles.cpp`. Normal and
+ASan/UBSan runs cover a complete 400-day document padded to 49,151 bytes,
+namespace isolation and cross-namespace CAS invalidation, ENOSPC, actual
+rename-before/after uncertainty, remount and retained-close failure. The test
+uses a temporary host directory; Runtime's separate pinned LittleFS cut tests
+cover its disk core. Neither test performs device I/O.
+
+## Explicit app-data bridge and package
 
 The optional `--runtime-appdata /prototype/Runtime` build/test argument compiles
 `TIMECARD_APP_DATA` against that checkout's `RiscAppDataV1.h`. This is a separate
@@ -154,3 +169,19 @@ unbound until an explicitly selected app-data deployment replaces that profile.
 The builder also accepts --alarm-client and --navigation to target-compile the existing shared lifecycle interfaces. These flags do not themselves claim a deployable Watch graph or physical sleep qualification.
 
 CI also target-builds --app-data-client --alarm-client --navigation --denver against the recorded consumer declaration. This compiles the complete client/lifecycle combination without pretending that a Runtime implementation is embedded or pinned by that client-only artifact.
+
+The package path enables the alarm and navigation clients and declares all seven
+capabilities: display.output@1, input.touch.raw@1, input.navigation@1, rtc.clock@2,
+storage.key-value@1, alarm.service@1 and storage.app-data@1. Timecard uses app-data
+namespace 1 and reads the shared time-format preference from KV namespace 1.
+The owner manifest contains no provider instance IDs; the board graph grants
+the exact instances and adds its local sleep/Quick Controls requirements.
+The original Reader manifest remains version 1.0.4; the portable profile has its
+own 0.1.0 identity and records the unchanged model source separately.
+
+Runtime dependency for the integration package: `1d9bcb204a0b12ac6483511f32ba56da47699404`
+(version 0.1.30). Watch ABI 2 uses 0x260000-byte native slots, a separate
+512 KiB app-data partition at 0x270000 and 0x510000-byte boot stores.
+The legacy paired layout remains a separate build. Boot never formats or grows
+the app-data volume; initial installation is explicit and full-device reflash
+can overwrite history. The board image owns that transition.

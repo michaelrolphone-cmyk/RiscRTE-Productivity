@@ -32,5 +32,6 @@ Each app has a dedicated source-derived page covering its interfaces, workflows,
 [Timecard portable UI/model profile](docs/TIMECARD_PORTABLE.md) reuses the existing
 1.0.4 source with NOVA rendering, the standard Points keyboard and safer input/
 history guards. It has independent host/target evidence and preserves the legacy
-migration build. Writable app-data support is still required before any Watch
-launcher or installable package includes it.
+migration build. Its explicit package mode requires the exact published app-data
+Runtime dependency. Watch integration selects the separate ABI 2 layout and
+provisioned filesystem; the default UI build remains unbound.
