@@ -3,13 +3,13 @@
  * left-aligned Orbitron/Rajdhani hierarchy, 40px single-line rows, per-type
  * left rails, 1px row rules, inline day controls and the shared Nova keyboard. */
 #include "PortableNovaUi.h"
-#include "PortableNovaKeyboard.h"
+#include "points_watch_keyboard.h"
 
 #define P7_ROW_TOP 82
 #define P7_ROW_H 40
 #define P7_VIEW_BOTTOM 202
 #define P7_BACK_Y 204
-#define P7_EDIT_STEP 36
+#define P7_EDIT_STEP 1
 #define P7_DARK 0x001418u
 #define P7_KEY_BG 0x14191cu
 
@@ -18,6 +18,12 @@ static void p7_header(const char *title,const char *sub,uint32_t dot) {
     portable_nova_text(0,dot?35:20,49,dot?185:200,title,NOVA_CYAN);
     if(sub&&*sub)portable_nova_text(3,20,68,200,sub,NOVA_CAP);
     portable_nova_fill(20,80,200,1,NOVA_DIM);
+}
+/* Redraw fixed chrome after scrolling content: no row can paint over it. */
+static void p7_chrome(const char *title,const char *sub,uint32_t dot,bool footer) {
+    portable_nova_fill(0,0,240,P7_ROW_TOP,0);
+    if(footer)portable_nova_fill(0,P7_VIEW_BOTTOM,240,240-P7_VIEW_BOTTOM,0);
+    p7_header(title,sub,dot);
 }
 static void p7_back(void){portable_nova_button(82,P7_BACK_Y,76,30,"< BACK",false);}
 static void p7_divider(int y){portable_nova_fill(20,y,200,1,NOVA_LINE);}
@@ -28,12 +34,12 @@ static void p7_toggle(int x,int y,bool on) {
     portable_nova_round(x+2,y+2,44,16,8,0x000000u);
     if(on) {
         portable_nova_round(x+24,y+2,22,16,7,NOVA_CYAN);
-        portable_nova_center(NOVA_FACE_ORBITRON_10,x+25,y+3,20,"ON",P7_DARK);
-        portable_nova_center(NOVA_FACE_ORBITRON_10,x+3,y+3,20,"OFF",0x4a666bu);
+        portable_nova_center(3,x+25,y+4,20,"ON",P7_DARK);
+        portable_nova_center(3,x+3,y+4,20,"OFF",0x4a666bu);
     } else {
         portable_nova_round(x+2,y+2,22,16,7,0x1c2a2eu);
-        portable_nova_center(NOVA_FACE_ORBITRON_10,x+3,y+3,20,"OFF",NOVA_TEXT);
-        portable_nova_center(NOVA_FACE_ORBITRON_10,x+25,y+3,20,"ON",0x4a666bu);
+        portable_nova_center(3,x+3,y+4,20,"OFF",NOVA_TEXT);
+        portable_nova_center(3,x+25,y+4,20,"ON",0x4a666bu);
     }
 }
 static void p7_checkbox(int x,int y,bool on,bool enabled) {
@@ -50,16 +56,24 @@ static void p7_checkbox(int x,int y,bool on,bool enabled) {
 static void p7_outline_pill(int x,int y,int w,int h,const char *text) {
     portable_nova_round(x,y,w,h,h/2,NOVA_DIM);
     portable_nova_round(x+1,y+1,w-2,h-2,(h-2)/2,0x000000u);
-    portable_nova_center(NOVA_FACE_ORBITRON_10,x+3,y+3,w-6,text,NOVA_CYAN);
+    portable_nova_center(portable_nova_measure(NOVA_FACE_ORBITRON_10,text)<=w-6?NOVA_FACE_ORBITRON_10:3,x+3,y+3,w-6,text,NOVA_CYAN);
+}
+static void p7_name(int x,int y,int width,const char *name,uint32_t color) {
+    char shown[32];snprintf(shown,sizeof(shown),"%s",name);
+    if(portable_nova_measure(2,shown)>width) {
+        size_t n=strlen(shown);if(n>sizeof(shown)-4)n=sizeof(shown)-4;
+        do {shown[n]='.';shown[n+1]='.';shown[n+2]='.';shown[n+3]=0;if(portable_nova_measure(2,shown)<=width)break;}while(n--);
+    }
+    portable_nova_text(2,x,y,width,shown,color);
 }
 static void p7_list(void) {
     unsigned order[POINTS_MAX],count=nova_configured(order),active=nova_active_count();
     char sub[32];snprintf(sub,sizeof(sub),"%u ACTIVE  %u TOTAL",active,count);
     portable_nova_begin();p7_header("POINTS IN TIME",sub,0);
-    unsigned rows=count+(count<POINTS_MAX?1u:0u),max=rows>4?rows-4:0;
+    unsigned rows=count+(count<POINTS_MAX?1u:0u),max=rows*P7_ROW_H>158?rows*P7_ROW_H-158:0;
     if(nova_list_scroll>max)nova_list_scroll=max;
-    for(unsigned r=0;r<4;r++) {
-        unsigned index=nova_list_scroll+r;if(index>=rows)break;int y=P7_ROW_TOP+(int)r*P7_ROW_H;
+    for(unsigned index=0;index<rows;index++) {
+        int y=P7_ROW_TOP+(int)index*P7_ROW_H-(int)nova_list_scroll;if(y+P7_ROW_H<=P7_ROW_TOP||y>=240)continue;
         if(index==count) {
             p7_rail(y,NOVA_DIM);p7_divider(y+P7_ROW_H-1);
             portable_nova_text(1,32,y+10,180,"+ ADD POINT",NOVA_CYAN);continue;
@@ -70,11 +84,16 @@ static void p7_list(void) {
         uint32_t rail=p->enabled?nova_kind_color(p->kind):NOVA_LINE;
         uint32_t time_col=p->enabled?NOVA_CYAN:NOVA_DIM,name_col=p->enabled?NOVA_WHITE:NOVA_CAP,meta=p->enabled?NOVA_CAP:NOVA_DIM;
         p7_rail(y,rail);p7_divider(y+P7_ROW_H-1);
-        portable_nova_text(NOVA_FACE_ORBITRON_10,32,y+10,50,tm,time_col);
-        portable_nova_text(1,84,y+8,68,nova_kind_name(p->kind),name_col);
-        if(dur[0])portable_nova_text(3,151,y+11,31,dur,meta);
+        if(time_format==PORTABLE_TIME_FORMAT_12){
+            snprintf(tm,sizeof(tm),"%u:%02u",p->hour%12?p->hour%12:12,p->minute);
+            portable_nova_text(NOVA_FACE_ORBITRON_10,30,y+5,54,tm,time_col);
+            portable_nova_text(3,32,y+23,50,p->hour<12?"AM":"PM",meta);
+        }else portable_nova_text(NOVA_FACE_ORBITRON_10,30,y+10,54,tm,time_col);
+        p7_name(84,y+8,94,nova_kind_name(p->kind),name_col);
+        if(dur[0])portable_nova_text(3,84,y+24,90,dur,meta);
         portable_nova_right(3,179,y+11,41,days_text,meta);
     }
+    p7_chrome("POINTS IN TIME",sub,0,false);
 }
 static int p7_edit_offset(void){return (int)nova_edit_scroll*P7_EDIT_STEP;}
 static int p7_edit_y(int content_y){return content_y-p7_edit_offset();}
@@ -82,7 +101,7 @@ static void p7_edit_row(int cy,const char *label_text,const char *value,uint32_t
     int y=p7_edit_y(cy);if(y>=P7_VIEW_BOTTOM||y+P7_ROW_H<=81)return;
     p7_rail(y,NOVA_LINE);p7_divider(y+P7_ROW_H-1);
     portable_nova_text(1,32,y+9,108,label_text,NOVA_WHITE);
-    if(value&&*value)portable_nova_right(2,137,y+10,65,value,value_color);
+    if(value&&*value)portable_nova_right(3,130,y+12,72,value,value_color);
     if(chevron)p7_chevron(y);
 }
 static void p7_edit_check(int cy,const char *label_text,bool on,bool enabled) {
@@ -113,77 +132,68 @@ static void p7_edit(void) {
     nova_duration(value,draft.duration_minutes);p7_edit_row(cy,"DURATION",duration_kind(draft.kind)?value:"NOT USED",duration_kind(draft.kind)?NOVA_CYAN:NOVA_CAP,true);cy+=40;
     p7_edit_check(cy,"NOTIFY AT END",draft.notify_end,timed);cy+=40;
     p7_edit_check(cy,"3 MIN WARNING",draft.warn3,timed&&draft.duration_minutes>=3);cy+=40;
-    p7_edit_row(cy,"NOTIFY",nova_modes[draft.mode],NOVA_CYAN,true);cy+=40;
+    p7_edit_row(cy,"NOTIFY START",nova_modes[draft.mode],NOVA_CYAN,true);cy+=40;
     p7_days(cy);cy+=72;
     int y=p7_edit_y(cy);
     if(y<P7_VIEW_BOTTOM&&y+40>81){p7_rail(y,NOVA_LINE);p7_divider(y+39);portable_nova_text(1,32,y+9,120,"ENABLED",NOVA_WHITE);p7_toggle(164,y+10,draft.enabled);}cy+=40;
     y=p7_edit_y(cy);
     if(y<P7_VIEW_BOTTOM&&y+40>81){p7_rail(y,NOVA_LINE);p7_divider(y+39);portable_nova_text(1,32,y+9,170,nova_delete_confirm?"TAP AGAIN TO DELETE":"DELETE POINT",NOVA_RED);}
-    p7_back();
+    const char *subtitle=nova_kind_name(draft.kind);
+    if(notice&&(!strcmp(notice,"Choose at least one day")||!strcmp(notice,"Service blocked: retry")||!strcmp(notice,"RTC invalid: retry")||!strcmp(notice,"Point or revision invalid")))subtitle=notice;
+    p7_chrome(writer.saved.points[selected].kind?"EDIT POINT":"ADD POINT",subtitle,nova_kind_color(draft.kind),true);
+    portable_nova_button(20,204,94,30,"CANCEL",false);portable_nova_button(126,204,94,30,"SAVE",false);
 }
 static void p7_simple_header(const char *title,const char *sub){portable_nova_begin();p7_header(title,sub,0);}
 static unsigned p7_type_count(unsigned choice[8]){return nova_type_choices(choice);}
 static void p7_type(void) {
     p7_simple_header("POINT TYPE","CHOOSE OR CREATE");
-    unsigned choice[8],count=p7_type_count(choice),max=count>3?count-3:0;if(nova_type_scroll>max)nova_type_scroll=max;
-    for(unsigned r=0;r<3;r++) {
-        unsigned at=nova_type_scroll+r;if(at>=count)break;unsigned kind=choice[at];int y=82+(int)r*40;
+    unsigned choice[8],count=p7_type_count(choice),max=count*40>120?count*40-120:0;if(nova_type_scroll>max)nova_type_scroll=max;
+    for(unsigned at=0;at<count;at++) {
+        int y=82+(int)at*40-(int)nova_type_scroll;if(y+40<=82||y>=202)continue;unsigned kind=choice[at];
         uint32_t col=kind?nova_kind_color(kind):NOVA_CYAN;p7_rail(y,col);p7_divider(y+39);
         if(!kind){portable_nova_text(1,32,y+9,180,"+ CUSTOM TYPE",NOVA_CYAN);continue;}
         portable_nova_text(1,32,y+9,145,nova_kind_name(kind),kind==draft.kind?col:NOVA_WHITE);
         if(custom_index(kind)<POINTS_CUSTOM_COUNT)portable_nova_right(3,178,y+11,42,"EDIT",NOVA_CAP);
         else if(kind==draft.kind)portable_nova_right(3,184,y+11,36,"ON",NOVA_CYAN);
     }
-    p7_back();
+    p7_chrome("POINT TYPE","CHOOSE OR CREATE",0,true);p7_back();
 }
 static void p7_mode(void) {
     p7_simple_header("NOTIFY","HOW TO ALERT YOU");
-    for(unsigned i=0;i<3;i++){unsigned at=nova_type_scroll+i;if(at>=4)break;int y=82+(int)i*40;p7_rail(y,at==draft.mode?NOVA_CYAN:NOVA_LINE);p7_divider(y+39);
+    for(unsigned at=0;at<4;at++){int y=82+(int)at*40-(int)nova_type_scroll;if(y+40<=82||y>=202)continue;p7_rail(y,at==draft.mode?NOVA_CYAN:NOVA_LINE);p7_divider(y+39);
         portable_nova_text(1,32,y+9,165,nova_modes[at],at==draft.mode?NOVA_CYAN:NOVA_WHITE);
         if(at==draft.mode)p7_checkbox(198,y+12,true,true);}
-    p7_back();
+    p7_chrome("NOTIFY START","END / WARNING ARE INDEPENDENT",0,true);p7_back();
 }
-static void p7_time(void) {
-    p7_simple_header("TIME","DRAG OR TAP A COLUMN");
-    for(int j=-2;j<=2;j++) {
-        int h=(int)draft.hour+j;while(h<0)h+=24;h%=24;int m=(int)draft.minute+j*5;while(m<0)m+=60;m%=60;
-        char left[4],right[4];snprintf(left,sizeof(left),"%02d",h);snprintf(right,sizeof(right),"%02d",m);
-        int y=59+(j+2)*28;uint32_t col=j?NOVA_CAP:NOVA_CYAN;
-        portable_nova_right(j?2:0,48,y,54,left,col);portable_nova_center(j?2:0,110,y,20,":",col);portable_nova_text(j?2:0,139,y,54,right,col);
-        if(!j){portable_nova_fill(34,y-4,172,1,NOVA_DIM);portable_nova_fill(34,y+28,172,1,NOVA_DIM);}
-    }
-    p7_back();
-}
-static void p7_duration(void) {
-    p7_simple_header("DURATION","END OF THIS POINT");
-    unsigned cur=draft.duration_minutes;
-    for(int j=-2;j<=2;j++) {
-        unsigned v=cur;if(j<0)for(int n=0;n<-j;n++)v=nova_duration_next(v,-1);else for(int n=0;n<j;n++)v=nova_duration_next(v,1);
-        char s[20];nova_duration(s,v);int y=59+(j+2)*28;uint32_t col=j?NOVA_CAP:NOVA_CYAN;
-        portable_nova_center(j?2:0,36,y,168,s,col);if(!j){portable_nova_fill(34,y-4,172,1,NOVA_DIM);portable_nova_fill(34,y+28,172,1,NOVA_DIM);}
-    }
-    p7_back();
-}
+#include "points_nova7_picker.inc"
 static void p7_custom(void) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;
-    p7_simple_header("CUSTOM TYPE","NAME AND COLOR");
-    portable_nova_round(20,91,200,38,12,NOVA_DIM);portable_nova_round(21,92,198,36,11,0);
-    portable_nova_text(0,32,101,176,custom_draft.custom[ci].name[0]?custom_draft.custom[ci].name:"TAP TO TYPE",custom_draft.custom[ci].name[0]?NOVA_WHITE:NOVA_CAP);
-    portable_nova_text(3,30,139,90,"COLOR",NOVA_CAP);
-    for(unsigned i=0;i<8;i++){int x=43+(int)(i%4)*42,y=153+(int)(i/4)*35;portable_nova_round(x,y,24,24,12,nova_custom_colors[i]);
+    p7_simple_header("CUSTOM TYPE",notice&&(!strcmp(notice,"Custom name cannot be empty")||!strcmp(notice,"Custom type save failed"))?notice:"NAME AND COLOR");
+    portable_nova_round(20,86,200,34,12,NOVA_DIM);portable_nova_round(21,87,198,32,11,0);
+    portable_nova_text(0,32,94,176,custom_draft.custom[ci].name[0]?custom_draft.custom[ci].name:"TAP TO TYPE",custom_draft.custom[ci].name[0]?NOVA_WHITE:NOVA_CAP);
+    portable_nova_text(3,30,123,90,"COLOR",NOVA_CAP);
+    for(unsigned i=0;i<8;i++){int x=43+(int)(i%4)*42,y=141+(int)(i/4)*32;portable_nova_round(x,y,24,24,12,nova_custom_colors[i]);
         if(custom_draft.custom[ci].color==i){portable_nova_round(x-3,y-3,30,30,15,NOVA_WHITE);portable_nova_round(x-1,y-1,26,26,13,0);portable_nova_round(x,y,24,24,12,nova_custom_colors[i]);}}
     portable_nova_button(24,207,82,28,"< BACK",false);portable_nova_button(134,207,82,28,"SAVE",false);
 }
 static void p7_keyboard(void) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;
-    portable_nova_begin();portable_nova_text(0,18,18,204,"CUSTOM TYPE",NOVA_CYAN);
-    portable_nova_text(0,18,52,204,custom_draft.custom[ci].name,NOVA_WHITE);
-    char status[32];snprintf(status,sizeof(status),"CHARACTERS %u / 12",custom_key_page+1);
-    portable_nova_center(3,18,69,204,status,NOVA_CAP);
-    for(unsigned i=0;i<8;i++){unsigned ch=portable_nova_key_character(custom_key_page,i);if(!ch)continue;char key[]={(char)ch,0};
-        portable_nova_button(16+(int)(i%4)*53,84+(int)(i/4)*48,49,44,ch==32?"SPACE":key,custom_key_choice==i);}
-    const char *labels[]={"PREV","NEXT","DEL","DONE"};
-    for(unsigned i=0;i<4;i++)portable_nova_button(16+(int)i*53,188,49,44,labels[i],custom_key_choice==8+i);
+    portable_nova_begin();
+    portable_nova_text(2,18,17,40,"<",NOVA_CYAN);
+    portable_nova_text(2,45,17,176,"CUSTOM TYPE",NOVA_CAP);
+    portable_nova_fill(18,40,204,1,NOVA_DIM);
+    portable_nova_text(2,18,48,204,p7_key_text,NOVA_CYAN);
+    for(unsigned i=0;i<P7_WATCH_KEY_CHARACTERS;i++) {
+        unsigned ch=p7_watch_key_character(custom_key_page,i);
+        char key[2]={(char)(ch?ch:' '),0};
+        p7_watch_key_button(12+(int)(i%8)*27,76+(int)(i/8)*24,25,22,
+                            ch==32?"_":key,custom_key_choice==i);
+    }
+    p7_watch_key_button(12,178,68,29,"ABC/#",custom_key_choice==P7_WATCH_KEY_PAGE);
+    p7_watch_key_button(84,178,68,29,"DELETE",custom_key_choice==P7_WATCH_KEY_DELETE);
+    p7_watch_key_button(156,178,72,29,"DONE",custom_key_choice==P7_WATCH_KEY_DONE);
+    char status[32];snprintf(status,sizeof(status),"%u / %u CHARACTERS",(unsigned)strlen(p7_key_text),POINTS_CUSTOM_NAME_MAX);
+    portable_nova_text(3,18,217,204,status,NOVA_CAP);
 }
 static void p7_problem(const char *title,const char *detail) {
     portable_nova_begin();p7_header("POINTS IN TIME",NULL,0);portable_nova_center(0,20,103,200,title,NOVA_RED);portable_nova_center(2,20,126,200,detail,NOVA_CAP);
@@ -226,23 +236,29 @@ static void p7_custom_save(void) {
     if(rc!=ALARM_OK){notice="Custom type save failed";return;}draft.kind=(uint8_t)custom_kind;page=PAGE_EDIT;notice="Custom type saved";
 }
 static void p7_key_activate(unsigned key) {
-    unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;char *name=custom_draft.custom[ci].name;size_t n=strlen(name);
-    if(key<8){unsigned ch=portable_nova_key_character(custom_key_page,key);if(ch&&n<POINTS_CUSTOM_NAME_MAX){if(ch>='a'&&ch<='z')ch-=32;name[n]=(char)ch;name[n+1]=0;}}
-    else if(key==8){custom_key_page=(custom_key_page+PORTABLE_NOVA_KEY_PAGES-1)%PORTABLE_NOVA_KEY_PAGES;custom_key_choice=0;}
-    else if(key==9){custom_key_page=(custom_key_page+1)%PORTABLE_NOVA_KEY_PAGES;custom_key_choice=0;}
-    else if(key==10){if(n)name[n-1]=0;}
-    else if(key==11){page=PAGE_CUSTOM;custom_key_choice=0;}
+    unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT || page!=PAGE_CUSTOM_KEYBOARD)return;
+    size_t n=strlen(p7_key_text);
+    if(key<P7_WATCH_KEY_CHARACTERS) {
+        unsigned ch=p7_watch_key_character(custom_key_page,key);
+        if(ch && n<POINTS_CUSTOM_NAME_MAX){p7_key_text[n]=(char)ch;p7_key_text[n+1]=0;}
+    } else if(key==P7_WATCH_KEY_PAGE)custom_key_page=(custom_key_page+1)%P7_WATCH_KEY_PAGES;
+    else if(key==P7_WATCH_KEY_DELETE){if(n)p7_key_text[n-1]=0;}
+    else if(key==P7_WATCH_KEY_DONE) {
+        memcpy(custom_draft.custom[ci].name,p7_key_text,sizeof(p7_key_text));
+        memset(p7_key_text,0,sizeof(p7_key_text));
+        page=PAGE_CUSTOM;custom_key_choice=0;notice="Name draft updated";
+    }
 }
 static bool p7_edit_content_hit(int x,int y) {
     if(y<81||y>=P7_VIEW_BOTTOM)return false;
     int cy=y+p7_edit_offset(),row=82;
     bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
     if(cy>=row&&cy<row+40){page=PAGE_TYPE;nova_type_scroll=0;return true;}row+=40;
-    if(cy>=row&&cy<row+40){page=PAGE_TIME;return true;}row+=40;
-    if(cy>=row&&cy<row+40){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";return true;}row+=40;
+    if(cy>=row&&cy<row+40){p7_picker_reset();page=PAGE_TIME;return true;}row+=40;
+    if(cy>=row&&cy<row+40){if(duration_kind(draft.kind)){p7_picker_reset();page=PAGE_DURATION;}else notice="Duration not used for this type";return true;}row+=40;
     if(cy>=row&&cy<row+40){if(timed)draft.notify_end^=1;else notice="Set a duration first";return true;}row+=40;
     if(cy>=row&&cy<row+40){if(timed&&draft.duration_minutes>=3)draft.warn3^=1;else notice="Set duration to at least 3 min";return true;}row+=40;
-    if(cy>=row&&cy<row+40){page=PAGE_MODE;nova_type_scroll=draft.mode>2?1:0;return true;}row+=40;
+    if(cy>=row&&cy<row+40){page=PAGE_MODE;nova_type_scroll=draft.mode>2?40:0;return true;}row+=40;
     if(cy>=row&&cy<row+72){
         int dy=cy-row;if(dy>=17&&dy<41&&x>=24&&x<220){unsigned d=(unsigned)(x-24)/28u;if(d<7)draft.weekdays^=(uint8_t)(1u<<d);}
         else if(dy>=48&&dy<68){if(x>=24&&x<84)draft.weekdays=127;else if(x>=88&&x<148)draft.weekdays=62;else if(x>=152&&x<212)draft.weekdays=65;}
@@ -259,58 +275,84 @@ static void nova7_tap(int x,int y) {
 #endif
     if(writer.uncertain||writer.meta_uncertain||!writer.loaded){if(y>=150)retry_action();return;}
     if(page==PAGE_CUSTOM_KEYBOARD) {
-        for(unsigned i=0;i<8;i++)if(portable_nova_hit(x,y,16+(int)(i%4)*53,84+(int)(i/4)*48,49,44)){custom_key_choice=i;p7_key_activate(i);return;}
-        for(unsigned i=0;i<4;i++)if(portable_nova_hit(x,y,16+(int)i*53,188,49,44)){custom_key_choice=8+i;p7_key_activate(8+i);return;}
-        return;
+        int key=p7_watch_key_hit(x,y);if(key>=0){custom_key_choice=(unsigned)key;p7_key_activate((unsigned)key);}return;
     }
     if(page!=PAGE_LIST)notice="Draft only - not saved";
     if(page==PAGE_LIST) {
         if(y<P7_ROW_TOP)return;
-        unsigned order[POINTS_MAX],count=nova_configured(order),index=nova_list_scroll+(unsigned)(y-P7_ROW_TOP)/P7_ROW_H;
+        unsigned order[POINTS_MAX],count=nova_configured(order),index=((unsigned)(y-P7_ROW_TOP)+nova_list_scroll)/P7_ROW_H;
         if(index<count){edit_slot(order[index]);nova_edit_scroll=0;nova_delete_confirm=false;}else if(index==count&&count<POINTS_MAX)p7_new_point();
     } else if(page==PAGE_EDIT) {
-        if(portable_nova_hit(x,y,72,196,96,44)){save_action();return;}p7_edit_content_hit(x,y);
+        if(portable_nova_hit(x,y,20,204,94,30)){page=PAGE_LIST;notice="Draft discarded";return;}if(portable_nova_hit(x,y,126,204,94,30)){save_action();return;}p7_edit_content_hit(x,y);
     } else if(page==PAGE_TYPE) {
-        if(portable_nova_hit(x,y,72,196,96,44)){page=PAGE_EDIT;return;}
-        if(y>=82&&y<202){unsigned choices[8],count=p7_type_count(choices),at=nova_type_scroll+(unsigned)(y-82)/40u;if(at<count){unsigned kind=choices[at];
+        if(portable_nova_hit(x,y,82,P7_BACK_Y,76,30)){page=PAGE_EDIT;return;}
+        if(y>=82&&y<202){unsigned choices[8],count=p7_type_count(choices),at=(nova_type_scroll+(unsigned)(y-82))/40u;if(at<count){unsigned kind=choices[at];
             if(!kind){for(unsigned i=0;i<POINTS_CUSTOM_COUNT;i++)if(!writer.meta.custom[i].name[0]){p7_custom_open(POINTS_CUSTOM_1+i,true);return;}}
             else if(custom_index(kind)<POINTS_CUSTOM_COUNT&&x>=170)p7_custom_open(kind,false);
             else {draft.kind=(uint8_t)kind;if(!duration_kind(kind)){draft.duration_minutes=0;draft.notify_end=draft.warn3=0;}page=PAGE_EDIT;}}}
     } else if(page==PAGE_MODE) {
-        if(portable_nova_hit(x,y,72,196,96,44)){page=PAGE_EDIT;return;}if(y>=82&&y<202){unsigned at=nova_type_scroll+(unsigned)(y-82)/40u;if(at<4){draft.mode=(uint8_t)at;page=PAGE_EDIT;}}
-    } else if(page==PAGE_TIME) {
-        if(portable_nova_hit(x,y,72,196,96,44)){page=PAGE_EDIT;return;}if(y>=55&&y<195){int row=(y-55)/28,j=row-2;if(j){if(x<120){int h=(int)draft.hour+j;while(h<0)h+=24;draft.hour=(uint8_t)(h%24);}else{int m=(int)draft.minute+j*5;while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}}}
-    } else if(page==PAGE_DURATION) {
-        if(portable_nova_hit(x,y,72,196,96,44)){page=PAGE_EDIT;return;}if(y>=55&&y<195){int row=(y-55)/28,j=row-2;if(j)nova_duration_move(j);if(!draft.duration_minutes)draft.notify_end=draft.warn3=0;}
+        if(portable_nova_hit(x,y,82,P7_BACK_Y,76,30)){page=PAGE_EDIT;return;}if(y>=82&&y<202){unsigned at=(nova_type_scroll+(unsigned)(y-82))/40u;if(at<4){draft.mode=(uint8_t)at;page=PAGE_EDIT;}}
+    } else if(page==PAGE_TIME||page==PAGE_DURATION) {
+        if(portable_nova_hit(x,y,82,P7_BACK_Y,76,30)){p7_picker_reset();page=PAGE_EDIT;return;}
+        p7_picker_tap(x,y);
     } else if(page==PAGE_CUSTOM) {
         unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;
-        if(portable_nova_hit(x,y,20,88,200,46)){page=PAGE_CUSTOM_KEYBOARD;custom_key_choice=0;return;}
-        for(unsigned i=0;i<8;i++){int bx=40+(int)(i%4)*42,by=150+(int)(i/4)*35;if(portable_nova_hit(x,y,bx,by,30,30)){custom_draft.custom[ci].color=(uint8_t)i;return;}}
-        if(portable_nova_hit(x,y,16,198,104,42)){page=PAGE_TYPE;return;}if(portable_nova_hit(x,y,122,198,110,42))p7_custom_save();
+        if(portable_nova_hit(x,y,20,85,200,36)){p7_key_begin();return;}
+        for(unsigned i=0;i<8;i++){int bx=40+(int)(i%4)*42,by=138+(int)(i/4)*32;if(portable_nova_hit(x,y,bx,by,30,30)){custom_draft.custom[ci].color=(uint8_t)i;return;}}
+        if(portable_nova_hit(x,y,16,205,104,35)){page=PAGE_TYPE;return;}if(portable_nova_hit(x,y,122,205,110,35))p7_custom_save();
     }
 }
+static unsigned *p7_scroll_value(void) {
+    if(page==PAGE_LIST)return &nova_list_scroll;
+    if(page==PAGE_EDIT)return &nova_edit_scroll;
+    if(page==PAGE_TYPE||page==PAGE_MODE)return &nova_type_scroll;
+    return NULL;
+}
+static unsigned p7_scroll_max(void) {
+    if(page==PAGE_LIST){unsigned order[POINTS_MAX],n=nova_configured(order);unsigned h=(n+(n<POINTS_MAX))*40;return h>158?h-158:0;}
+    if(page==PAGE_EDIT)return 392-120;
+    if(page==PAGE_TYPE){unsigned choices[8];unsigned h=p7_type_count(choices)*40;return h>120?h-120:0;}
+    return page==PAGE_MODE?40:0;
+}
+static bool p7_scroll_pixels(int delta) {
+    unsigned *value=p7_scroll_value();if(!value)return false;
+    int next=(int)*value+delta,max=(int)p7_scroll_max();if(next<0)next=0;if(next>max)next=max;
+    bool changed=*value!=(unsigned)next;*value=(unsigned)next;return changed;
+}
+static bool p7_contact_active,p7_contact_moved;
+static int p7_contact_start_y,p7_contact_start_x,p7_contact_scroll;
+static unsigned p7_contact_page;
+static bool nova7_contact_update(const springboard_contact *c) {
+    if(!c||c->cancelled||!c->valid){p7_contact_active=false;p7_picker_reset();return false;}
+    if(c->began){p7_contact_active=true;p7_contact_moved=false;p7_contact_start_x=c->x;p7_contact_start_y=c->y;p7_contact_page=page;
+        unsigned *v=p7_scroll_value();p7_contact_scroll=v?(int)*v:0;}
+    if(p7_contact_active&&(c->y-p7_contact_start_y>5||c->y-p7_contact_start_y< -5||c->x-p7_contact_start_x>5||c->x-p7_contact_start_x< -5))p7_contact_moved=true;
+    bool changed=false;
+    if(page==PAGE_TIME||page==PAGE_DURATION)changed=p7_picker_contact(c);
+    else if(p7_contact_active&&p7_contact_page==page&&p7_contact_start_y>=P7_ROW_TOP&&
+            (page==PAGE_LIST||p7_contact_start_y<P7_VIEW_BOTTOM)&&p7_scroll_value()) {
+        int desired=p7_contact_scroll+p7_contact_start_y-c->y;
+        changed=p7_scroll_pixels(desired-(int)*p7_scroll_value());
+    }
+    if(c->released)p7_contact_active=false;
+    return changed;
+}
 static bool nova7_scroll_step(int direction) {
-    if(page==PAGE_LIST){unsigned order[POINTS_MAX],count=nova_configured(order),rows=count+(count<POINTS_MAX?1u:0u),max=rows>4?rows-4:0,old=nova_list_scroll;
-        if(direction>0&&nova_list_scroll<max)nova_list_scroll++;else if(direction<0&&nova_list_scroll)nova_list_scroll--;return old!=nova_list_scroll;}
-    if(page==PAGE_EDIT){unsigned max=9,old=nova_edit_scroll;if(direction>0&&nova_edit_scroll<max)nova_edit_scroll++;else if(direction<0&&nova_edit_scroll)nova_edit_scroll--;return old!=nova_edit_scroll;}
-    if(page==PAGE_TYPE||page==PAGE_MODE){unsigned max=page==PAGE_MODE?1:4,old=nova_type_scroll;if(direction>0&&nova_type_scroll<max)nova_type_scroll++;else if(direction<0&&nova_type_scroll)nova_type_scroll--;return old!=nova_type_scroll;}
-    if(page==PAGE_TIME){if(nova_drag_x<120)draft.hour=(uint8_t)((draft.hour+(direction>0?1:23))%24);else{int m=(int)draft.minute+(direction>0?5:-5);while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}return true;}
-    if(page==PAGE_DURATION){nova_duration_move(direction);return true;}return false;
+    if(page==PAGE_TIME||page==PAGE_DURATION)return p7_picker_step(direction);
+    return p7_scroll_pixels(direction*40);
 }
 static bool nova7_buttons(uint32_t buttons) {
     if(page==PAGE_CUSTOM_KEYBOARD) {
-        if(buttons&T5_APP_BUTTON_LEFT)custom_key_choice=custom_key_choice?custom_key_choice-1:11;
-        else if(buttons&T5_APP_BUTTON_RIGHT)custom_key_choice=(custom_key_choice+1)%12;
-        else if(buttons&T5_APP_BUTTON_UP)custom_key_choice=(custom_key_choice+8)%12;
-        else if(buttons&T5_APP_BUTTON_DOWN)custom_key_choice=(custom_key_choice+4)%12;
+        if(buttons&(T5_APP_BUTTON_LEFT|T5_APP_BUTTON_UP))custom_key_choice=custom_key_choice?custom_key_choice-1:P7_WATCH_KEY_COUNT-1;
+        else if(buttons&(T5_APP_BUTTON_RIGHT|T5_APP_BUTTON_DOWN))custom_key_choice=(custom_key_choice+1)%P7_WATCH_KEY_COUNT;
         else if(buttons&T5_APP_BUTTON_CONFIRM)p7_key_activate(custom_key_choice);
         else return false;
         return true;
     }
-    if(buttons&T5_APP_BUTTON_UP){nova_drag_x=60;return nova7_scroll_step(-1);}
-    if(buttons&T5_APP_BUTTON_DOWN){nova_drag_x=60;return nova7_scroll_step(1);}
-    if(page==PAGE_TIME&&buttons&T5_APP_BUTTON_LEFT){nova_drag_x=60;return nova7_scroll_step(-1);}
-    if(page==PAGE_TIME&&buttons&T5_APP_BUTTON_RIGHT){nova_drag_x=180;return nova7_scroll_step(1);}
+    if(buttons&T5_APP_BUTTON_UP)return nova7_scroll_step(-1);
+    if(buttons&T5_APP_BUTTON_DOWN)return nova7_scroll_step(1);
+    if((page==PAGE_TIME||page==PAGE_DURATION)&&(buttons&T5_APP_BUTTON_LEFT)){p7_picker_select(60);return nova7_scroll_step(-1);}
+    if((page==PAGE_TIME||page==PAGE_DURATION)&&(buttons&T5_APP_BUTTON_RIGHT)){p7_picker_select(180);return nova7_scroll_step(1);}
     return false;
 }
 #endif

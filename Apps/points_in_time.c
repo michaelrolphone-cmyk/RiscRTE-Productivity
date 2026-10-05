@@ -610,8 +610,8 @@ static bool on_back(void) {
         return true;
     }
 #ifdef PORTABLE_NOVA_UI
-    if(page==PAGE_EDIT){save_action();nova_edit_scroll=0;nova_delete_confirm=false;}
-    else if(page==PAGE_CUSTOM_KEYBOARD){page=PAGE_CUSTOM;notice="Name draft retained";}
+    if(page==PAGE_EDIT){page=PAGE_LIST;notice="Draft discarded";nova_edit_scroll=0;nova_delete_confirm=false;}
+    else if(page==PAGE_CUSTOM_KEYBOARD){p7_key_cancel();notice="Name edit discarded";}
     else if(page==PAGE_CUSTOM){page=PAGE_TYPE;notice="Custom edit discarded";}
     else {page=PAGE_EDIT;notice="Draft only - not saved";nova_delete_confirm=false;}
 #else
@@ -629,10 +629,11 @@ void app_main(void) {
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
        !app->fill_rect || !app->present || app->screen_width()!=240 || app->screen_height()!=240)return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
-#ifndef PORTABLE_NOVA_UI
+#ifdef PORTABLE_NOVA_UI
+    p7_picker_reset();p7_contact_active=p7_contact_moved=false;
+#endif
     nova=springboard_presentation_get();
     if(nova&&(!nova->begin||!nova->caption||!nova->contact))nova=NULL;
-#endif
     ready=open_dependencies();if(ready)load_catalog();draw();uint32_t last_draw=app->millis();
     for(;;) {
         t5_app_input_t input={0};bool poll_ok=app->poll(&input,20);
@@ -663,8 +664,13 @@ void app_main(void) {
         if(back){if(on_back())break;draw();last_draw=app->millis();continue;}
         bool interacted=false;
 #ifdef PORTABLE_NOVA_UI
-        interacted|=nova7_buttons(input.buttons);
-        if(input.tapped){nova7_tap(input.touch_x,input.touch_y);interacted=true;}
+        if(!p7_picker_active()&&!p7_contact_active)interacted|=nova7_buttons(input.buttons);
+        if(nova&&nova->contact) {
+            springboard_contact contact={0};nova->contact(&contact);
+            interacted|=nova7_contact_update(&contact);
+            if(contact.released&&contact.tap_eligible&&!p7_contact_moved&&!p7_picker_dragged()&&!contact.cancelled){nova7_tap(contact.x,contact.y);interacted=true;}
+        } else if(input.tapped){nova7_tap(input.touch_x,input.touch_y);interacted=true;}
+        interacted|=p7_picker_tick(app->millis());
 #else
         if(nova) {
             springboard_contact contact={0};nova->contact(&contact);

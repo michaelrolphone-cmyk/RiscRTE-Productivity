@@ -101,17 +101,17 @@ int main(void){
  setup();app=&fake_app;writer=(points_writer){.loaded=true};ready=service_valid=clock_valid=true;
  p7_text_calls=p7_fill_calls=p7_round_calls=p7_button_calls=0;
  custom_kind=POINTS_CUSTOM_1;custom_draft=(points_meta){.revision=1};custom_draft.custom[0].color=6;
- page=PAGE_CUSTOM_KEYBOARD;custom_key_page=custom_key_choice=0;
- for(unsigned i=0;i<8;i++)p7_key_activate(i);
- custom_key_page=1;for(unsigned i=0;i<4;i++)p7_key_activate(i);
- assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
- p7_key_activate(0);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
- p7_key_activate(10);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJK"));
- p7_key_activate(11);assert(page==PAGE_CUSTOM);
- page=PAGE_CUSTOM_KEYBOARD;draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJK")&&strstr(rendered,"PREV")&&strstr(rendered,"DONE"));
+ p7_key_begin();custom_key_page=1;
+ for(unsigned i=1;i<=POINTS_CUSTOM_NAME_MAX;i++)p7_key_activate(i);
+ assert(!strcmp(p7_key_text,"ABCDEFGHIJKL")&&!custom_draft.custom[0].name[0]);
+ p7_key_activate(1);assert(!strcmp(p7_key_text,"ABCDEFGHIJKL"));
+ p7_key_activate(P7_WATCH_KEY_DELETE);assert(!strcmp(p7_key_text,"ABCDEFGHIJK"));
+ p7_key_activate(P7_WATCH_KEY_DONE);assert(page==PAGE_CUSTOM&&!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJK"));
+ p7_key_begin();draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJK")&&strstr(rendered,"ABC/#")&&strstr(rendered,"DONE"));
+ p7_key_cancel();
  writer.saved.revision=1;writer.saved.points[0]=(points_item){.kind=POINTS_WORK_START,.enabled=1,.weekdays=127,.hour=8,.minute=30};
  page=PAGE_LIST;nova_list_scroll=0;draw_nova7();assert(strstr(rendered,"POINTS IN TIME")&&strstr(rendered,"START WORK")&&p7_fill_calls>=2);
- puts("Points NOVA-7 single-line list primitives and shared keyboard entry passed");return 0;
+ puts("Points NOVA-7 single-line list primitives and original Watch keyboard entry passed");return 0;
 #else
  writer_tests();
  setup();app_main();assert(!puts_count&&releases==4&&!writer.saved.revision);assert(strstr(rendered,"Empty"));

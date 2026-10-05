@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 7d6cdc052e5bc286ff017baa409049471d0540e7
+          ref: 574a5c84a05da2dd30895859551af90047bcad21
           path: .deps/system-apps
       - uses: actions/checkout@v4
         with:
@@ -29,6 +29,11 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Test Points NOVA-7 UI, keyboard, storage uncertainty and cue controls
         run: python scripts/test_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities
+      - name: Test real glyph pixels, touch ownership, clipping and continuous scrolling
+        run: |
+          python scripts/test_points_picker.py --system-apps .deps/system-apps --utilities .deps/utilities
+          python scripts/test_points_gui.py --system-apps .deps/system-apps --utilities .deps/utilities
+          python scripts/test_points_touch.py --system-apps .deps/system-apps --utilities .deps/utilities
       - name: Install pinned public compiler
         run: |
           python -m pip install platformio==6.1.19

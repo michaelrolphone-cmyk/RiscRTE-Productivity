@@ -36,7 +36,7 @@
   "portable_apps": [
     {
       "id": "points_in_time",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "classification": "productivity",
       "origin": "original",
       "runtime_profile": "portable-riscrte-v1",
@@ -45,7 +45,7 @@
       "manifest_path": "Apps/points_in_time.json",
       "additional_sources": [
         "Apps/points_writer.h",
-        "Apps/points_nova7.inc"
+        "Apps/points_nova7.inc", "Apps/points_nova7_picker.inc", "Apps/points_watch_keyboard.h"
       ]
     }
   ]
