@@ -32,5 +32,21 @@
       "upstream_manifest_sha": "409a9112effa6548d7ad891265e85b1d91c53c40"
     }
   ],
-  "upstream_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0"
+  "upstream_commit": "00f9b2458dbfdae2188f2695634edb40c65c7ab0",
+  "portable_apps": [
+    {
+      "id": "points_in_time",
+      "version": "0.4.2",
+      "classification": "productivity",
+      "origin": "original",
+      "runtime_profile": "portable-riscrte-v1",
+      "file_name": "points_in_time.elf",
+      "source_path": "Apps/points_in_time.c",
+      "manifest_path": "Apps/points_in_time.json",
+      "additional_sources": [
+        "Apps/points_writer.h",
+        "Apps/points_nova7.inc", "Apps/points_nova7_picker.inc", "Apps/points_watch_keyboard.h"
+      ]
+    }
+  ]
 }

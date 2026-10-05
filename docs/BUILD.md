@@ -1,5 +1,7 @@
 # Independent Productivity development build
 
+The original portable Points in Time app has its own [exact-pinned build and tests](POINTS_IN_TIME_BUILD.md). The instructions below preserve the two-app Reader migration cohort.
+
 Requirements: Python 3.11+, a host C compiler, and the pinned public Xtensa S3 compiler.
 
 ```sh
