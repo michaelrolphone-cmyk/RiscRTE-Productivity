@@ -109,7 +109,8 @@ def main():
                 'compiler': subprocess.check_output([cc, '--version'], text=True).splitlines()[0],
                 'time_policy': 'rtc-utc8-to-America-Denver' if args.denver else 'identity-raw', 'build_defines': defines,
                 'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data), 'imports': sorted(imports), 'exports': sorted(exports),
-                'storage_grants': [{'instance': 5, 'access': 'read-write', 'key': 'points_cfg'},\n                                   {'instance': 5, 'access': 'read-write', 'key': 'points_meta'},
+                'storage_grants': [{'instance': 5, 'access': 'read-write', 'key': 'points_cfg'},
+                                   {'instance': 5, 'access': 'read-write', 'key': 'points_meta'},
                                    {'instance': 1, 'access': 'read-only-client', 'key': 'time_format'}],
                 'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
                 'dependency_sha256': {('system/' if p.is_relative_to(system) else 'utilities/')+str(p.relative_to(system if p.is_relative_to(system) else utilities)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(dependencies)}}
