@@ -126,3 +126,28 @@ and records source hashes/pins. The existing Reader migration workflow still
 builds both legacy apps and checks their old release identities. These are host
 and target-build results, not execution of Xtensa instructions on a device,
 physical file durability, power-cut qualification, installation or deployment.
+
+## Explicit app-data prototype bridge
+
+The optional `--runtime-appdata /prototype/Runtime` build/test argument compiles
+`TIMECARD_APP_DATA` against that checkout's `RiscAppDataV1.h`. This is a separate
+`dist/timecard-appdata-development` artifact, still without an install manifest.
+Its evidence records the actual Runtime checkout identity/dirty state and exact
+header hash; it does not present unpublished local changes as a finalized pin.
+
+`Apps/timecard_appdata_bridge.h` maps the single original path to `timecard.json`
+in explicit app-data namespace 1. It distinguishes confirmed absence from all
+errors and carries the service's opaque revision through read/replace CAS.
+Oversized input is refused. A stale write requires reload; failed revision refresh
+after confirmed replacement is reported as unconfirmed commit. RETAINED latches
+locally and allows no more file calls, display, launch or grant release. The app
+returns to the new Runtime's separately tested pre-finalization barrier, which
+must preserve the invocation rather than unload or sleep. The prototype must
+never be combined with a Runtime that lacks that safety barrier.
+
+Normal/sanitized bridge and actual source-controller tests cover full-size bytes,
+missing versus unmounted/error, revision creation/read/replacement, stale CAS,
+commit-then-error reconciliation and retained early-return cleanup. These tests
+complement the Runtime file/fault/actual-ELF suites. They are not a claim of a
+complete Watch image or qualified LittleFS installation. Default UI builds remain
+unbound until an explicitly selected app-data deployment replaces that profile.

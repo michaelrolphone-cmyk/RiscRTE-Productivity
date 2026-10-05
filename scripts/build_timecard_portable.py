@@ -23,6 +23,9 @@ def git(repo, *args):
     return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
 
 def verify(system):
+    sdk = json.loads((ROOT/'lib/PortableTimecard/SOURCES.json').read_text())
+    if hashlib.sha256((ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h').read_bytes()).hexdigest() != sdk['sha256']:
+        raise ValueError('Timecard app-data declaration differs from its recorded source')
     if git(system, 'rev-parse', 'HEAD') != SYSTEM_PIN or git(system, 'status', '--porcelain', '--untracked-files=all'):
         raise ValueError('A clean exact System Apps dependency is required: '+SYSTEM_PIN)
     if hashlib.sha256((ROOT/'Apps/timecard.c').read_bytes()).hexdigest() != MODEL_SHA256:
@@ -34,23 +37,30 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--system-apps', required=True, type=Path)
     p.add_argument('--denver', action='store_true')
+    p.add_argument('--runtime-appdata', type=Path, help='Compile the explicit app-data prototype profile against this local SDK; still not installable')
     args = p.parse_args()
     system = args.system_apps.resolve()
     verify(system)
     cc = os.environ.get('NATIVE_APP_CC') or shutil.which('xtensa-esp32s3-elf-gcc')
     if not cc:
         cc = str(Path(os.environ.get('PLATFORMIO_CORE_DIR', Path.home()/'.platformio'))/'packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc')
-    out = ROOT/'dist/timecard-ui-development'
+    runtime = args.runtime_appdata.resolve() if args.runtime_appdata else None
+    out = ROOT/('dist/timecard-appdata-development' if runtime else 'dist/timecard-ui-development')
     out.mkdir(parents=True, exist_ok=True)
     catalog = out/'catalog.c'
     catalog.write_text('#include "PortableApps.h"\nconst t5_app_manifest_t portable_catalog[1]={{.compatible=false}};\nconst unsigned portable_catalog_count=0;\n')
     mapping = out/'exports.map'
     mapping.write_text('{ global: '+ '; '.join(sorted(EXPORTS))+'; local: *; };\n')
-    elf = out/'timecard-ui-development.elf'
+    elf = out/('timecard-appdata-development.elf' if runtime else 'timecard-ui-development.elf')
     flags = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME']
     if args.denver:
         flags.append('-DPORTABLE_RTC_UTC8_DENVER')
     includes = [system/'lib/NativeApps/include', ROOT/'lib/NativeApps/include', system/'lib/PortableApps/include']
+    if runtime:
+        if (runtime/'sdk/app/RiscAppDataV1.h').read_bytes() != (ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h').read_bytes():
+            raise ValueError('Selected Runtime app-data header differs from the tested consumer declaration')
+        flags.append('-DTIMECARD_APP_DATA')
+        includes.insert(0, runtime/'sdk/app')
     sources = [ROOT/'Apps/timecard_portable.c', system/'lib/PortableApps/src/adapter.c', catalog]
     subprocess.run([cc, '-std=c11', '-Os', '-fPIC', '-mtext-section-literals', '-mlongcalls',
                     '-fvisibility=hidden', '-ffreestanding', '-fno-builtin', '-nostdlib', '-nostartfiles',
@@ -72,7 +82,8 @@ def main():
                     '-o', str(validator)], check=True, timeout=60)
     subprocess.run([str(validator), str(elf)], check=True, timeout=60)
     files = [ROOT/'Apps/timecard.c', ROOT/'Apps/timecard.json', ROOT/'Apps/timecard_portable.c',
-             ROOT/'Apps/timecard_portable_validation.h', ROOT/'lib/NativeApps/include/T5SystemApi.h', Path(__file__)]
+             ROOT/'Apps/timecard_portable_validation.h', ROOT/'lib/NativeApps/include/T5SystemApi.h',
+             ROOT/'Apps/timecard_appdata_bridge.h', ROOT/'lib/PortableTimecard/SOURCES.json', ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h', Path(__file__)]
     dependencies = [f for folder in ('lib/PortableApps', 'lib/NativeApps/include') for f in (system/folder).rglob('*') if f.is_file()]
     record = {'schema': 1, 'purpose': 'ui-model-development-only-no-writable-backend',
               'deployable': False, 'model_version': MODEL_VERSION, 'profile_version': PROFILE_VERSION,
@@ -80,12 +91,16 @@ def main():
               'system_apps_sha': SYSTEM_PIN, 'compiler': subprocess.check_output([cc, '--version'], text=True).splitlines()[0],
               'defines': flags, 'imports': sorted(imports), 'exports': sorted(exports),
               'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
-              'storage': 'unbound; runtime entry displays unavailable and creates no history',
+              'storage': 'prototype storage.app-data@1 namespace 1; explicit new-layout Runtime required' if runtime else 'unbound; runtime entry displays unavailable and creates no history',
               'time_policy': 'rtc-utc8-to-America-Denver' if args.denver else 'identity-raw',
               'source_sha256': {str(f.relative_to(ROOT)): hashlib.sha256(f.read_bytes()).hexdigest() for f in files},
               'dependency_sha256': {str(f.relative_to(system)): hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(dependencies)}}
+    if runtime:
+        record['runtime_api'] = {'repository_sha': git(runtime, 'rev-parse', 'HEAD'), 'working_tree_dirty': bool(git(runtime, 'status', '--porcelain')),
+                                 'header_sha256': hashlib.sha256((runtime/'sdk/app/RiscAppDataV1.h').read_bytes()).hexdigest()}
+        record['source_sha256']['Apps/timecard_appdata_bridge.h'] = hashlib.sha256((ROOT/'Apps/timecard_appdata_bridge.h').read_bytes()).hexdigest()
     (out/'build-evidence.json').write_text(json.dumps(record, indent=2)+'\n')
-    (out/'NOT_INSTALLABLE.txt').write_text('Development UI/model evidence only. No writable history backend or deployable manifest. Do not add this ELF to a launcher or package.\n')
+    (out/'NOT_INSTALLABLE.txt').write_text('Development evidence only. No deployable manifest or approved Watch package. App-data builds require the separately reviewed opt-in Runtime/layout and provisioned filesystem. Do not add this ELF to a launcher or package.\n')
     licenses = out/'licenses'; licenses.mkdir(exist_ok=True)
     shutil.copyfile(ROOT/'LICENSE', licenses/'Productivity-LICENSE.txt')
     shutil.copyfile(system/'LICENSE', licenses/'System-Apps-LICENSE.txt')

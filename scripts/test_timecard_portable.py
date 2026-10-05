@@ -9,9 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--system-apps', required=True, type=Path)
+    p.add_argument('--runtime-appdata', type=Path, help='Also test the explicit app-data prototype bridge against this SDK')
     args = p.parse_args()
     system = args.system_apps.resolve()
-    includes = [system/'lib/NativeApps/include', ROOT/'lib/NativeApps/include',
+    includes = [ROOT/'lib/PortableTimecard/include', system/'lib/NativeApps/include', ROOT/'lib/NativeApps/include',
                 system/'lib/PortableApps/include', system/'lib/PortableApps/src']
     out = ROOT/'build/timecard-portable'
     out.mkdir(parents=True, exist_ok=True)
@@ -48,6 +49,14 @@ def main():
                 frames.mkdir(exist_ok=True)
                 run.append(str(frames))
             subprocess.run(run, check=True, timeout=120, env=env)
+        runtime = args.runtime_appdata.resolve() if args.runtime_appdata else ROOT/'lib/PortableTimecard'
+        api_include = runtime/'sdk/app' if args.runtime_appdata else runtime/'include'
+        for name, source in [('appdata-bridge', ROOT/'tests/timecard_appdata_bridge_test.c'),
+                             ('appdata-profile', ROOT/'test/native_apps/timecard_appdata_profile_test.c')]:
+            binary = out/f'{name}-{int(sanitized)}'
+            subprocess.run([os.environ.get('CC', 'cc'), *flags, '-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME',
+                            '-I'+str(api_include), *['-I'+str(path) for path in includes], str(source), '-o', str(binary)], check=True, timeout=120)
+            subprocess.run([str(binary)], check=True, timeout=120, env=env)
     for name in ('timecard_clock_failure_source_test.py', 'timecard_store_failure_source_test.py'):
         subprocess.run(['python3', str(ROOT/'test/native_apps'/name)], check=True, timeout=30)
     print('Timecard original source, strict validation and portable real-renderer tests passed normally and with ASan/UBSan')

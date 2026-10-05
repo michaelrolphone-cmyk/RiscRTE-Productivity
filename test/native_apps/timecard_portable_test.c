@@ -21,12 +21,20 @@ static bool exists(const char *path){assert(!strcmp(path,STORE_PATH));return fil
 static bool read_file(const char *path,void *out,size_t cap,size_t *size){assert(!strcmp(path,STORE_PATH));reads++;*size=0;if(!read_ok)return false;size_t n=strlen(persisted);if(n>cap)return false;memcpy(out,persisted,n);*size=n;return true;}
 static bool write_file(const char *path,const void *data,size_t size){assert(!strcmp(path,STORE_PATH));assert(size<sizeof(persisted));writes++;if(write_ok||write_then_error){memcpy(persisted,data,size);persisted[size]=0;file_present=true;}return write_ok;}
 static const t5_storage_api_v1 file_api={1,sizeof(file_api),exists,read_file,write_file,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+#ifndef TIMECARD_APP_DATA
 const t5_storage_api_v1 *timecard_portable_file_storage(void){return provide_files?&file_api:NULL;}
+#else
+static const risc_app_data_v1 *fixture_appdata_api(void);
+#endif
 static bool rtc_read(void *c,twatch_rtc_time_v1 *out){(void)c;clock_reads++;if(!rtc_ok)return false;*out=now;return true;}
 static const twatch_rtc_api_v1 rtc_api={.api_version=2,.struct_size=sizeof(rtc_api),.read=rtc_read};
 static int32_t kv_get(void *c,const char *key,void *out,uint32_t cap,uint32_t *size){(void)c;assert(!strcmp(key,"time_format")&&cap==4);uint8_t value[]={0x54,1,1,0xa4};memcpy(out,value,4);*size=4;return 0;}
 static const risc_key_value_v1 pref_api={1,sizeof(pref_api),NULL,kv_get,NULL};
-static bool acquire(const char *name,uint32_t version,uint64_t instance,risc_runtime_capability_v1 *grant){if(!strcmp(name,"rtc.clock")){assert(version==2&&instance==0);grant->api=&rtc_api;}else {assert(!strcmp(name,"storage.key-value")&&version==1&&instance==1);grant->api=&pref_api;}grants++;return true;}
+static bool acquire(const char *name,uint32_t version,uint64_t instance,risc_runtime_capability_v1 *grant){
+#ifdef TIMECARD_APP_DATA
+ if(!strcmp(name,RISC_APP_DATA_CAPABILITY)){assert(version==1&&instance==1);if(!provide_files)return false;grant->api=fixture_appdata_api();grants++;return true;}
+#endif
+ if(!strcmp(name,"rtc.clock")){assert(version==2&&instance==0);grant->api=&rtc_api;}else {assert(!strcmp(name,"storage.key-value")&&version==1&&instance==1);grant->api=&pref_api;}grants++;return true;}
 static bool release(risc_runtime_capability_v1 *grant){assert(grant->api&&grants);grant->api=NULL;grants--;return true;}
 static bool launch(const char *name){assert(!strcmp(name,"springboard.elf"));launches++;return true;}
 static const risc_runtime_api_v1 runtime={.api_version=1,.struct_size=sizeof(runtime),.request_launch=launch,.acquire=acquire,.release=release};

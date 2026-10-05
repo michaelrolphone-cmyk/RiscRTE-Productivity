@@ -29,10 +29,25 @@ const t5_app_api_v1 *t5_app_get_api(uint32_t version);
  * in this profile. A future real implementation must preserve this complete-file
  * contract, with exists=false ONLY for confirmed absence. Never bind a dummy
  * empty store or an installed-files/64-byte/2048-byte KV capability here. */
+#ifdef TIMECARD_APP_DATA
+#include "timecard_appdata_bridge.h"
+#ifndef TIMECARD_APP_DATA_INSTANCE
+#define TIMECARD_APP_DATA_INSTANCE 1u
+#endif
+static tcp_appdata tcp_data;
+static bool tcp_ad_exists(const char *path) { return tcp_appdata_exists(&tcp_data,path); }
+static bool tcp_ad_read(const char *path,void *buffer,size_t capacity,size_t *size) { return tcp_appdata_read(&tcp_data,path,buffer,capacity,size); }
+static bool tcp_ad_write(const char *path,const void *data,size_t size) { return tcp_appdata_write(&tcp_data,path,data,size); }
+static const t5_storage_api_v1 tcp_ad_files={.api_version=T5_STORAGE_API_VERSION,.struct_size=sizeof(tcp_ad_files),.exists=tcp_ad_exists,.read_file=tcp_ad_read,.write_file_atomic=tcp_ad_write};
+static const t5_storage_api_v1 *timecard_portable_file_storage(void) { return tcp_data.api?&tcp_ad_files:NULL; }
+static bool tcp_storage_retained(void) { return tcp_data.retained; }
+#else
 #ifndef TIMECARD_FILE_STORAGE_EXTERNAL
 __attribute__((weak)) const t5_storage_api_v1 *timecard_portable_file_storage(void) { return NULL; }
 #else
 const t5_storage_api_v1 *timecard_portable_file_storage(void);
+#endif
+static bool tcp_storage_retained(void) { return false; }
 #endif
 #ifndef TIMECARD_RETURN_APP
 #define TIMECARD_RETURN_APP "springboard.elf"
@@ -50,7 +65,7 @@ static const twatch_rtc_api_v1 *tcp_rtc;
 static const t5_storage_api_v1 *tcp_files;
 static t5_local_datetime_t tcp_snapshot;
 static bool tcp_clock_valid;
-static risc_runtime_capability_v1 tcp_grants[2];
+static risc_runtime_capability_v1 tcp_grants[3];
 static unsigned tcp_grant_count,tcp_time_format;
 static bool tcp_home,tcp_editor,tcp_dirty,tcp_drag,tcp_armed,tcp_moved,tcp_external_exit;
 static int tcp_scroll,tcp_start_scroll,tcp_start_x,tcp_start_y,tcp_last_x,tcp_last_y;
@@ -315,11 +330,15 @@ static void tcp_input(const t5_app_input_t *input) {
     else if(input->buttons&T5_APP_BUTTON_CONFIRM){if(tcp_editor)tcp_key(tcp_key_choice);else tcp_activate();}
 }
 static void tcp_dependencies_close(void) {
+    if(tcp_storage_retained())return;
     if(tcp_runtime)while(tcp_grant_count)tcp_runtime->release(&tcp_grants[--tcp_grant_count]);
     tcp_rtc=NULL;tcp_runtime=NULL;tcp_files=NULL;
 }
 static void tcp_dependencies_open(void) {
     tcp_runtime=risc_runtime_get_api(1);tcp_grant_count=0;tcp_time_format=PORTABLE_TIME_FORMAT_12;tcp_rtc=NULL;
+#ifdef TIMECARD_APP_DATA
+    tcp_data=(tcp_appdata){0};
+#endif
     if(!tcp_runtime || tcp_runtime->api_version!=1 || tcp_runtime->struct_size<RISC_RUNTIME_CAPABILITIES_V1_SIZE || !tcp_runtime->acquire || !tcp_runtime->release || !tcp_runtime->request_launch){tcp_runtime=NULL;return;}
     tcp_grants[0]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[0])};
     if(tcp_runtime->acquire("rtc.clock",2,0,&tcp_grants[0])) {
@@ -330,6 +349,12 @@ static void tcp_dependencies_open(void) {
     if(tcp_runtime->acquire("storage.key-value",1,1,&tcp_grants[slot])) {
         tcp_grant_count++;portable_time_format_load(tcp_grants[slot].api,&tcp_time_format);
     }
+#ifdef TIMECARD_APP_DATA
+    slot=tcp_grant_count;tcp_grants[slot]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[slot])};
+    if(tcp_runtime->acquire(RISC_APP_DATA_CAPABILITY,RISC_APP_DATA_API_V1,TIMECARD_APP_DATA_INSTANCE,&tcp_grants[slot])) {
+        tcp_grant_count++;(void)tcp_appdata_bind(&tcp_data,tcp_grants[slot].api);
+    }
+#endif
 }
 static void tcp_draw(void) {
     if(tcp_editor)tcp_editor_draw();
@@ -356,15 +381,22 @@ __attribute__((visibility("default"))) void app_main(void) {
     tcp_dependencies_open();tcp_files=timecard_portable_file_storage();
     if(tcp_files && (tcp_files->api_version!=T5_STORAGE_API_VERSION || tcp_files->struct_size<offsetof(t5_storage_api_v1,write_file_atomic)+sizeof(tcp_files->write_file_atomic) || !tcp_files->exists || !tcp_files->read_file || !tcp_files->write_file_atomic))tcp_files=NULL;
     storage=&tcp_store;system_api=&tcp_clock;system_ui=&tcp_system_ui;fwui=&tcp_ui;
-    app->set_back_exits_app(false);if(tcp_files)tcp_reload();tcp_draw();
+    app->set_back_exits_app(false);if(tcp_files)tcp_reload();
+    /* Returning a retained invocation is safe only because the paired Runtime
+     * checks storage safety BEFORE app_module_fini, revocation or ELF unload.
+     * Do not touch display, launch, or release any grant after this status. */
+    if(tcp_storage_retained())return;
+    tcp_draw();
     t5_app_input_t input;
     while(!tcp_home && !tcp_external_exit && app->poll(&input,20)) {
         if(!tcp_files) {
             if(input.exit_requested)tcp_external_exit=true;
             else if((input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && portable_nova_hit(input.touch_x,input.touch_y,82,211,76,29)))tcp_home=true;
         } else tcp_input(&input);
+        if(tcp_storage_retained())return;
         if(tcp_dirty && !tcp_home && !tcp_external_exit)tcp_draw();
     }
+    if(tcp_storage_retained())return;
     if(tcp_home && tcp_runtime && !tcp_runtime->request_launch(TIMECARD_RETURN_APP) && tcp_runtime->diagnostic)tcp_runtime->diagnostic("TIMECARD error=return-request");
     tcp_editor=false;memset(tcp_entry,0,sizeof(tcp_entry));app->set_back_exits_app(true);tcp_dependencies_close();
 }
