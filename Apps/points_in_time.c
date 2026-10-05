@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE };
+enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE, PAGE_CUSTOM };
 static const t5_app_api_v1 *app;
 static const risc_runtime_api_v1 *runtime;
 static const risc_key_value_v1 *storage,*preferences;
@@ -25,9 +25,10 @@ static const alarm_service_v1 *service;
 static risc_runtime_capability_v1 grants[4];
 static unsigned acquired,page,list_page,selected,time_format;
 static const springboard_presentation *nova;
-static unsigned nova_list_scroll,nova_edit_scroll;
+static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos;
 static int nova_drag_x,nova_drag_y;
 static bool nova_drag_active,nova_delete_confirm;
+static points_meta custom_draft;
 static points_writer writer;
 static points_item draft;
 static alarm_status_v1 service_state;
@@ -36,20 +37,38 @@ static const char *notice;
 static const char *const kinds[]={"Empty","Work start","Work end","Lunch","Break","Bedtime"};
 static const char *const modes[]={"System default","Vibrate","Sound","Sound and vibrate"};
 static const char *const days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-static const char *const nova_kinds[]={"","START WORK","END WORK","LUNCH","BREAK","WIND DOWN"};
+static const char *const nova_kinds[]={"","START WORK","END WORK","LUNCH","BREAK","WIND DOWN","CUSTOM 1","CUSTOM 2"};
 static const char *const nova_modes[]={"SYSTEM","VIBRATE","SOUND","VIBRATE + SOUND"};
 #define NOVA_CYAN 0x19e3ffu
 #define NOVA_WHITE 0xffffffu
 #define NOVA_MUTED 0x6b8288u
 #define NOVA_DIM 0x34484du
 #define NOVA_RED 0xff6a5fu
-static const uint32_t nova_kind_colors[]={NOVA_MUTED,0x3d9bffu,0xff3d71u,0xffb020u,0x3dff9au,0x6d7bffu};
+static const uint32_t nova_kind_colors[]={NOVA_MUTED,0x3d9bffu,0xff3d71u,0xffb020u,0x3dff9au,0x6d7bffu,NOVA_CYAN,NOVA_CYAN};
+static const uint32_t nova_custom_colors[]={0xffd24au,0xff7a1au,0xff3d71u,0xb24dffu,0x6d7bffu,0x3d9bffu,0x19e3ffu,0x3dff9au};
+static const char custom_chars[]=" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
 /* The shared adapter provides this private presentation on the 240x240 watch.
  * Host fixtures and non-NOVA deployments intentionally fall back to the
  * original monochrome UI. A strong adapter definition overrides this weak
  * null implementation in the target ELF. */
 __attribute__((weak)) const springboard_presentation *springboard_presentation_get(void) { return NULL; }
-static bool duration_kind(unsigned kind) { return kind==POINTS_LUNCH || kind==POINTS_BREAK; }
+static bool duration_kind(unsigned kind) { return points_duration_kind(kind); }
+static unsigned custom_index(unsigned kind){return kind>=POINTS_CUSTOM_1&&kind<=POINTS_CUSTOM_2?kind-POINTS_CUSTOM_1:POINTS_CUSTOM_COUNT;}
+static const char *nova_kind_name(unsigned kind) {
+    unsigned i=custom_index(kind);if(i<POINTS_CUSTOM_COUNT&&writer.meta.custom[i].name[0])return writer.meta.custom[i].name;
+    return kind<=POINTS_CUSTOM_2?nova_kinds[kind]:"POINT";
+}
+static uint32_t nova_kind_color(unsigned kind) {
+    unsigned i=custom_index(kind);if(i<POINTS_CUSTOM_COUNT&&writer.meta.custom[i].name[0])return nova_custom_colors[writer.meta.custom[i].color%POINTS_COLOR_COUNT];
+    return kind<=POINTS_CUSTOM_2?nova_kind_colors[kind]:NOVA_MUTED;
+}
+static void custom_trim(char *s){int n=POINTS_CUSTOM_NAME_MAX;while(n>0&&(s[n-1]==' '||!s[n-1]))s[--n]=0;}
+static void custom_cycle(int direction){
+    unsigned i=custom_index(custom_kind);if(i>=POINTS_CUSTOM_COUNT)return;char *ch=&custom_draft.custom[i].name[custom_pos];
+    unsigned n=0;while(custom_chars[n]&&custom_chars[n]!=*ch)n++;if(!custom_chars[n])n=1;
+    unsigned count=(unsigned)strlen(custom_chars);n=(n+count+(direction>0?1:count-1))%count;*ch=custom_chars[n];
+    custom_draft.custom[i].name[POINTS_CUSTOM_NAME_MAX]=0;
+}
 static bool read_clock(uint32_t *seconds) {
     twatch_rtc_time_v1 t;
     return rtc && rtc->read(rtc->context,&t) && t.weekday<=6 &&
@@ -101,7 +120,7 @@ static void format_days(unsigned mask,char *out,size_t cap) {
 }
 static const char *status_message(void) {
     if(!ready)return "Dependencies unavailable";
-    if(writer.uncertain)return "Save unconfirmed: retry";
+    if(writer.uncertain||writer.meta_uncertain)return "Save unconfirmed: retry";
     if(!writer.loaded)return "Storage invalid: retry";
     if(!clock_valid)return "RTC invalid: retry";
     if(!service_valid)return "Service unavailable: retry";
@@ -258,25 +277,45 @@ static void nova_draw_list(void) {
         nova_list_scroll+4<rows?nova_list_scroll+4:rows,rows);nova_cap(222,p,false,NOVA_MUTED);}
 }
 static void nova_draw_edit(void) {
-    char sub[32];snprintf(sub,sizeof(sub),"%s",nova_kinds[draft.kind]);nova_header("EDIT POINT",sub);
-    if(nova_edit_scroll>4)nova_edit_scroll=4;
+    char sub[32];snprintf(sub,sizeof(sub),"%s",nova_kind_name(draft.kind));nova_header("EDIT POINT",sub);
+    if(nova_edit_scroll>6)nova_edit_scroll=6;
     for(unsigned r=0;r<4;r++) {
         unsigned row=nova_edit_scroll+r;char line[64],v[32];uint32_t col=NOVA_WHITE;int y=76+(int)r*38;
-        if(row==0)snprintf(line,sizeof(line),"TYPE  %s",nova_kinds[draft.kind]);
+        bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
+        if(row==0)snprintf(line,sizeof(line),"TYPE  %s",nova_kind_name(draft.kind));
         else if(row==1){format_time(&draft,v,sizeof(v));snprintf(line,sizeof(line),"TIME  %s",v);}
         else if(row==2){nova_duration(v,draft.duration_minutes);snprintf(line,sizeof(line),"DURATION  %s",duration_kind(draft.kind)?v:"NOT USED");if(!duration_kind(draft.kind))col=NOVA_DIM;}
-        else if(row==3){nova_short_days(draft.weekdays,v);snprintf(line,sizeof(line),"DAYS  %s",v);}
-        else if(row==4)snprintf(line,sizeof(line),"NOTIFY  %s",nova_modes[draft.mode]);
-        else if(row==5)snprintf(line,sizeof(line),"ENABLED  %s",draft.enabled?"ON":"OFF");
-        else if(row==6){snprintf(line,sizeof(line),"SAVE CHANGES");col=NOVA_CYAN;}
+        else if(row==3){snprintf(line,sizeof(line),"NOTIFY AT END  %s",draft.notify_end?"ON":"OFF");if(!timed)col=NOVA_DIM;}
+        else if(row==4){snprintf(line,sizeof(line),"3 MIN WARNING  %s",draft.warn3?"ON":"OFF");if(!timed||draft.duration_minutes<3)col=NOVA_DIM;}
+        else if(row==5)snprintf(line,sizeof(line),"NOTIFY  %s",nova_modes[draft.mode]);
+        else if(row==6){nova_short_days(draft.weekdays,v);snprintf(line,sizeof(line),"DAYS  %s",v);}
+        else if(row==7)snprintf(line,sizeof(line),"ENABLED  %s",draft.enabled?"ON":"OFF");
+        else if(row==8){snprintf(line,sizeof(line),"SAVE CHANGES");col=NOVA_CYAN;}
         else {snprintf(line,sizeof(line),"%s",nova_delete_confirm?"TAP AGAIN TO DELETE":"DELETE POINT");col=NOVA_RED;}
-        nova_dot(20,y+2,2,col,row==7?230:160);nova_cap(y,line,false,col);
+        nova_dot(20,y+2,2,col,row==9?230:160);nova_cap(y,line,false,col);
     }
     nova_cap(222,"SWIPE FOR MORE",false,NOVA_MUTED);
 }
+static unsigned nova_type_choices(unsigned out[8]) {
+    unsigned n=0;for(unsigned i=1;i<=5;i++)out[n++]=i;
+    for(unsigned i=0;i<POINTS_CUSTOM_COUNT;i++)if(writer.meta.custom[i].name[0])out[n++]=POINTS_CUSTOM_1+i;
+    for(unsigned i=0;i<POINTS_CUSTOM_COUNT;i++)if(!writer.meta.custom[i].name[0]){out[n++]=0;break;}
+    return n;
+}
 static void nova_draw_type(void) {
-    nova_header("POINT TYPE","CHOOSE");
-    for(unsigned i=1;i<=5;i++){int y=70+(int)(i-1)*31;uint32_t col=nova_kind_colors[i];nova_dot(25,y+2,draft.kind==i?5:2,col,255);nova_cap(y,nova_kinds[i],false,draft.kind==i?col:NOVA_WHITE);}
+    nova_header("POINT TYPE","CHOOSE OR CREATE");unsigned choice[8],count=nova_type_choices(choice),max=count>4?count-4:0;if(nova_type_scroll>max)nova_type_scroll=max;
+    for(unsigned r=0;r<4;r++){unsigned at=nova_type_scroll+r;if(at>=count)break;unsigned kind=choice[at];int y=76+(int)r*38;
+        if(!kind){nova_dot(25,y+2,3,NOVA_CYAN,200);nova_cap(y,"+ CUSTOM TYPE",false,NOVA_CYAN);continue;}
+        uint32_t col=nova_kind_color(kind);nova_dot(25,y+2,draft.kind==kind?5:2,col,255);nova_cap(y,nova_kind_name(kind),false,draft.kind==kind?col:NOVA_WHITE);
+    }
+}
+static void nova_draw_custom(void) {
+    unsigned i=custom_index(custom_kind);if(i>=POINTS_CUSTOM_COUNT)return;char line[48],shown[POINTS_CUSTOM_NAME_MAX+1];
+    memcpy(shown,custom_draft.custom[i].name,sizeof(shown));shown[POINTS_CUSTOM_NAME_MAX]=0;
+    nova_header("CUSTOM TYPE","LEFT/RIGHT POSITION - UP/DOWN CHAR");snprintf(line,sizeof(line),"NAME  %s",shown);nova_cap(78,line,true,NOVA_CYAN);
+    char ch=shown[custom_pos]?shown[custom_pos]:' ';snprintf(line,sizeof(line),"POS %u/12   CHAR %c",custom_pos+1,ch);nova_cap(111,line,false,NOVA_WHITE);
+    nova_cap(137,"COLOR",false,NOVA_MUTED);for(unsigned n=0;n<8;n++)nova_dot(29+(int)n*26,160,custom_draft.custom[i].color==n?7:5,nova_custom_colors[n],255);
+    nova_cap(205,"BACK                 SAVE",false,NOVA_CYAN);
 }
 static void nova_draw_mode(void) {
     nova_header("NOTIFY","HOW TO ALERT YOU");
@@ -322,7 +361,7 @@ static void draw_nova(void) {
 #ifndef PORTABLE_ALARM_CLIENT
     else if(service_valid&&service_state.occurrence.generation){nova_problem(service_state.label,"TAP TO DISMISS");}
 #endif
-    else if(writer.uncertain)nova_problem("SAVE UNCONFIRMED","RETRY WRITES SAME DATA");
+    else if(writer.uncertain||writer.meta_uncertain)nova_problem("SAVE UNCONFIRMED","RETRY WRITES SAME DATA");
     else if(!writer.loaded)nova_problem("STORAGE INVALID","NO DEFAULTS WERE SAVED");
     else if(page==PAGE_LIST)nova_draw_list();
     else if(page==PAGE_EDIT)nova_draw_edit();
@@ -331,6 +370,7 @@ static void draw_nova(void) {
     else if(page==PAGE_DAYS)nova_draw_days();
     else if(page==PAGE_MODE)nova_draw_mode();
     else if(page==PAGE_DURATION)nova_draw_duration();
+    else if(page==PAGE_CUSTOM)nova_draw_custom();
     else nova_draw_save();
     if(ready&&writer.loaded&&!writer.uncertain)nova_cap(232,status_message(),false,NOVA_MUTED);
     app->present(false);
@@ -344,7 +384,8 @@ static void edit_slot(unsigned slot) {
 }
 static void save_action(void) {
     int32_t rc;
-    if(writer.uncertain)rc=points_writer_retry(&writer,storage);
+    if(writer.meta_uncertain)rc=points_writer_retry_meta(&writer,storage);
+    else if(writer.uncertain)rc=points_writer_retry(&writer,storage);
     else {
         if(!writer.loaded){notice="Storage invalid: retry";return;}
         if(writer.saved.revision==UINT32_MAX){notice="Revision limit reached";return;}
@@ -364,6 +405,7 @@ static void retry_action(void) {
         if(ready)load_catalog();
         return;
     }
+    if(writer.meta_uncertain){(void)points_writer_retry_meta(&writer,storage);return;}
     if(writer.uncertain){save_action();return;}
     if(page==PAGE_LIST || !writer.loaded)load_catalog();
     uint32_t now;clock_valid=read_clock(&now);(void)service->refresh(service->context);refresh_status();notice="Refreshed";
@@ -379,7 +421,7 @@ static void on_tap_legacy(int x,int y) {
         return;
     }
 #endif
-    if(writer.uncertain || !writer.loaded) {
+    if(writer.uncertain || writer.meta_uncertain || !writer.loaded) {
         if(hit(x,y,8,176,224,34))retry_action();
         return;
     }
@@ -441,7 +483,7 @@ static void nova_tap(int x,int y) {
 #ifndef PORTABLE_ALARM_CLIENT
     if(service_valid&&service_state.occurrence.generation){if(y>=130)(void)service->acknowledge(service->context,&service_state.occurrence);return;}
 #endif
-    if(writer.uncertain||!writer.loaded){if(y>=130)retry_action();return;}
+    if(writer.uncertain||writer.meta_uncertain||!writer.loaded){if(y>=130)retry_action();return;}
     if(page!=PAGE_LIST&&page!=PAGE_SAVE)notice="Draft only - not saved";
     if(page==PAGE_LIST) {
         if(y<60||y>=216)return;
@@ -450,27 +492,38 @@ static void nova_tap(int x,int y) {
         if(index<count){edit_slot(order[index]);nova_edit_scroll=0;nova_delete_confirm=false;}
         else if(index==count&&count<POINTS_MAX)nova_new_point();
     } else if(page==PAGE_EDIT) {
-        if(y<60||y>=216)return;
-        unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;
-        if(row==0)page=PAGE_TYPE;
+        if(y<60||y>=216)return;unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
+        if(row==0){page=PAGE_TYPE;nova_type_scroll=0;}
         else if(row==1)page=PAGE_TIME;
-        else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration only for Lunch / Break";}
-        else if(row==3)page=PAGE_DAYS;
-        else if(row==4)page=PAGE_MODE;
-        else if(row==5){draft.enabled^=1;nova_delete_confirm=false;}
-        else if(row==6){page=PAGE_SAVE;nova_delete_confirm=false;}
-        else if(row==7){
-            if(!nova_delete_confirm){nova_delete_confirm=true;notice="Tap delete again to confirm";}
-            else {draft=(points_item){0};save_action();nova_delete_confirm=false;nova_edit_scroll=0;}
-        }
+        else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";}
+        else if(row==3){if(timed)draft.notify_end^=1;else notice="Set a duration first";}
+        else if(row==4){if(timed&&draft.duration_minutes>=3)draft.warn3^=1;else notice="Set duration to at least 3 min";}
+        else if(row==5)page=PAGE_MODE;
+        else if(row==6)page=PAGE_DAYS;
+        else if(row==7){draft.enabled^=1;nova_delete_confirm=false;}
+        else if(row==8){page=PAGE_SAVE;nova_delete_confirm=false;}
+        else if(row==9){if(!nova_delete_confirm){nova_delete_confirm=true;notice="Tap delete again to confirm";}else{draft=(points_item){0};save_action();nova_delete_confirm=false;nova_edit_scroll=0;}}
     } else if(page==PAGE_TYPE) {
-        if(y>=55&&y<220){unsigned row=(unsigned)(y-55)/31u+1u;if(row>=1&&row<=5){draft.kind=(uint8_t)row;if(!duration_kind(row))draft.duration_minutes=0;page=PAGE_EDIT;nova_delete_confirm=false;}}
+        if(y>=60&&y<216){unsigned choices[8],count=nova_type_choices(choices),at=nova_type_scroll+(unsigned)(y-60)/38u;if(at<count){unsigned kind=choices[at];
+            if(kind&&kind<POINTS_CUSTOM_1){draft.kind=(uint8_t)kind;if(!duration_kind(kind)){draft.duration_minutes=0;draft.notify_end=draft.warn3=0;}page=PAGE_EDIT;}
+            else {if(!kind){for(unsigned i=0;i<POINTS_CUSTOM_COUNT;i++)if(!writer.meta.custom[i].name[0]){kind=POINTS_CUSTOM_1+i;break;}}custom_kind=kind;custom_draft=writer.meta;unsigned ci=custom_index(kind);
+                if(ci<POINTS_CUSTOM_COUNT&&!custom_draft.custom[ci].name[0])snprintf(custom_draft.custom[ci].name,sizeof(custom_draft.custom[ci].name),"CUSTOM %u",ci+1);
+                custom_pos=0;page=PAGE_CUSTOM;}
+        }}
     } else if(page==PAGE_MODE) {
         if(y>=64&&y<220){unsigned row=(unsigned)(y-64)/36u;if(row<4){draft.mode=(uint8_t)row;page=PAGE_EDIT;}}
     } else if(page==PAGE_TIME) {
         if(y>=56&&y<216){int row=(y-56)/32,j=row-2;if(j){if(x<120){int h=(int)draft.hour+j;while(h<0)h+=24;draft.hour=(uint8_t)(h%24);}else{int m=(int)draft.minute+j*5;while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}}}
     } else if(page==PAGE_DURATION) {
-        if(y>=56&&y<216){int row=(y-56)/32,j=row-2;if(j)nova_duration_move(j);}
+        if(y>=56&&y<216){int row=(y-56)/32,j=row-2;if(j)nova_duration_move(j);if(!draft.duration_minutes)draft.notify_end=draft.warn3=0;}
+    } else if(page==PAGE_CUSTOM) {
+        unsigned ci=custom_index(custom_kind);
+        if(ci>=POINTS_CUSTOM_COUNT)return;
+        if(y>=62&&y<126){if(x<80)custom_cycle(-1);else if(x>160)custom_cycle(1);else custom_pos=(custom_pos+1)%POINTS_CUSTOM_NAME_MAX;}
+        else if(y>=140&&y<184){unsigned col=(unsigned)x*8u/240u;if(col<8)custom_draft.custom[ci].color=(uint8_t)col;}
+        else if(y>=184){if(x<120)page=PAGE_TYPE;else{custom_trim(custom_draft.custom[ci].name);if(!custom_draft.custom[ci].name[0]){notice="Custom name cannot be empty";return;}
+            custom_draft.revision=writer.meta.revision+1;int32_t rc=points_writer_save_meta(&writer,storage,&custom_draft);if(rc!=ALARM_OK){notice="Custom type save failed";return;}
+            draft.kind=(uint8_t)custom_kind;page=PAGE_EDIT;notice="Custom type saved";}}
     } else if(page==PAGE_DAYS) {
         if(y>=62&&y<106&&x>=15&&x<225){unsigned d=(unsigned)(x-15)*7u/210u;if(d<7)draft.weekdays^=(uint8_t)(1u<<d);}
         else if(y>=108&&y<140)draft.weekdays=127;
@@ -487,7 +540,9 @@ static bool nova_scroll_step(int direction) {
         if(direction>0&&nova_list_scroll<max)nova_list_scroll++;else if(direction<0&&nova_list_scroll)nova_list_scroll--;
         return old!=nova_list_scroll;
     }
-    if(page==PAGE_EDIT){unsigned old=nova_edit_scroll;if(direction>0&&nova_edit_scroll<4)nova_edit_scroll++;else if(direction<0&&nova_edit_scroll)nova_edit_scroll--;return old!=nova_edit_scroll;}
+    if(page==PAGE_EDIT){unsigned old=nova_edit_scroll;if(direction>0&&nova_edit_scroll<6)nova_edit_scroll++;else if(direction<0&&nova_edit_scroll)nova_edit_scroll--;return old!=nova_edit_scroll;}
+    if(page==PAGE_TYPE){unsigned choices[8],count=nova_type_choices(choices),max=count>4?count-4:0,old=nova_type_scroll;if(direction>0&&nova_type_scroll<max)nova_type_scroll++;else if(direction<0&&nova_type_scroll)nova_type_scroll--;return old!=nova_type_scroll;}
+    if(page==PAGE_CUSTOM){custom_cycle(direction);return true;}
     if(page==PAGE_TIME){if(nova_drag_x<120){draft.hour=(uint8_t)((draft.hour+(direction>0?1:23))%24);}else{int m=(int)draft.minute+(direction>0?5:-5);while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}return true;}
     if(page==PAGE_DURATION){nova_duration_move(direction);return true;}
     return false;
@@ -496,7 +551,7 @@ static bool nova_contact_update(const springboard_contact *c) {
     if(!c||c->cancelled||!c->valid){nova_drag_active=false;return false;}
     if(c->began){nova_drag_active=true;nova_drag_x=c->x;nova_drag_y=c->y;return false;}
     bool changed=false;
-    if(c->down&&nova_drag_active&&(page==PAGE_LIST||page==PAGE_EDIT||page==PAGE_TIME||page==PAGE_DURATION)) {
+    if(c->down&&nova_drag_active&&(page==PAGE_LIST||page==PAGE_EDIT||page==PAGE_TYPE||page==PAGE_TIME||page==PAGE_DURATION||page==PAGE_CUSTOM)) {
         int d=c->y-nova_drag_y;
         while(d>=24||d<=-24){int direction=d<0?1:-1;changed|=nova_scroll_step(direction);nova_drag_y+=d<0?-24:24;d=c->y-nova_drag_y;}
     }
@@ -513,7 +568,7 @@ static bool nova_buttons(uint32_t buttons) {
 static void on_tap(int x,int y) { if(nova)nova_tap(x,y);else on_tap_legacy(x,y); }
 
 static bool on_back(void) {
-    if(writer.uncertain){notice="Retry save before leaving";return false;}
+    if(writer.uncertain||writer.meta_uncertain){notice="Retry save before leaving";return false;}
     if(service_valid && service_state.occurrence.generation){notice="Dismiss before leaving";return false;}
     if(page==PAGE_LIST) {
 #ifdef POINTS_RETURN_APP
@@ -526,12 +581,13 @@ static bool on_back(void) {
         return true;
     }
     if(page==PAGE_EDIT){page=PAGE_LIST;notice="Draft discarded";nova_edit_scroll=0;nova_delete_confirm=false;}
+    else if(page==PAGE_CUSTOM){page=PAGE_TYPE;notice="Custom edit discarded";}
     else {page=PAGE_EDIT;notice="Draft only - not saved";nova_delete_confirm=false;}
     return false;
 }
 void app_main(void) {
     app=t5_app_get_api(1);writer=(points_writer){0};draft=(points_item){0};page=PAGE_LIST;list_page=selected=0;
-    nova=NULL;nova_list_scroll=nova_edit_scroll=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;
+    nova=NULL;nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
     time_format=PORTABLE_TIME_FORMAT_12;service_state=(alarm_status_v1){0};service_valid=clock_valid=ready=false;notice="";
     if(!app || app->abi_version!=1 || app->struct_size<offsetof(t5_app_api_v1,draw_label)+sizeof(app->draw_label) ||
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
