@@ -51,6 +51,23 @@ const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t version){assert(version
 #ifdef PORTABLE_ALARM_CLIENT
 bool portable_app_sleep_retained(void){return retained_test;}
 #endif
+#ifdef PORTABLE_NOVA_UI
+static unsigned p7_text_calls,p7_fill_calls,p7_round_calls,p7_button_calls;
+void portable_nova_begin(void){rendered[0]=0;}
+int portable_nova_measure(unsigned face,const char *s){(void)face;return s?(int)strlen(s)*6:0;}
+static void p7_record(const char *s){if(!s)return;assert(strlen(rendered)+strlen(s)+2<sizeof(rendered));strcat(rendered,s);strcat(rendered,"\n");}
+void portable_nova_text(unsigned face,int x,int y,int width,const char *s,uint32_t color){(void)face;(void)x;(void)y;(void)width;(void)color;p7_text_calls++;p7_record(s);}
+void portable_nova_center(unsigned face,int x,int y,int width,const char *s,uint32_t color){portable_nova_text(face,x,y,width,s,color);}
+void portable_nova_right(unsigned face,int x,int y,int width,const char *s,uint32_t color){portable_nova_text(face,x,y,width,s,color);}
+void portable_nova_fill(int x,int y,int w,int h,uint32_t color){(void)x;(void)y;(void)w;(void)h;(void)color;p7_fill_calls++;}
+void portable_nova_round(int x,int y,int w,int h,int radius,uint32_t color){(void)x;(void)y;(void)w;(void)h;(void)radius;(void)color;p7_round_calls++;}
+void portable_nova_button(int x,int y,int w,int h,const char *s,bool selected){(void)x;(void)y;(void)w;(void)h;(void)selected;p7_button_calls++;p7_record(s);}
+void portable_nova_row(int x,int y,int w,int h,const char *a,const char *b,bool selected){(void)x;(void)y;(void)w;(void)h;(void)selected;p7_record(a);p7_record(b);}
+void portable_nova_header(const char *s){p7_record(s);}
+void portable_nova_rule(int x,int y,int w){(void)x;(void)y;(void)w;p7_fill_calls++;}
+bool portable_nova_hit(int x,int y,int l,int t,int w,int h){return x>=l&&y>=t&&x<l+w&&y<t+h;}
+bool portable_nova_wrap(unsigned face,int x,int y,int width,int line_height,unsigned max_lines,const char *s,uint32_t color){(void)face;(void)x;(void)y;(void)width;(void)line_height;(void)max_lines;(void)color;p7_record(s);return true;}
+#endif
 static void setup(void){
  memset(stored,0,sizeof(stored));memset(last_put,0,sizeof(last_put));memset(stored_meta,0,sizeof(stored_meta));memset(last_put_meta,0,sizeof(last_put_meta));
  stored_size=stored_meta_size=ticks=puts_count=meta_puts_count=gets_count=releases=steps=stops=refreshes=acknowledges=0;
@@ -80,6 +97,22 @@ static void writer_tests(void){
  setup();get_error=RISC_KEY_VALUE_IO;w=(points_writer){0};assert(points_writer_load(&w,&store_api)==ALARM_STORAGE&&!w.loaded&&!puts_count);
 }
 int main(void){
+#ifdef PORTABLE_NOVA_UI
+ setup();app=&fake_app;writer=(points_writer){.loaded=true};ready=service_valid=clock_valid=true;
+ p7_text_calls=p7_fill_calls=p7_round_calls=p7_button_calls=0;
+ custom_kind=POINTS_CUSTOM_1;custom_draft=(points_meta){.revision=1};custom_draft.custom[0].color=6;
+ page=PAGE_CUSTOM_KEYBOARD;custom_key_page=custom_key_choice=0;
+ for(unsigned i=0;i<8;i++)p7_key_activate(i);
+ custom_key_page=1;for(unsigned i=0;i<4;i++)p7_key_activate(i);
+ assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
+ p7_key_activate(0);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
+ p7_key_activate(10);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJK"));
+ p7_key_activate(11);assert(page==PAGE_CUSTOM);
+ page=PAGE_CUSTOM_KEYBOARD;draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJK")&&strstr(rendered,"PREV")&&strstr(rendered,"DONE"));
+ writer.saved.revision=1;writer.saved.points[0]=(points_item){.kind=POINTS_WORK_START,.enabled=1,.weekdays=127,.hour=8,.minute=30};
+ page=PAGE_LIST;nova_list_scroll=0;draw_nova7();assert(strstr(rendered,"POINTS IN TIME")&&strstr(rendered,"START WORK")&&p7_fill_calls>=2);
+ puts("Points NOVA-7 single-line list primitives and shared keyboard entry passed");return 0;
+#else
  writer_tests();
  setup();app_main();assert(!puts_count&&releases==4&&!writer.saved.revision);assert(strstr(rendered,"Empty"));
 #ifdef PORTABLE_ALARM_CLIENT
@@ -133,4 +166,5 @@ int main(void){
  setup();set_direct();edit_slot(0);put_error=RISC_KEY_VALUE_IO;save_action();assert(writer.uncertain);alert=true;refresh_status();draw();assert(strstr(rendered,"Dismiss to continue"));on_tap(80,190);assert(acknowledges==1&&writer.uncertain&&puts_count==1);close_dependencies();
 #endif
  puts("Points app writer, custom metadata/colors, independent end/warning toggles, 8-slot persistence, retry, RTC, modes and lifecycle fixtures passed");return 0;
+#endif
 }
