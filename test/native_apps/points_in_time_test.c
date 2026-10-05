@@ -26,7 +26,9 @@ static int32_t get(void *context,const char *key,void *data,uint32_t cap,uint32_
  (void)context;gets_count++;*size=0;bool meta=!strcmp(key,POINTS_META_KEY);assert(meta||!strcmp(key,POINTS_CONFIG_KEY));
  if(get_error || (!meta&&readback_error&&puts_count))return RISC_KEY_VALUE_IO;
  const uint8_t *src=meta?stored_meta:stored;uint32_t n=meta?stored_meta_size:stored_size;
- if(!n)return RISC_KEY_VALUE_NOT_FOUND;if(cap<n){*size=n;return RISC_KEY_VALUE_BUFFER_SMALL;}memcpy(data,src,n);*size=n;return RISC_KEY_VALUE_OK;
+ if(!n)return RISC_KEY_VALUE_NOT_FOUND;
+ if(cap<n){*size=n;return RISC_KEY_VALUE_BUFFER_SMALL;}
+ memcpy(data,src,n);*size=n;return RISC_KEY_VALUE_OK;
 }
 static int32_t put(void *context,const char *key,const void *data,uint32_t size){
  (void)context;assert(size==POINTS_RECORD_SIZE);bool meta=!strcmp(key,POINTS_META_KEY);assert(meta||!strcmp(key,POINTS_CONFIG_KEY));
