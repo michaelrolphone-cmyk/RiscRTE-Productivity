@@ -122,10 +122,15 @@ int main(void){
  setup();for(unsigned i=0;i<100;i++)events[event_count++]=(t5_app_input_t){0};app_main();assert(!puts_count&&!meta_puts_count&&gets_count==2);
 
  setup();set_direct();for(unsigned i=0;i<8;i++){edit_slot(i);draft=(points_item){.kind=(uint8_t)(i%5+1),.enabled=1,.mode=(uint8_t)(i%4),.weekdays=127,.hour=(uint8_t)(6+i),.minute=15};save_action();assert(writer.saved.revision==i+1);}assert(puts_count==8);for(unsigned i=0;i<8;i++)assert(writer.saved.points[i].hour==6+i);uint32_t rev=writer.saved.revision;edit_slot(0);draft.enabled=0;rtc_value.minute=1;save_action();assert(writer.saved.revision==rev+1&&!writer.saved.points[0].enabled&&writer.saved.points[7].enabled);close_dependencies();
+ setup();set_direct();draft=(points_item){.kind=POINTS_CUSTOM_1,.enabled=1,.mode=3,.weekdays=127,.hour=14,.duration_minutes=30};page=PAGE_EDIT;nova_edit_scroll=0;
+ nova_tap(100,175);assert(draft.notify_end);nova_edit_scroll=1;nova_tap(100,175);assert(draft.warn3);
+ custom_kind=POINTS_CUSTOM_1;custom_draft=writer.meta;memcpy(custom_draft.custom[0].name,"MEDICINE",9);custom_draft.custom[0].color=2;page=PAGE_CUSTOM;custom_pos=0;
+ nova_tap(180,205);assert(page==PAGE_EDIT&&draft.kind==POINTS_CUSTOM_1&&writer.meta.revision==1&&writer.meta.custom[0].color==2&&!strcmp(writer.meta.custom[0].name,"MEDICINE")&&meta_puts_count==1);
+ points_meta persisted_meta;assert(points_meta_decode(&persisted_meta,stored_meta,stored_meta_size)&&persisted_meta.custom[0].color==2&&!strcmp(persisted_meta.custom[0].name,"MEDICINE"));close_dependencies();
  setup();tap(170,192);tap(80,150);app_main();assert(selected==7&&!puts_count);
 #ifndef PORTABLE_ALARM_CLIENT
  setup();alert=true;back();tap(80,190);app_main();assert(acknowledges==1&&!alert&&!puts_count);
  setup();set_direct();edit_slot(0);put_error=RISC_KEY_VALUE_IO;save_action();assert(writer.uncertain);alert=true;refresh_status();draw();assert(strstr(rendered,"Dismiss to continue"));on_tap(80,190);assert(acknowledges==1&&writer.uncertain&&puts_count==1);close_dependencies();
 #endif
- puts("Points app writer, 8-slot persistence, UI pages, retry, RTC, modes, format and lifecycle fixtures passed");return 0;
+ puts("Points app writer, custom metadata/colors, independent end/warning toggles, 8-slot persistence, retry, RTC, modes and lifecycle fixtures passed");return 0;
 }
