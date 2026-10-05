@@ -268,9 +268,9 @@ static void nova_draw_list(void) {
         if(index==count) {nova_dot(20,y+3,3,NOVA_CYAN,180);nova_cap(y,"+ ADD POINT",false,NOVA_CYAN);continue;}
         unsigned slot=order[index];const points_item *p=&writer.saved.points[slot];
         char time[24],line[52],sub[24],dur[16];format_time(p,time,sizeof(time));nova_short_days(p->weekdays,sub);
-        if(p->duration_minutes){nova_duration(dur,p->duration_minutes);snprintf(line,sizeof(line),"%s  %s  %s",time,nova_kinds[p->kind],dur);}
-        else snprintf(line,sizeof(line),"%s  %s",time,nova_kinds[p->kind]);
-        uint32_t col=p->enabled?nova_kind_colors[p->kind]:NOVA_DIM;
+        if(p->duration_minutes){nova_duration(dur,p->duration_minutes);snprintf(line,sizeof(line),"%s  %s  %s",time,nova_kind_name(p->kind),dur);}
+        else snprintf(line,sizeof(line),"%s  %s",time,nova_kind_name(p->kind));
+        uint32_t col=p->enabled?nova_kind_color(p->kind):NOVA_DIM;
         nova_dot(20,y+3,3,col,p->enabled?255:110);nova_cap(y,line,true,col);nova_cap(y+14,sub,false,p->enabled?NOVA_MUTED:NOVA_DIM);
     }
     if(rows>4){char p[20];snprintf(p,sizeof(p),"%u-%u / %u",nova_list_scroll+1,
