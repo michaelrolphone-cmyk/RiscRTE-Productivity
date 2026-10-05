@@ -15,7 +15,7 @@ import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
 SYSTEM_PIN = '911be9e8042f1bcc46038fb70189eebe4ca106c5'
-UTILITIES_PIN = '5447e0749b91944ce10ecfb3fe24f978a31fce53'
+UTILITIES_PIN = '306b281e2efbe2abcc8dcb09a201d81bf5e3fe69'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('rtc.clock', 2), ('storage.key-value', 1), ('alarm.service', 1)]
