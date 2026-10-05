@@ -475,7 +475,7 @@ static void nova_new_point(void) {
     unsigned slot=nova_first_empty();if(slot>=POINTS_MAX){notice="All 8 point slots are in use";return;}
     twatch_rtc_time_v1 t={0};unsigned h=8,m=0;
     if(rtc&&rtc->read(rtc->context,&t)){h=t.hour;m=((unsigned)t.minute+4u)/5u*5u;if(m>=60){m=0;h=(h+1)%24;}}
-    selected=slot;draft=(points_item){POINTS_BREAK,1,1,62,(uint8_t)h,(uint8_t)m,15};
+    selected=slot;draft=(points_item){.kind=POINTS_BREAK,.enabled=1,.mode=1,.weekdays=62,.hour=(uint8_t)h,.minute=(uint8_t)m,.duration_minutes=15};
     page=PAGE_EDIT;nova_edit_scroll=0;nova_delete_confirm=false;notice="Draft only - not saved";
 }
 static void nova_tap(int x,int y) {
@@ -492,7 +492,8 @@ static void nova_tap(int x,int y) {
         if(index<count){edit_slot(order[index]);nova_edit_scroll=0;nova_delete_confirm=false;}
         else if(index==count&&count<POINTS_MAX)nova_new_point();
     } else if(page==PAGE_EDIT) {
-        if(y<60||y>=216)return;unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
+        if(y<60||y>=216)return;
+        unsigned row=nova_edit_scroll+(unsigned)(y-60)/38u;bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
         if(row==0){page=PAGE_TYPE;nova_type_scroll=0;}
         else if(row==1)page=PAGE_TIME;
         else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";}
