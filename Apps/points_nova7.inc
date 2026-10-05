@@ -234,7 +234,8 @@ static void p7_key_activate(unsigned key) {
     else if(key==11){page=PAGE_CUSTOM;custom_key_choice=0;}
 }
 static bool p7_edit_content_hit(int x,int y) {
-    if(y<81||y>=P7_VIEW_BOTTOM)return false;int cy=y+p7_edit_offset(),row=82;
+    if(y<81||y>=P7_VIEW_BOTTOM)return false;
+    int cy=y+p7_edit_offset(),row=82;
     bool timed=duration_kind(draft.kind)&&draft.duration_minutes;
     if(cy>=row&&cy<row+40){page=PAGE_TYPE;nova_type_scroll=0;return true;}row+=40;
     if(cy>=row&&cy<row+40){page=PAGE_TIME;return true;}row+=40;
@@ -264,7 +265,8 @@ static void nova7_tap(int x,int y) {
     }
     if(page!=PAGE_LIST)notice="Draft only - not saved";
     if(page==PAGE_LIST) {
-        if(y<P7_ROW_TOP)return;unsigned order[POINTS_MAX],count=nova_configured(order),index=nova_list_scroll+(unsigned)(y-P7_ROW_TOP)/P7_ROW_H;
+        if(y<P7_ROW_TOP)return;
+        unsigned order[POINTS_MAX],count=nova_configured(order),index=nova_list_scroll+(unsigned)(y-P7_ROW_TOP)/P7_ROW_H;
         if(index<count){edit_slot(order[index]);nova_edit_scroll=0;nova_delete_confirm=false;}else if(index==count&&count<POINTS_MAX)p7_new_point();
     } else if(page==PAGE_EDIT) {
         if(portable_nova_hit(x,y,72,196,96,44)){save_action();return;}p7_edit_content_hit(x,y);
@@ -301,7 +303,9 @@ static bool nova7_buttons(uint32_t buttons) {
         else if(buttons&T5_APP_BUTTON_RIGHT)custom_key_choice=(custom_key_choice+1)%12;
         else if(buttons&T5_APP_BUTTON_UP)custom_key_choice=(custom_key_choice+8)%12;
         else if(buttons&T5_APP_BUTTON_DOWN)custom_key_choice=(custom_key_choice+4)%12;
-        else if(buttons&T5_APP_BUTTON_CONFIRM)p7_key_activate(custom_key_choice);else return false;return true;
+        else if(buttons&T5_APP_BUTTON_CONFIRM)p7_key_activate(custom_key_choice);
+        else return false;
+        return true;
     }
     if(buttons&T5_APP_BUTTON_UP){nova_drag_x=60;return nova7_scroll_step(-1);}
     if(buttons&T5_APP_BUTTON_DOWN){nova_drag_x=60;return nova7_scroll_step(1);}
