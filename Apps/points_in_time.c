@@ -10,6 +10,10 @@
 #include "PortableTime.h"
 #include "PortableTimeFormat.h"
 #include "points_writer.h"
+#ifdef PORTABLE_NOVA_UI
+#include "PortableNovaUi.h"
+#include "PortableNovaKeyboard.h"
+#endif
 #ifdef PORTABLE_ALARM_CLIENT
 #include "PortableAppSleep.h"
 #endif
@@ -42,7 +46,9 @@ static const char *const nova_modes[]={"SYSTEM","VIBRATE","SOUND","VIBRATE + SOU
 #define NOVA_CYAN 0x19e3ffu
 #define NOVA_WHITE 0xffffffu
 #define NOVA_MUTED 0x6b8288u
+#ifndef PORTABLE_NOVA_UI
 #define NOVA_DIM 0x34484du
+#endif
 #define NOVA_RED 0xff6a5fu
 static const uint32_t nova_kind_colors[]={NOVA_MUTED,0x3d9bffu,0xff3d71u,0xffb020u,0x3dff9au,0x6d7bffu,NOVA_CYAN,NOVA_CYAN};
 static const uint32_t nova_custom_colors[]={0xffd24au,0xff7a1au,0xff3d71u,0xb24dffu,0x6d7bffu,0x3d9bffu,0x19e3ffu,0x3dff9au};
@@ -138,7 +144,7 @@ static void button(int x,int y,int w,const char *value) {
 static bool hit(int x,int y,int left,int top,int width,int height) {
     return x>=left && x<left+width && y>=top && y<top+height;
 }
-static void draw_legacy(void) {
+static __attribute__((unused)) void draw_legacy(void) {
     char text[64],value[40];app->clear();label(4,10,44,"Back");
     if(page==PAGE_LIST)label(50,10,182,"POINTS IN TIME");
     else {snprintf(text,sizeof(text),"POINT %u",selected+1);label(50,10,182,text);}
@@ -354,7 +360,7 @@ static void nova_draw_save(void) {
     nova_cap(132,"ONLY FUTURE STARTS RUN",false,NOVA_MUTED);nova_cap(154,"AFTER THIS SAVE",false,NOVA_MUTED);
     nova_cap(194,"BACK              SAVE NOW",false,NOVA_CYAN);
 }
-static void draw_nova(void) {
+static __attribute__((unused)) void draw_nova(void) {
     if(!nova||!nova->begin||!nova->caption){draw_legacy();return;}
     nova->begin();
     if(!ready)nova_problem("DEPENDENCIES UNAVAILABLE","SERVICE / RTC / STORAGE");
@@ -420,7 +426,7 @@ static void retry_action(void) {
     if(page==PAGE_LIST || !writer.loaded)load_catalog();
     uint32_t now;clock_valid=read_clock(&now);(void)service->refresh(service->context);refresh_status();notice="Refreshed";
 }
-static void on_tap_legacy(int x,int y) {
+static __attribute__((unused)) void on_tap_legacy(int x,int y) {
     if(!ready) {
         if(hit(x,y,8,176,224,34))retry_action();
         return;
@@ -488,7 +494,7 @@ static void nova_new_point(void) {
     selected=slot;draft=(points_item){.kind=POINTS_BREAK,.enabled=1,.mode=1,.weekdays=62,.hour=(uint8_t)h,.minute=(uint8_t)m,.duration_minutes=15};
     page=PAGE_EDIT;nova_edit_scroll=0;nova_delete_confirm=false;notice="Draft only - not saved";
 }
-static void nova_tap(int x,int y) {
+static __attribute__((unused)) void nova_tap(int x,int y) {
     if(!ready){if(y>=135)retry_action();return;}
 #ifndef PORTABLE_ALARM_CLIENT
     if(service_valid&&service_state.occurrence.generation){if(y>=130)(void)service->acknowledge(service->context,&service_state.occurrence);return;}
@@ -558,7 +564,7 @@ static bool nova_scroll_step(int direction) {
     if(page==PAGE_DURATION){nova_duration_move(direction);return true;}
     return false;
 }
-static bool nova_contact_update(const springboard_contact *c) {
+static __attribute__((unused)) bool nova_contact_update(const springboard_contact *c) {
     if(!c||c->cancelled||!c->valid){nova_drag_active=false;return false;}
     if(c->began){nova_drag_active=true;nova_drag_x=c->x;nova_drag_y=c->y;return false;}
     bool changed=false;
@@ -569,14 +575,14 @@ static bool nova_contact_update(const springboard_contact *c) {
     if(c->released)nova_drag_active=false;
     return changed;
 }
-static bool nova_buttons(uint32_t buttons) {
+static __attribute__((unused)) bool nova_buttons(uint32_t buttons) {
     if(buttons&T5_APP_BUTTON_UP){nova_drag_x=60;return nova_scroll_step(-1);}
     if(buttons&T5_APP_BUTTON_DOWN){nova_drag_x=60;return nova_scroll_step(1);}
     if(page==PAGE_TIME&&buttons&T5_APP_BUTTON_LEFT){nova_drag_x=60;return nova_scroll_step(-1);}
     if(page==PAGE_TIME&&buttons&T5_APP_BUTTON_RIGHT){nova_drag_x=180;return nova_scroll_step(1);}
     return false;
 }
-static void on_tap(int x,int y) {
+static __attribute__((unused)) void on_tap(int x,int y) {
 #ifdef PORTABLE_NOVA_UI
     nova7_tap(x,y);
 #else
