@@ -79,11 +79,11 @@ static void setup(void){
  rtc_api=(twatch_rtc_api_v1){2,sizeof(rtc_api),NULL,read_rtc,NULL,NULL,NULL};alarm_api=(alarm_service_v1){1,sizeof(alarm_api),NULL,service_status,step,refresh,acknowledge,NULL,stop};
 }
 static void tap(int x,int y){assert(event_count<128);events[event_count++]=(t5_app_input_t){.tapped=true,.touch_x=x,.touch_y=y};}
-static void back(void){events[event_count++]=(t5_app_input_t){.buttons=T5_APP_BUTTON_BACK};}
-static void save_first(void){tap(80,42);tap(80,103);tap(190,145);tap(180,195);tap(40,199);tap(170,199);tap(170,192);}
-static points_config saved(void){points_config c;assert(points_config_decode(&c,stored,stored_size));return c;}
-static void set_direct(void){app=&fake_app;writer=(points_writer){0};page=PAGE_LIST;selected=list_page=0;time_format=0;notice="";service_valid=false;ready=open_dependencies();assert(ready);load_catalog();}
-static void writer_tests(void){
+static __attribute__((unused)) void back(void){events[event_count++]=(t5_app_input_t){.buttons=T5_APP_BUTTON_BACK};}
+static __attribute__((unused)) void save_first(void){tap(80,42);tap(80,103);tap(190,145);tap(180,195);tap(40,199);tap(170,199);tap(170,192);}
+static __attribute__((unused)) points_config saved(void){points_config c;assert(points_config_decode(&c,stored,stored_size));return c;}
+static __attribute__((unused)) void set_direct(void){app=&fake_app;writer=(points_writer){0};page=PAGE_LIST;selected=list_page=0;time_format=0;notice="";service_valid=false;ready=open_dependencies();assert(ready);load_catalog();}
+static __attribute__((unused)) void writer_tests(void){
  setup();points_writer w={0};assert(points_writer_load(&w,&store_api)==ALARM_OK&&w.loaded&&!w.saved.revision&&!puts_count);
  points_config c=w.saved;c.revision=1;c.created=1000;c.points[0]=(points_item){.kind=POINTS_LUNCH,.enabled=1,.mode=3,.weekdays=62,.hour=12,.minute=30,.duration_minutes=45};assert(points_writer_save(&w,&store_api,&c)==ALARM_OK&&w.saved.revision==1&&!w.uncertain&&puts_count==1);
  assert(points_writer_save(&w,&store_api,&c)==ALARM_EXHAUSTED&&puts_count==1);
