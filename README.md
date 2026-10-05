@@ -26,3 +26,11 @@ Points in Time 0.2.0 is an original, separate portable application with the NOVA
 ## Documentation and parity policy
 
 Each app has a dedicated source-derived page covering its interfaces, workflows, persistence, limits and failure behavior. Source, version, build and documentation parity must all be verified. External changes must survive later upstream synchronization: classify changes against recorded source blobs before reconciling them. Never blindly overwrite an external fix or treat a successful build as authorization for cutover.
+
+## Timecard portable preparation
+
+[Timecard portable UI/model profile](docs/TIMECARD_PORTABLE.md) reuses the existing
+1.0.4 source with NOVA rendering, the standard Points keyboard and safer input/
+history guards. It has independent host/target evidence and preserves the legacy
+migration build. Writable app-data support is still required before any Watch
+launcher or installable package includes it.

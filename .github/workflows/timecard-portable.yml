@@ -1,0 +1,41 @@
+name: Timecard portable UI and model
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 33bb5640219c2989fd004ef551c9534ace57c989
+          path: .deps/system-apps
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Original model and portable validation, interaction and real-renderer tests
+        run: python scripts/test_timecard_portable.py --system-apps .deps/system-apps
+      - name: Preserve migration and original app inventory
+        run: python -m unittest discover -s tests -v
+      - name: Install exact public target compiler
+        run: |
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+      - name: Target UI-model evidence only, with no writable backend or install manifest
+        run: python scripts/build_timecard_portable.py --system-apps .deps/system-apps
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timecard-ui-development-${{ github.sha }}
+          path: |
+            dist/timecard-ui-development/
+            build/timecard-portable/profile-frames-0/
+            build/timecard-portable/adapter-frames-0/
+          if-no-files-found: error
+          retention-days: 14
