@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE, PAGE_CUSTOM };
+enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE, PAGE_CUSTOM, PAGE_CUSTOM_KEYBOARD };
 static const t5_app_api_v1 *app;
 static const risc_runtime_api_v1 *runtime;
 static const risc_key_value_v1 *storage,*preferences;
@@ -25,7 +25,7 @@ static const alarm_service_v1 *service;
 static risc_runtime_capability_v1 grants[4];
 static unsigned acquired,page,list_page,selected,time_format;
 static const springboard_presentation *nova;
-static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos;
+static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos,custom_key_page,custom_key_choice;
 static int nova_drag_x,nova_drag_y;
 static bool nova_drag_active,nova_delete_confirm;
 static points_meta custom_draft;
@@ -375,7 +375,17 @@ static void draw_nova(void) {
     if(ready&&writer.loaded&&!writer.uncertain)nova_cap(232,status_message(),false,NOVA_MUTED);
     app->present(false);
 }
-static void draw(void) { if(nova)draw_nova();else draw_legacy(); }
+static void edit_slot(unsigned slot);
+static void save_action(void);
+static void retry_action(void);
+#include "points_nova7.inc"
+static void draw(void) {
+#ifdef PORTABLE_NOVA_UI
+    draw_nova7();
+#else
+    if(nova)draw_nova();else draw_legacy();
+#endif
+}
 
 static void edit_slot(unsigned slot) {
     selected=slot;draft=writer.saved.points[slot];
@@ -566,7 +576,13 @@ static bool nova_buttons(uint32_t buttons) {
     if(page==PAGE_TIME&&buttons&T5_APP_BUTTON_RIGHT){nova_drag_x=180;return nova_scroll_step(1);}
     return false;
 }
-static void on_tap(int x,int y) { if(nova)nova_tap(x,y);else on_tap_legacy(x,y); }
+static void on_tap(int x,int y) {
+#ifdef PORTABLE_NOVA_UI
+    nova7_tap(x,y);
+#else
+    if(nova)nova_tap(x,y);else on_tap_legacy(x,y);
+#endif
+}
 
 static bool on_back(void) {
     if(writer.uncertain||writer.meta_uncertain){notice="Retry save before leaving";return false;}
@@ -581,21 +597,30 @@ static bool on_back(void) {
 #endif
         return true;
     }
+#ifdef PORTABLE_NOVA_UI
+    if(page==PAGE_EDIT){save_action();nova_edit_scroll=0;nova_delete_confirm=false;}
+    else if(page==PAGE_CUSTOM_KEYBOARD){page=PAGE_CUSTOM;notice="Name draft retained";}
+    else if(page==PAGE_CUSTOM){page=PAGE_TYPE;notice="Custom edit discarded";}
+    else {page=PAGE_EDIT;notice="Draft only - not saved";nova_delete_confirm=false;}
+#else
     if(page==PAGE_EDIT){page=PAGE_LIST;notice="Draft discarded";nova_edit_scroll=0;nova_delete_confirm=false;}
     else if(page==PAGE_CUSTOM){page=PAGE_TYPE;notice="Custom edit discarded";}
     else {page=PAGE_EDIT;notice="Draft only - not saved";nova_delete_confirm=false;}
+#endif
     return false;
 }
 void app_main(void) {
     app=t5_app_get_api(1);writer=(points_writer){0};draft=(points_item){0};page=PAGE_LIST;list_page=selected=0;
-    nova=NULL;nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
+    nova=NULL;nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
     time_format=PORTABLE_TIME_FORMAT_12;service_state=(alarm_status_v1){0};service_valid=clock_valid=ready=false;notice="";
     if(!app || app->abi_version!=1 || app->struct_size<offsetof(t5_app_api_v1,draw_label)+sizeof(app->draw_label) ||
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
        !app->fill_rect || !app->present || app->screen_width()!=240 || app->screen_height()!=240)return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
+#ifndef PORTABLE_NOVA_UI
     nova=springboard_presentation_get();
     if(nova&&(!nova->begin||!nova->caption||!nova->contact))nova=NULL;
+#endif
     ready=open_dependencies();if(ready)load_catalog();draw();uint32_t last_draw=app->millis();
     for(;;) {
         t5_app_input_t input={0};bool poll_ok=app->poll(&input,20);
@@ -625,12 +650,17 @@ void app_main(void) {
         bool back=input.exit_requested || (input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
         if(back){if(on_back())break;draw();last_draw=app->millis();continue;}
         bool interacted=false;
+#ifdef PORTABLE_NOVA_UI
+        interacted|=nova7_buttons(input.buttons);
+        if(input.tapped){nova7_tap(input.touch_x,input.touch_y);interacted=true;}
+#else
         if(nova) {
             springboard_contact contact={0};nova->contact(&contact);
             interacted|=nova_buttons(input.buttons);
             interacted|=nova_contact_update(&contact);
             if(contact.released&&contact.tap_eligible){nova_tap(contact.x,contact.y);interacted=true;}
         } else if(input.tapped){on_tap(input.touch_x,input.touch_y);interacted=true;}
+#endif
         if(interacted || (uint32_t)(app->millis()-last_draw)>=500) {
             if(ready){uint32_t now;clock_valid=read_clock(&now);}
             draw();last_draw=app->millis();
