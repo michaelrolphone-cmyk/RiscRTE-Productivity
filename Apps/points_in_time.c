@@ -405,7 +405,13 @@ static void save_action(void) {
     else {
         if(!writer.loaded){notice="Storage invalid: retry";return;}
         if(writer.saved.revision==UINT32_MAX){notice="Revision limit reached";return;}
-        if(draft.enabled && !draft.weekdays){notice="Choose at least one day";page=PAGE_DAYS;return;}
+        if(draft.enabled && !draft.weekdays){notice="Choose at least one day";
+#ifdef PORTABLE_NOVA_UI
+            page=PAGE_EDIT;
+#else
+            page=PAGE_DAYS;
+#endif
+            return;}
         if(!service_valid || service_state.state==ALARM_STATE_BLOCKED){notice="Service blocked: retry";return;}
         uint32_t now;clock_valid=read_clock(&now);if(!clock_valid){notice="RTC invalid: retry";return;}
         if(now>ALARM_RTC_MAX-ALARM_RECOVERY_SECONDS){notice="RTC range limit";return;}
