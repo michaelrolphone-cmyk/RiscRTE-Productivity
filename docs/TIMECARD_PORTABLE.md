@@ -23,7 +23,7 @@ Editing is invocation-local: DONE saves, Back cancels, and the same opaque core
 cookie identifies the original day/punch. An external app handoff exits without
 queuing a competing Home request.
 
-System dependency: `33bb5640219c2989fd004ef551c9534ace57c989` (PR45). This profile
+System dependency: `a708a45ef47a4d625c1da9fd334bbbd817aa3e15` (PR46). This profile
 requires no edits to System Apps, Runtime or Watch for its independent UI tests.
 All drawing uses the existing shared renderer and embedded font/FontAwesome
 assets. Shared functions, not board or pin constants, own display/touch/RTC.
@@ -44,7 +44,7 @@ assets. Shared functions, not board or pin constants, own display/touch/RTC.
 - Header/footer/status are redrawn after scrolling, so content cannot cover them
 
 The compact renderer uses the existing 240-pixel NOVA presentation surface.
-Other presentation sizes/styles can reuse the same Timecard model. No hardware
+Raw touch uses the same centered origin on larger surfaces; smaller surfaces are refused before storage access. Other presentation styles can reuse the same Timecard model. No hardware
 accuracy, current draw, touch timing or rotary crown behavior is claimed.
 
 ## Data-safety guards for this profile
@@ -118,8 +118,7 @@ midnight/year rollover, held/drag/lost contact, nested Back, and clipping guards
 A separate integration fixture links the unmodified production shared adapter,
 real portable app and raw touch/display/RTC/navigation providers. It exercises
 editing/DONE, crown cancellation, nested Back, root return, stride guards and
-capability/frame cleanup. Quick Controls/alarm/sleep integration is not enabled
-in this development build and remains a later production-integration check.
+capability/frame cleanup. The optional foreground alarm client honors shared retained sleep failures before drawing, launching or releasing grants. A focused consumer test covers that guard; Quick Controls and full hardware sleep coexistence remain later production-integration checks.
 
 The exact GCC 8.4 build validates Xtensa ELF structure and import/export bounds
 and records source hashes/pins. The existing Reader migration workflow still
@@ -151,3 +150,7 @@ commit-then-error reconciliation and retained early-return cleanup. These tests
 complement the Runtime file/fault/actual-ELF suites. They are not a claim of a
 complete Watch image or qualified LittleFS installation. Default UI builds remain
 unbound until an explicitly selected app-data deployment replaces that profile.
+
+The builder also accepts --alarm-client and --navigation to target-compile the existing shared lifecycle interfaces. These flags do not themselves claim a deployable Watch graph or physical sleep qualification.
+
+CI also target-builds --app-data-client --alarm-client --navigation --denver against the recorded consumer declaration. This compiles the complete client/lifecycle combination without pretending that a Runtime implementation is embedded or pinned by that client-only artifact.

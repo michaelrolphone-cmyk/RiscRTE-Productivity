@@ -12,6 +12,8 @@ def main():
     p.add_argument('--runtime-appdata', type=Path, help='Also test the explicit app-data prototype bridge against this SDK')
     args = p.parse_args()
     system = args.system_apps.resolve()
+    if args.runtime_appdata and (args.runtime_appdata.resolve()/'sdk/app/RiscAppDataV1.h').read_bytes() != (ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h').read_bytes():
+        raise ValueError('Selected Runtime app-data declaration differs from tested consumer bytes')
     includes = [ROOT/'lib/PortableTimecard/include', system/'lib/NativeApps/include', ROOT/'lib/NativeApps/include',
                 system/'lib/PortableApps/include', system/'lib/PortableApps/src']
     out = ROOT/'build/timecard-portable'
@@ -34,6 +36,8 @@ def main():
               '-DPORTABLE_INPUT_NAVIGATION', '-DPORTABLE_INPUT_NAVIGATION_LOCAL']),
             ('time-denver', [ROOT/'test/native_apps/timecard_portable_time_test.c'],
              ['-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME', '-DPORTABLE_RTC_UTC8_DENVER']),
+            ('shared-retention', [ROOT/'test/native_apps/timecard_shared_retention_test.c'],
+             ['-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME']),
             ('legacy-ui', [ROOT/'Apps/timecard.c', ROOT/'test/native_apps/timecard_ui_test.c'], []),
             ('legacy-overlap', [ROOT/'tests/timecard_overlap_test.c'], []),
             ('legacy-clock', [ROOT/'test/native_apps/timecard_clock_failure_test.c'], []),
@@ -49,8 +53,7 @@ def main():
                 frames.mkdir(exist_ok=True)
                 run.append(str(frames))
             subprocess.run(run, check=True, timeout=120, env=env)
-        runtime = args.runtime_appdata.resolve() if args.runtime_appdata else ROOT/'lib/PortableTimecard'
-        api_include = runtime/'sdk/app' if args.runtime_appdata else runtime/'include'
+        api_include = ROOT/'lib/PortableTimecard/include'
         for name, source in [('appdata-bridge', ROOT/'tests/timecard_appdata_bridge_test.c'),
                              ('appdata-profile', ROOT/'test/native_apps/timecard_appdata_profile_test.c')]:
             binary = out/f'{name}-{int(sanitized)}'

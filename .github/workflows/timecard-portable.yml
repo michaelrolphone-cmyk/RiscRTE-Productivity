@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 33bb5640219c2989fd004ef551c9534ace57c989
+          ref: a708a45ef47a4d625c1da9fd334bbbd817aa3e15
           path: .deps/system-apps
       - uses: actions/setup-python@v5
         with:
@@ -29,12 +29,15 @@ jobs:
           python -m pip install platformio==6.1.19
           pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
       - name: Target UI-model evidence only, with no writable backend or install manifest
-        run: python scripts/build_timecard_portable.py --system-apps .deps/system-apps
+        run: |
+          python scripts/build_timecard_portable.py --system-apps .deps/system-apps
+          python scripts/build_timecard_portable.py --system-apps .deps/system-apps --app-data-client --alarm-client --navigation --denver
       - uses: actions/upload-artifact@v4
         with:
           name: timecard-ui-development-${{ github.sha }}
           path: |
             dist/timecard-ui-development/
+            dist/timecard-appdata-development/
             build/timecard-portable/profile-frames-0/
             build/timecard-portable/adapter-frames-0/
           if-no-files-found: error

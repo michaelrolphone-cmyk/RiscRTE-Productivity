@@ -11,7 +11,7 @@ class TimecardProfileTests(unittest.TestCase):
         self.assertEqual(blob, 'fee216e8b5507b7b2fd4ee5488e34767f4bc13d2')
         source = (ROOT/'Apps/timecard_portable.c').read_text()
         self.assertIn('#include "timecard.c"', source)
-        self.assertIn('if(tcp_storage_retained())return;', source)
+        self.assertIn('if(tcp_retained())return;', source)
         self.assertIn('if(!find_day(date) && day_count>=MAX_DAYS)', source)
 
     def test_appdata_declaration_is_exact_recorded_consumer_copy(self):

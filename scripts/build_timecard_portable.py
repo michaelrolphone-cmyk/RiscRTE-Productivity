@@ -12,7 +12,7 @@ from pathlib import Path
 import shutil
 import subprocess
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '33bb5640219c2989fd004ef551c9534ace57c989'
+SYSTEM_PIN = 'a708a45ef47a4d625c1da9fd334bbbd817aa3e15'
 MODEL_SHA256 = 'c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9'
 MODEL_VERSION = '1.0.4'
 PROFILE_VERSION = '0.1.0'
@@ -37,6 +37,9 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--system-apps', required=True, type=Path)
     p.add_argument('--denver', action='store_true')
+    p.add_argument('--alarm-client', action='store_true', help='Link the existing shared foreground alarm/retention client')
+    p.add_argument('--navigation', action='store_true', help='Use the existing generic input.navigation capability')
+    p.add_argument('--app-data-client', action='store_true', help='Target-build the versioned client against its recorded consumer SDK; no backend or deployment')
     p.add_argument('--runtime-appdata', type=Path, help='Compile the explicit app-data prototype profile against this local SDK; still not installable')
     args = p.parse_args()
     system = args.system_apps.resolve()
@@ -45,22 +48,29 @@ def main():
     if not cc:
         cc = str(Path(os.environ.get('PLATFORMIO_CORE_DIR', Path.home()/'.platformio'))/'packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc')
     runtime = args.runtime_appdata.resolve() if args.runtime_appdata else None
-    out = ROOT/('dist/timecard-appdata-development' if runtime else 'dist/timecard-ui-development')
+    app_data_client = bool(runtime or args.app_data_client)
+    out = ROOT/('dist/timecard-appdata-development' if app_data_client else 'dist/timecard-ui-development')
     out.mkdir(parents=True, exist_ok=True)
     catalog = out/'catalog.c'
     catalog.write_text('#include "PortableApps.h"\nconst t5_app_manifest_t portable_catalog[1]={{.compatible=false}};\nconst unsigned portable_catalog_count=0;\n')
     mapping = out/'exports.map'
     mapping.write_text('{ global: '+ '; '.join(sorted(EXPORTS))+'; local: *; };\n')
-    elf = out/('timecard-appdata-development.elf' if runtime else 'timecard-ui-development.elf')
+    elf = out/('timecard-appdata-development.elf' if app_data_client else 'timecard-ui-development.elf')
     flags = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME']
     if args.denver:
         flags.append('-DPORTABLE_RTC_UTC8_DENVER')
+    if args.alarm_client:
+        flags.append('-DPORTABLE_ALARM_CLIENT')
+    if args.navigation:
+        flags.append('-DPORTABLE_INPUT_NAVIGATION')
     includes = [system/'lib/NativeApps/include', ROOT/'lib/NativeApps/include', system/'lib/PortableApps/include']
-    if runtime:
-        if (runtime/'sdk/app/RiscAppDataV1.h').read_bytes() != (ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h').read_bytes():
+    if app_data_client:
+        if runtime and (runtime/'sdk/app/RiscAppDataV1.h').read_bytes() != (ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h').read_bytes():
             raise ValueError('Selected Runtime app-data header differs from the tested consumer declaration')
         flags.append('-DTIMECARD_APP_DATA')
-        includes.insert(0, runtime/'sdk/app')
+        # Compile the byte-identical consumer declaration without shadowing the
+        # shared adapter's deliberately pinned Runtime ABI prefix headers.
+        includes.insert(0, ROOT/'lib/PortableTimecard/include')
     sources = [ROOT/'Apps/timecard_portable.c', system/'lib/PortableApps/src/adapter.c', catalog]
     subprocess.run([cc, '-std=c11', '-Os', '-fPIC', '-mtext-section-literals', '-mlongcalls',
                     '-fvisibility=hidden', '-ffreestanding', '-fno-builtin', '-nostdlib', '-nostartfiles',
@@ -85,16 +95,18 @@ def main():
              ROOT/'Apps/timecard_portable_validation.h', ROOT/'lib/NativeApps/include/T5SystemApi.h',
              ROOT/'Apps/timecard_appdata_bridge.h', ROOT/'lib/PortableTimecard/SOURCES.json', ROOT/'lib/PortableTimecard/include/RiscAppDataV1.h', Path(__file__)]
     dependencies = [f for folder in ('lib/PortableApps', 'lib/NativeApps/include') for f in (system/folder).rglob('*') if f.is_file()]
-    record = {'schema': 1, 'purpose': 'ui-model-development-only-no-writable-backend',
+    record = {'schema': 1, 'purpose': 'app-data-client-development-not-watch-deployment' if app_data_client else 'ui-model-development-only-no-writable-backend',
               'deployable': False, 'model_version': MODEL_VERSION, 'profile_version': PROFILE_VERSION,
               'repository_sha': git(ROOT, 'rev-parse', 'HEAD'), 'working_tree_dirty': bool(git(ROOT, 'status', '--porcelain')),
               'system_apps_sha': SYSTEM_PIN, 'compiler': subprocess.check_output([cc, '--version'], text=True).splitlines()[0],
               'defines': flags, 'imports': sorted(imports), 'exports': sorted(exports),
               'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
-              'storage': 'prototype storage.app-data@1 namespace 1; explicit new-layout Runtime required' if runtime else 'unbound; runtime entry displays unavailable and creates no history',
+              'storage': 'prototype storage.app-data@1 namespace 1; explicit new-layout Runtime required' if app_data_client else 'unbound; runtime entry displays unavailable and creates no history',
               'time_policy': 'rtc-utc8-to-America-Denver' if args.denver else 'identity-raw',
               'source_sha256': {str(f.relative_to(ROOT)): hashlib.sha256(f.read_bytes()).hexdigest() for f in files},
               'dependency_sha256': {str(f.relative_to(system)): hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(dependencies)}}
+    if app_data_client:
+        record['app_data_sdk'] = json.loads((ROOT/'lib/PortableTimecard/SOURCES.json').read_text())
     if runtime:
         record['runtime_api'] = {'repository_sha': git(runtime, 'rev-parse', 'HEAD'), 'working_tree_dirty': bool(git(runtime, 'status', '--porcelain')),
                                  'header_sha256': hashlib.sha256((runtime/'sdk/app/RiscAppDataV1.h').read_bytes()).hexdigest()}

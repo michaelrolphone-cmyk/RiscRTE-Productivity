@@ -40,15 +40,18 @@ static bool launch(const char *name){assert(!strcmp(name,"springboard.elf"));lau
 static const risc_runtime_api_v1 runtime={.api_version=1,.struct_size=sizeof(runtime),.request_launch=launch,.acquire=acquire,.release=release};
 const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t version){assert(version==1);return &runtime;}
 static bool back_exits=true;
+static int view_width=240,view_height=240;
+static int32_t api_width(void){return view_width;}
+static int32_t api_height(void){return view_height;}
 static void set_back(bool value){back_exits=value;}
 static void present(bool full){(void)full;presentations++;for(unsigned y=0;y<240;y++)for(unsigned x=240;x<244;x++)assert(test_pixels[y*244+x]==0xa5a5);}
 static bool touch(t5_app_contact_t *out){*out=held;return true;}
 static bool poll(t5_app_input_t *out,uint32_t wait){(void)wait;*out=(t5_app_input_t){0};poll_count++;if(poll_count==2)out->buttons=T5_APP_BUTTON_BACK;return poll_count<4;}
-static const t5_app_api_v1 app_api={.abi_version=1,.struct_size=sizeof(app_api),.present=present,.poll=poll,.set_back_exits_app=set_back,.touch_contact=touch};
+static const t5_app_api_v1 app_api={.abi_version=1,.struct_size=sizeof(app_api),.screen_width=api_width,.screen_height=api_height,.present=present,.poll=poll,.set_back_exits_app=set_back,.touch_contact=touch};
 const t5_app_api_v1 *t5_app_get_api(uint32_t version){assert(version==1);return &app_api;}
 static void init(void){
  memset(test_pixels,0xa5,sizeof(test_pixels));memset(days,0,sizeof(days));memset(loaded_days,0,sizeof(loaded_days));
- app=&app_api;storage=&tcp_store;system_api=&tcp_clock;system_ui=&tcp_system_ui;fwui=&tcp_ui;tcp_files=&file_api;tcp_rtc=&rtc_api;
+ view_width=view_height=240;app=&app_api;storage=&tcp_store;system_api=&tcp_clock;system_ui=&tcp_system_ui;fwui=&tcp_ui;tcp_files=&file_api;tcp_rtc=&rtc_api;
  screen_id=SCREEN_WEEK_LIST;week_offset=selected=editing_ymd=day_count=0;store_ready=false;status_text[0]=0;
  tcp_home=tcp_editor=tcp_external_exit=false;tcp_dirty=true;tcp_scroll=0;tcp_draw_screen=UINT32_MAX;tcp_reset_gesture();
  tcp_clock_valid=tcp_read_datetime(&tcp_snapshot);tcp_time_format=PORTABLE_TIME_FORMAT_12;
@@ -96,6 +99,18 @@ static void ui_tests(const char *directory){
  init();open_day(20261005);tcp_draw();input_contact(false,0,0,false);input_contact(true,60,120,false);input_contact(true,102,122,false);assert(screen_id==SCREEN_WEEK);input_contact(false,102,122,true);assert(screen_id==SCREEN_WEEK);
  init();open_day(20261005);tcp_draw();input_contact(false,0,0,false);input_contact(true,60,120,false);input_contact(false,120,120,false);assert(screen_id==SCREEN_DAY); /* A lost held sample is not a swipe. */
  init();tcp_time_format=PORTABLE_TIME_FORMAT_24;assert(tcp_mutate(20261005,0,0));assert(tcp_mutate(20261005,3,780));open_week(0);tcp_draw();frame(directory,"week-24h");char value[24];tcp_display_time("12:00 AM",value,sizeof(value));assert(!strcmp(value,"00:00"));tcp_display_time("1:00 PM",value,sizeof(value));assert(!strcmp(value,"13:00"));
+ /* The shared NOVA renderer centers its 240px surface. Raw touch coordinates
+  * use the matching origin on a larger display; outside contacts never act. */
+ init();tcp_draw();view_width=320;view_height=300;input_contact(false,0,0,false);
+ input_contact(false,130,135,true);assert(screen_id==SCREEN_WEEK);
+ screen_id=SCREEN_WEEK_LIST;tcp_scroll=0;tcp_render_height=48;tcp_render_rows=20;tcp_reset_gesture();
+ input_contact(false,0,0,false);input_contact(true,130,180,false);input_contact(true,130,130,false);assert(tcp_scroll==50);
+ input_contact(false,130,130,true);assert(screen_id==SCREEN_WEEK_LIST);
+ input_contact(true,5,120,false);input_contact(true,120,120,false);assert(screen_id==SCREEN_WEEK_LIST);
+ input_contact(false,120,120,true);assert(screen_id==SCREEN_WEEK_LIST);
+ tcp_files=NULL;tcp_home=false;tcp_reset_gesture();input_contact(false,0,0,false);
+ input_contact(true,140,271,false);input_contact(true,140,269,false);input_contact(false,140,269,true);assert(!tcp_home);
+ input_contact(true,140,265,false);input_contact(false,140,265,true);assert(tcp_home);tcp_home=false;tcp_files=&file_api;view_width=view_height=240;
  clock_reads=0;tcp_draw();assert(clock_reads==1);unsigned count=writes;rtc_ok=false;tcp_punch(2);assert(writes==count&&!strcmp(status_text,"Clock unavailable"));tcp_draw();assert(!tcp_clock_valid);frame(directory,"clock-unavailable");rtc_ok=true;tcp_draw();assert(tcp_clock_valid);
 }
 int main(int argc,char **argv){storage_tests();editor_tests();ui_tests(argc>1?argv[1]:NULL);init();poll_count=launches=grants=0;app_main();assert(launches==1&&!grants&&back_exits);init();provide_files=false;poll_count=launches=grants=0;unsigned count=writes;app_main();assert(launches==1&&!grants&&writes==count);puts("Timecard portable model/storage/editor/navigation/real NOVA pixel tests passed");return 0;}

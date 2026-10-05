@@ -21,6 +21,9 @@
 #include "PortableRtcClock.h"
 #include "PortableTime.h"
 #include "PortableTimeFormat.h"
+#ifdef PORTABLE_ALARM_CLIENT
+#include "PortableAppSleep.h"
+#endif
 #include "timecard_portable_validation.h"
 #include <stdio.h>
 
@@ -49,6 +52,14 @@ const t5_storage_api_v1 *timecard_portable_file_storage(void);
 #endif
 static bool tcp_storage_retained(void) { return false; }
 #endif
+static bool tcp_retained(void) {
+    if(tcp_storage_retained())return true;
+#ifdef PORTABLE_ALARM_CLIENT
+    return portable_app_sleep_retained();
+#else
+    return false;
+#endif
+}
 #ifndef TIMECARD_RETURN_APP
 #define TIMECARD_RETURN_APP "springboard.elf"
 #endif
@@ -76,6 +87,12 @@ static char tcp_entry[13],tcp_editor_title[32],tcp_editor_status[STATUS_CAP];
 static tc_day_t tcp_before[MAX_DAYS];
 static unsigned tcp_render_rows,tcp_render_height;
 
+static int tcp_origin_x(void) { return app->screen_width?(app->screen_width()-240)/2:0; }
+static int tcp_origin_y(void) { return app->screen_height?(app->screen_height()-240)/2:0; }
+static bool tcp_view_position(int *x,int *y) {
+    *x-=tcp_origin_x();*y-=tcp_origin_y();
+    return *x>=0 && *x<240 && *y>=0 && *y<240;
+}
 static void tcp_reset_gesture(void) { tcp_drag=tcp_moved=false;tcp_axis=0;tcp_armed=false; }
 static bool tcp_read_datetime(t5_local_datetime_t *out) {
     twatch_rtc_time_v1 raw,local;
@@ -171,7 +188,7 @@ static void tcp_display_time(const char *source,char *out,size_t cap) {
 static void tcp_chrome(const t5_ui_chrome_t *chrome) {
     portable_nova_fill(0,0,240,TCP_TOP,0);portable_nova_fill(0,TCP_BOTTOM,240,240-TCP_BOTTOM,0);
     portable_nova_text(0,20,49,200,chrome->title,NOVA_CYAN);
-    if(app->draw_icon)(void)app->draw_icon(194,18,"solid:f017",20,false);
+    if(app->draw_icon)(void)app->draw_icon(tcp_origin_x()+194,tcp_origin_y()+18,"solid:f274",20,false);
     portable_nova_text(3,20,68,200,chrome->subtitle,NOVA_CAP);
     portable_nova_fill(20,80,200,1,NOVA_DIM);
     (void)portable_nova_wrap(3,20,184,200,12,2,chrome->status,NOVA_CAP);
@@ -295,6 +312,7 @@ static void tcp_move(int direction) {
     tcp_dirty=true;
 }
 static void tcp_tap(int x,int y) {
+    if(!tcp_files){if(portable_nova_hit(x,y,82,211,76,29))tcp_home=true;return;}
     if(tcp_editor){int key=portable_watch_key_hit(x,y);if(key>=0)tcp_key((unsigned)key);return;}
     if(portable_nova_hit(x,y,12,211,76,29)){tcp_back();return;}
     if(portable_nova_hit(x,y,96,211,132,29)){tcp_activate();return;}
@@ -305,6 +323,9 @@ static void tcp_input(const t5_app_input_t *input) {
     if(input->buttons&T5_APP_BUTTON_BACK){tcp_reset_gesture();tcp_back();return;}
     t5_app_contact_t contact={0};bool down=app->touch_contact && app->touch_contact(&contact) && contact.down;
     if(down) {
+        int view_x=contact.x,view_y=contact.y;
+        if(!tcp_view_position(&view_x,&view_y)){tcp_reset_gesture();return;}
+        contact.x=(int16_t)view_x;contact.y=(int16_t)view_y;
         if(!tcp_armed)return;
         if(!tcp_drag){tcp_drag=true;tcp_moved=false;tcp_axis=0;tcp_start_x=tcp_last_x=contact.x;tcp_start_y=tcp_last_y=contact.y;tcp_start_scroll=tcp_scroll;}
         int dx=contact.x-tcp_start_x,dy=contact.y-tcp_start_y;tcp_last_x=contact.x;tcp_last_y=contact.y;
@@ -324,13 +345,14 @@ static void tcp_input(const t5_app_input_t *input) {
     tcp_drag=false;
     bool was_armed=tcp_armed;tcp_armed=true;
     if(!was_armed && input->tapped)return;
-    if(input->tapped && !moved){tcp_tap(input->touch_x,input->touch_y);return;}
+    if(input->tapped && !moved){int x=input->touch_x,y=input->touch_y;if(tcp_view_position(&x,&y))tcp_tap(x,y);return;}
+    if(!tcp_files)return;
     if(input->buttons&(T5_APP_BUTTON_UP|T5_APP_BUTTON_LEFT))tcp_move(-1);
     else if(input->buttons&(T5_APP_BUTTON_DOWN|T5_APP_BUTTON_RIGHT))tcp_move(1);
     else if(input->buttons&T5_APP_BUTTON_CONFIRM){if(tcp_editor)tcp_key(tcp_key_choice);else tcp_activate();}
 }
 static void tcp_dependencies_close(void) {
-    if(tcp_storage_retained())return;
+    if(tcp_retained())return;
     if(tcp_runtime)while(tcp_grant_count)tcp_runtime->release(&tcp_grants[--tcp_grant_count]);
     tcp_rtc=NULL;tcp_runtime=NULL;tcp_files=NULL;
 }
@@ -376,6 +398,7 @@ static void tcp_draw(void) {
 __attribute__((visibility("default"))) void app_main(void) {
     app=t5_app_get_api(T5_APP_ABI_VERSION);
     if(!app || app->abi_version!=T5_APP_ABI_VERSION || app->struct_size<offsetof(t5_app_api_v1,touch_contact)+sizeof(app->touch_contact) || !app->poll || !app->present || !app->set_back_exits_app || !app->touch_contact)return;
+    if(!app->screen_width || !app->screen_height || app->screen_width()<240 || app->screen_height()<240)return;
     tcp_home=tcp_editor=tcp_external_exit=false;tcp_dirty=true;tcp_scroll=0;tcp_draw_screen=UINT32_MAX;tcp_reset_gesture();
     screen_id=SCREEN_WEEK_LIST;week_offset=selected=editing_ymd=day_count=0;store_ready=false;status_text[0]=0;
     tcp_dependencies_open();tcp_files=timecard_portable_file_storage();
@@ -385,18 +408,15 @@ __attribute__((visibility("default"))) void app_main(void) {
     /* Returning a retained invocation is safe only because the paired Runtime
      * checks storage safety BEFORE app_module_fini, revocation or ELF unload.
      * Do not touch display, launch, or release any grant after this status. */
-    if(tcp_storage_retained())return;
+    if(tcp_retained())return;
     tcp_draw();
     t5_app_input_t input;
-    while(!tcp_home && !tcp_external_exit && app->poll(&input,20)) {
-        if(!tcp_files) {
-            if(input.exit_requested)tcp_external_exit=true;
-            else if((input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && portable_nova_hit(input.touch_x,input.touch_y,82,211,76,29)))tcp_home=true;
-        } else tcp_input(&input);
-        if(tcp_storage_retained())return;
+    while(!tcp_home && !tcp_external_exit && !tcp_retained() && app->poll(&input,20)) {
+        tcp_input(&input);
+        if(tcp_retained())return;
         if(tcp_dirty && !tcp_home && !tcp_external_exit)tcp_draw();
     }
-    if(tcp_storage_retained())return;
+    if(tcp_retained())return;
     if(tcp_home && tcp_runtime && !tcp_runtime->request_launch(TIMECARD_RETURN_APP) && tcp_runtime->diagnostic)tcp_runtime->diagnostic("TIMECARD error=return-request");
     tcp_editor=false;memset(tcp_entry,0,sizeof(tcp_entry));app->set_back_exits_app(true);tcp_dependencies_close();
 }
