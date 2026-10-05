@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-Utilities
-          ref: f94341f3165ba800a5a6c1efb216321ac62a7d89
+          ref: 591b5835685e08145c7e862838be3c87d3ebb7d3
           path: .deps/utilities
       - uses: actions/setup-python@v5
         with:
