@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '911be9e8042f1bcc46038fb70189eebe4ca106c5'
+SYSTEM_PIN = 'ac2dc07292c7c4e3f0c1a52a748f2fbf084fe522'
 UTILITIES_PIN = 'f89fed5816e2ae8ebad4e8332de0d0309c1b8281'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
@@ -34,11 +34,11 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.3.0', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.4.0', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
-    if app.get('additional_sources') != ['Apps/points_writer.h']:
+    if app.get('additional_sources') != ['Apps/points_writer.h', 'Apps/points_nova7.inc']:
         raise ValueError('Unexpected Points support source')
     validate_manifest(ROOT/app['source_path'], app['file_name'])
     manifest = json.loads((ROOT/app['manifest_path']).read_text())
@@ -69,7 +69,7 @@ def main():
     mapping = output/'exports.map'
     mapping.write_text('{ global: '+ '; '.join(sorted(EXPORTS))+'; local: *; };\n')
     elf = output/app['file_name']
-    defines = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_ALARM_CLIENT']
+    defines = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_ALARM_CLIENT', '-DPORTABLE_NOVA_UI']
     if args.denver:
         defines.append('-DPORTABLE_RTC_UTC8_DENVER')
     includes = [utilities/'lib/Alarm/include', system/'lib/PortableApps/include', system/'lib/NativeApps/include', system/'Apps']
@@ -97,7 +97,7 @@ def main():
                'architecture': 'xtensa-esp32s3', 'file_name': elf.name, 'entry': 'app_main',
                'requires': [{'capability': name, 'api': version} for name, version in REQUIRES]}
     elf.with_suffix('.json').write_text(json.dumps(sidecar, indent=2)+'\n')
-    files = [ROOT/'Apps/points_in_time.c', ROOT/'Apps/points_writer.h', ROOT/'Apps/points_in_time.json',
+    files = [ROOT/'Apps/points_in_time.c', ROOT/'Apps/points_writer.h', ROOT/'Apps/points_nova7.inc', ROOT/'Apps/points_in_time.json',
              ROOT/'scripts/build_points_in_time.py', ROOT/'productivity-manifest.json']
     dependencies = [p for p in (system/'lib/PortableApps').rglob('*') if p.is_file()]
     dependencies += list((system/'lib/NativeApps/include').glob('*.h'))
@@ -125,6 +125,6 @@ def main():
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.3.0: exact pins, target ELF validator and import/export checks passed')
+    print('Points in Time 0.4.0: exact pins, target ELF validator and import/export checks passed')
 if __name__ == '__main__':
     main()
