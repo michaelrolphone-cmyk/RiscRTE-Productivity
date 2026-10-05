@@ -1,0 +1,17 @@
+{
+  "release": "Watch1.0.1",
+  "repository": "michaelrolphone-cmyk/RiscRTE-Productivity",
+  "source_sha": "edd754abc5f83fcebe9cb42ce36bf68cff857b70",
+  "required_workflows": [
+    ".github/workflows/build.yml",
+    ".github/workflows/points-in-time.yml"
+  ],
+  "components": [
+    {
+      "kind": "app",
+      "id": "points_in_time",
+      "version": "0.4.2",
+      "manifest": "Apps/points_in_time.json"
+    }
+  ]
+}
