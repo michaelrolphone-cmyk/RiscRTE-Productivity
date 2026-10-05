@@ -53,6 +53,9 @@ int main(int argc,char **argv) {
     nova_list_scroll=0;p7_list();save_frame(directory,"list-12h");
     nova_list_scroll=37;p7_list();save_frame(directory,"list-drag-37px");
     page=PAGE_TYPE;nova_type_scroll=53;p7_type();save_frame(directory,"types-drag-53px");
+    init(PAGE_LIST);writer.saved=points_default_config();writer.meta=points_default_meta();
+    time_format=PORTABLE_TIME_FORMAT_12;nova_list_scroll=0;p7_list();save_frame(directory,"factory-defaults");
+    assert(!strcmp(nova_kind_name(POINTS_CUSTOM_1),"Drive to Work"));
     puts("Points GUI: every scroll pixel preserves header/footer; drag release continuity; custom colors and Back separation; independent notification switches and Cancel passed");
     return 0;
 }

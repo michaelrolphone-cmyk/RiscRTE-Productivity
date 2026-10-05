@@ -72,6 +72,7 @@ static void setup(void){
  memset(stored,0,sizeof(stored));memset(last_put,0,sizeof(last_put));memset(stored_meta,0,sizeof(stored_meta));memset(last_put_meta,0,sizeof(last_put_meta));
  stored_size=stored_meta_size=ticks=puts_count=meta_puts_count=gets_count=releases=steps=stops=refreshes=acknowledges=0;
  get_error=put_error=0;persist_error=readback_error=deny=alert=blocked=retained_test=stop_fails=diagnosed=false;rtc_good=true;deny_index=acquires=launches=0;launch_denied=false;preference=2;
+ points_config empty={.revision=1};points_config_encode(&empty,stored);stored_size=64;
  event_count=event_index=0;rendered[0]=status_text[0]=0;width_value=height_value=240;rtc_value=(twatch_rtc_time_v1){2026,10,4,0,12,0,0};
  fake_app=(t5_app_api_v1){.abi_version=1,.struct_size=sizeof(fake_app),.screen_width=width,.screen_height=height,.clear=clear,.fill_rect=fill,.present=present,.poll=poll,.millis=millis,.set_back_exits_app=set_back,.draw_label=render_label};
  runtime_api=(risc_runtime_api_v1){.api_version=1,.struct_size=sizeof(runtime_api),.acquire=acquire,.release=release,.yield_ms=yield_ms,.diagnostic=diagnostic,.request_launch=request_launch};
@@ -84,43 +85,69 @@ static __attribute__((unused)) void save_first(void){tap(80,42);tap(80,103);tap(
 static __attribute__((unused)) points_config saved(void){points_config c;assert(points_config_decode(&c,stored,stored_size));return c;}
 static __attribute__((unused)) void set_direct(void){app=&fake_app;writer=(points_writer){0};page=PAGE_LIST;selected=list_page=0;time_format=0;notice="";service_valid=false;ready=open_dependencies();assert(ready);load_catalog();}
 static __attribute__((unused)) void writer_tests(void){
- setup();points_writer w={0};assert(points_writer_load(&w,&store_api)==ALARM_OK&&w.loaded&&!w.saved.revision&&!puts_count);
- points_config c=w.saved;c.revision=1;c.created=1000;c.points[0]=(points_item){.kind=POINTS_LUNCH,.enabled=1,.mode=3,.weekdays=62,.hour=12,.minute=30,.duration_minutes=45};assert(points_writer_save(&w,&store_api,&c)==ALARM_OK&&w.saved.revision==1&&!w.uncertain&&puts_count==1);
+ setup();points_writer w={0};assert(points_writer_load(&w,&store_api)==ALARM_OK&&w.loaded&&w.saved.revision==1&&!puts_count);
+ points_config c=w.saved;c.revision=2;c.created=1000;c.points[0]=(points_item){.kind=POINTS_LUNCH,.enabled=1,.mode=3,.weekdays=62,.hour=12,.minute=30,.duration_minutes=45};assert(points_writer_save(&w,&store_api,&c)==ALARM_OK&&w.saved.revision==2&&!w.uncertain&&puts_count==1);
  assert(points_writer_save(&w,&store_api,&c)==ALARM_EXHAUSTED&&puts_count==1);
  points_writer loaded={0};assert(points_writer_load(&loaded,&store_api)==ALARM_OK&&!memcmp(&loaded.saved,&w.saved,sizeof(w.saved)));
- c.revision=2;c.created=1100;c.points[7]=(points_item){.kind=POINTS_BEDTIME,.enabled=1,.mode=0,.weekdays=127,.hour=22,.minute=15};put_error=RISC_KEY_VALUE_IO;assert(points_writer_save(&w,&store_api,&c)==ALARM_STORAGE&&w.uncertain&&w.saved.revision==1);
+ c.revision=3;c.created=1100;c.points[7]=(points_item){.kind=POINTS_BEDTIME,.enabled=1,.mode=0,.weekdays=127,.hour=22,.minute=15};put_error=RISC_KEY_VALUE_IO;assert(points_writer_save(&w,&store_api,&c)==ALARM_STORAGE&&w.uncertain&&w.saved.revision==2);
  uint8_t pending[64];memcpy(pending,w.pending,64);c.points[7].hour=23;assert(points_writer_save(&w,&store_api,&c)==ALARM_BUSY);assert(points_writer_load(&w,&store_api)==ALARM_BUSY&&puts_count==2);assert(!memcmp(pending,w.pending,64));
- assert(points_writer_retry(&w,&store_api)==ALARM_STORAGE&&puts_count==3&&!memcmp(pending,last_put,64));put_error=0;assert(points_writer_retry(&w,&store_api)==ALARM_OK&&w.saved.revision==2&&w.saved.points[7].hour==22&&!w.uncertain);
+ assert(points_writer_retry(&w,&store_api)==ALARM_STORAGE&&puts_count==3&&!memcmp(pending,last_put,64));put_error=0;assert(points_writer_retry(&w,&store_api)==ALARM_OK&&w.saved.revision==3&&w.saved.points[7].hour==22&&!w.uncertain);
  c=w.saved;c.revision++;c.created++;put_error=RISC_KEY_VALUE_IO;persist_error=true;assert(points_writer_save(&w,&store_api,&c)==ALARM_OK&&!w.uncertain);
  c=w.saved;c.revision++;c.created++;put_error=0;readback_error=true;assert(points_writer_save(&w,&store_api,&c)==ALARM_STORAGE&&w.uncertain);memcpy(pending,w.pending,64);readback_error=false;assert(points_writer_retry(&w,&store_api)==ALARM_OK&&!memcmp(last_put,pending,64));
  stored[2]^=1;assert(points_writer_load(&w,&store_api)==ALARM_STORAGE&&!w.loaded);
  setup();get_error=RISC_KEY_VALUE_IO;w=(points_writer){0};assert(points_writer_load(&w,&store_api)==ALARM_STORAGE&&!w.loaded&&!puts_count);
 }
+static void default_tests(void){
+ setup();stored_size=0;set_direct();
+ assert(writer.saved.revision==1&&writer.default_meta&&!puts_count&&!meta_puts_count);
+ assert(!strcmp(writer.meta.custom[0].name,"Drive to Work")&&!strcmp(writer.meta.custom[1].name,"Wakeup"));
+ assert(!strcmp(nova_kind_name(POINTS_WORK_START),"Work")&&!strcmp(nova_kind_name(POINTS_WORK_END),"Work End"));
+ points_config initial=writer.saved;edit_slot(1);draft.hour=8;assert(!on_back());
+ assert(!puts_count&&!meta_puts_count&&!memcmp(&initial,&writer.saved,sizeof(initial)));
+ edit_slot(1);draft.minute=31;save_action();assert(writer.saved.revision==2&&!writer.uncertain&&!writer.meta_uncertain);
+ assert(puts_count==1&&meta_puts_count==1&&stored_meta_size==64&&!memcmp(stored_meta,"PTM2",4));
+ points_writer reloaded={0};assert(points_writer_load(&reloaded,&store_api)==ALARM_OK);
+ assert(reloaded.saved.points[1].minute==31&&!strcmp(reloaded.meta.custom[0].name,"Drive to Work"));close_dependencies();
+ /* A failed first metadata save retains the exact requested catalog for retry. */
+ setup();stored_size=0;set_direct();edit_slot(1);draft.minute=32;put_error=RISC_KEY_VALUE_IO;save_action();
+ assert(writer.uncertain&&writer.meta_uncertain&&!puts_count&&meta_puts_count==1);
+ uint8_t pending[64];memcpy(pending,writer.pending,64);draft.minute=59;put_error=0;retry_action();
+ assert(!writer.uncertain&&!writer.meta_uncertain&&!memcmp(pending,stored,64));
+ assert(writer.saved.points[1].minute==32&&writer.saved.revision==2);close_dependencies();
+ /* Valid saved empty and custom metadata win, including orphan metadata. */
+ setup();set_direct();assert(!writer.saved.points[0].kind&&!writer.default_meta);close_dependencies();
+ setup();stored_size=0;points_meta custom={.revision=7,.custom={{.color=2,.name="Existing"}}};
+ points_meta_encode(&custom,stored_meta);stored_meta_size=64;set_direct();
+ assert(!strcmp(writer.meta.custom[0].name,"Existing")&&!writer.default_meta&&!meta_puts_count);
+ edit_slot(0);assert(!on_back()&&!puts_count&&!meta_puts_count);close_dependencies();
+ setup();stored[0]^=1;set_direct();assert(!writer.loaded&&!puts_count&&!meta_puts_count);close_dependencies();
+}
 int main(void){
+ default_tests();
 #ifdef PORTABLE_NOVA_UI
  setup();app=&fake_app;writer=(points_writer){.loaded=true};ready=service_valid=clock_valid=true;
  p7_text_calls=p7_fill_calls=p7_round_calls=p7_button_calls=0;
  custom_kind=POINTS_CUSTOM_1;custom_draft=(points_meta){.revision=1};custom_draft.custom[0].color=6;
  p7_key_begin();custom_key_page=1;
  for(unsigned i=1;i<=POINTS_CUSTOM_NAME_MAX;i++)p7_key_activate(i);
- assert(!strcmp(p7_key_text,"ABCDEFGHIJKL")&&!custom_draft.custom[0].name[0]);
- p7_key_activate(1);assert(!strcmp(p7_key_text,"ABCDEFGHIJKL"));
- p7_key_activate(P7_WATCH_KEY_DELETE);assert(!strcmp(p7_key_text,"ABCDEFGHIJK"));
- p7_key_activate(P7_WATCH_KEY_DONE);assert(page==PAGE_CUSTOM&&!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJK"));
- p7_key_begin();draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJK")&&strstr(rendered,"ABC/#")&&strstr(rendered,"DONE"));
+ assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM")&&!custom_draft.custom[0].name[0]);
+ p7_key_activate(1);assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM"));
+ p7_key_activate(P7_WATCH_KEY_DELETE);assert(!strcmp(p7_key_text,"ABCDEFGHIJKL"));
+ p7_key_activate(P7_WATCH_KEY_DONE);assert(page==PAGE_CUSTOM&&!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
+ p7_key_begin();draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJKL")&&strstr(rendered,"ABC/#")&&strstr(rendered,"DONE"));
  p7_key_cancel();
  writer.saved.revision=1;writer.saved.points[0]=(points_item){.kind=POINTS_WORK_START,.enabled=1,.weekdays=127,.hour=8,.minute=30};
- page=PAGE_LIST;nova_list_scroll=0;draw_nova7();assert(strstr(rendered,"POINTS IN TIME")&&strstr(rendered,"START WORK")&&p7_fill_calls>=2);
+ page=PAGE_LIST;nova_list_scroll=0;draw_nova7();assert(strstr(rendered,"POINTS IN TIME")&&strstr(rendered,"Work")&&p7_fill_calls>=2);
  puts("Points NOVA-7 single-line list primitives and original Watch keyboard entry passed");return 0;
 #else
  writer_tests();
- setup();app_main();assert(!puts_count&&releases==4&&!writer.saved.revision);assert(strstr(rendered,"Empty"));
+ setup();app_main();assert(!puts_count&&releases==4&&writer.saved.revision==1);assert(strstr(rendered,"Empty"));
 #ifdef PORTABLE_ALARM_CLIENT
  assert(!steps&&!stops);setup();retained_test=true;app_main();assert(!releases&&!stops&&!steps);
 #else
  assert(!steps&&stops==1);setup();retained_test=stop_fails=true;if(!setjmp(retained_jump))app_main();assert(stops==3&&!releases&&diagnosed);
 #endif
- setup();save_first();app_main();assert(puts_count==1&&saved().revision==1&&saved().points[0].weekdays==62&&saved().points[0].enabled&&saved().points[0].kind==POINTS_WORK_START);for(unsigned i=1;i<8;i++)assert(!saved().points[i].kind);
+ setup();save_first();app_main();assert(puts_count==1&&saved().revision==2&&saved().points[0].weekdays==62&&saved().points[0].enabled&&saved().points[0].kind==POINTS_WORK_START);for(unsigned i=1;i<8;i++)assert(!saved().points[i].kind);
 #ifdef PORTABLE_ALARM_CLIENT
  assert(!steps&&!stops);
 #else
@@ -129,7 +156,7 @@ int main(void){
  setup();tap(80,42);tap(180,199);tap(180,192);app_main();assert(puts_count==1&&!saved().points[0].enabled&&!saved().points[0].weekdays);
  setup();tap(80,42);tap(40,199);tap(180,199);tap(180,192);app_main();assert(!puts_count&&page==PAGE_DAYS&&strstr(status_text,"Choose at least one day"));
  setup();tap(80,42);tap(80,75);tap(50,150);tap(160,150);tap(80,195);back();app_main();assert(!puts_count&&page==PAGE_LIST);
- setup();put_error=RISC_KEY_VALUE_IO;save_first();tap(80,42);back();tap(100,190);app_main();assert(puts_count==2&&writer.uncertain&&!stored_size&&page==PAGE_SAVE&&!launches);
+ setup();put_error=RISC_KEY_VALUE_IO;save_first();tap(80,42);back();tap(100,190);app_main();assert(puts_count==2&&writer.uncertain&&stored_size==64&&page==PAGE_SAVE&&!launches);
  setup();readback_error=true;save_first();app_main();assert(puts_count==1&&writer.uncertain&&stored_size==64);
  setup();rtc_good=false;save_first();app_main();assert(!puts_count&&strstr(status_text,"RTC invalid"));
  setup();blocked=true;save_first();app_main();assert(!puts_count&&strstr(status_text,"Service error"));
@@ -154,7 +181,7 @@ int main(void){
  setup();set_direct();edit_slot(0);draft.enabled=1;draft.weekdays=127;put_error=RISC_KEY_VALUE_IO;save_action();assert(writer.uncertain);uint8_t exact[64];memcpy(exact,writer.pending,64);rtc_value.hour=20;on_tap(50,75);assert(!memcmp(exact,writer.pending,64));put_error=0;retry_action();assert(!writer.uncertain&&!memcmp(exact,last_put,64)&&writer.saved.created%86400==12*3600);close_dependencies();
  setup();for(unsigned i=0;i<100;i++)events[event_count++]=(t5_app_input_t){0};app_main();assert(!puts_count&&!meta_puts_count&&gets_count==2);
 
- setup();set_direct();for(unsigned i=0;i<8;i++){edit_slot(i);draft=(points_item){.kind=(uint8_t)(i%5+1),.enabled=1,.mode=(uint8_t)(i%4),.weekdays=127,.hour=(uint8_t)(6+i),.minute=15};save_action();assert(writer.saved.revision==i+1);}assert(puts_count==8);for(unsigned i=0;i<8;i++)assert(writer.saved.points[i].hour==6+i);uint32_t rev=writer.saved.revision;edit_slot(0);draft.enabled=0;rtc_value.minute=1;save_action();assert(writer.saved.revision==rev+1&&!writer.saved.points[0].enabled&&writer.saved.points[7].enabled);close_dependencies();
+ setup();set_direct();for(unsigned i=0;i<8;i++){edit_slot(i);draft=(points_item){.kind=(uint8_t)(i%5+1),.enabled=1,.mode=(uint8_t)(i%4),.weekdays=127,.hour=(uint8_t)(6+i),.minute=15};save_action();assert(writer.saved.revision==i+2);}assert(puts_count==8);for(unsigned i=0;i<8;i++)assert(writer.saved.points[i].hour==6+i);uint32_t rev=writer.saved.revision;edit_slot(0);draft.enabled=0;rtc_value.minute=1;save_action();assert(writer.saved.revision==rev+1&&!writer.saved.points[0].enabled&&writer.saved.points[7].enabled);close_dependencies();
  setup();set_direct();draft=(points_item){.kind=POINTS_CUSTOM_1,.enabled=1,.mode=3,.weekdays=127,.hour=14,.duration_minutes=30};page=PAGE_EDIT;nova_edit_scroll=0;
  nova_tap(100,175);assert(draft.notify_end);nova_edit_scroll=1;nova_tap(100,175);assert(draft.warn3);
  custom_kind=POINTS_CUSTOM_1;custom_draft=writer.meta;memcpy(custom_draft.custom[0].name,"MEDICINE",9);custom_draft.custom[0].color=2;page=PAGE_CUSTOM;custom_pos=0;

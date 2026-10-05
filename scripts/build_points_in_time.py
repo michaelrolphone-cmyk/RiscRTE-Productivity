@@ -15,7 +15,7 @@ import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
 SYSTEM_PIN = '574a5c84a05da2dd30895859551af90047bcad21'
-UTILITIES_PIN = 'f89fed5816e2ae8ebad4e8332de0d0309c1b8281'
+UTILITIES_PIN = '78bc4c2a0131d4525a9840827f9427f2991307fd'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('rtc.clock', 2), ('storage.key-value', 1), ('alarm.service', 1)]
@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.4.1', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.4.2', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
@@ -125,6 +125,6 @@ def main():
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.4.1: exact pins, target ELF validator and import/export checks passed')
+    print('Points in Time 0.4.2: exact pins, target ELF validator and import/export checks passed')
 if __name__ == '__main__':
     main()

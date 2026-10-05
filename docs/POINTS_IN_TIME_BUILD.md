@@ -58,7 +58,7 @@ The fixture includes actual `Apps/points_in_time.c` and its writer, rather than
 reimplementing their behavior. It runs in bare, shared-adapter and explicit app-owned root-return modes, each
 normal and ASan/UBSan (six binaries). It checks:
 
-- Missing catalog stays empty with no writes; existing data loads; corruption and
+- Missing catalog uses the virtual defaults with no startup writes; saved empty stays empty; corruption and
   read failures block changes. Save/readback/reload preserves all eight slots.
 - Failed put with and without persistence, failed readback after commit, byte-exact
   retry, editing/Back lock while uncertain, monotonic revision and no implicit save.

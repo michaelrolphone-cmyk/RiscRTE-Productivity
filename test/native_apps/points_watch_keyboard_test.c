@@ -106,12 +106,12 @@ int main(void) {
 
     keyboard_setup("");
     for(unsigned i=0;i<POINTS_CUSTOM_NAME_MAX;i++)type_character('A'+i);
-    assert(!strcmp(p7_key_text,"ABCDEFGHIJKL") && !p7_key_text[POINTS_CUSTOM_NAME_MAX]);
+    assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM") && !p7_key_text[POINTS_CUSTOM_NAME_MAX]);
     for(unsigned i=0;i<50;i++)type_character('x');
-    assert(!strcmp(p7_key_text,"ABCDEFGHIJKL"));
+    assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM"));
     p7_key_activate(P7_WATCH_KEY_DELETE);type_character('z');
-    assert(!strcmp(p7_key_text,"ABCDEFGHIJKz"));
-    p7_key_activate(P7_WATCH_KEY_DONE);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKz"));
+    assert(!strcmp(p7_key_text,"ABCDEFGHIJKLz"));
+    p7_key_activate(P7_WATCH_KEY_DONE);assert(!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKLz"));
     p7_key_begin();for(unsigned i=0;i<50;i++)p7_key_activate(P7_WATCH_KEY_DELETE);
     assert(!p7_key_text[0]);p7_key_activate(P7_WATCH_KEY_DONE);assert(!custom_draft.custom[0].name[0]);
 
@@ -127,7 +127,7 @@ int main(void) {
     p7_text_calls=p7_fill_calls=p7_round_calls=p7_button_calls=0;p7_keyboard();
     assert(strstr(rendered,"CUSTOM TYPE") && strstr(rendered," Aa"));
     assert(strstr(rendered,"ABC/#") && strstr(rendered,"DELETE") && strstr(rendered,"DONE"));
-    assert(strstr(rendered,"3 / 12 CHARACTERS") && !strstr(rendered,"PREV") && !strstr(rendered,"NEXT"));
+    assert(strstr(rendered,"3 / 13 CHARACTERS") && !strstr(rendered,"PREV") && !strstr(rendered,"NEXT"));
     assert(p7_fill_calls==71 && p7_text_calls==39 && !p7_round_calls && !p7_button_calls);
 
     /* Production tap, button and Back wiring, including reopening after cancel. */
@@ -145,6 +145,6 @@ int main(void) {
     nova7_tap(190,190);assert(page==PAGE_CUSTOM && !strcmp(custom_draft.custom[0].name,"Keepa"));
     assert(!meta_puts_count && !puts_count);
     keyboard_storage_test();
-    puts("Points Watch keyboard: 95 ASCII keys, original grid/hits, 12-byte bound, draft/Done/Back and input wiring passed");
+    puts("Points Watch keyboard: 95 ASCII keys, original grid/hits, 13-byte bound, draft/Done/Back and input wiring passed");
     return 0;
 }

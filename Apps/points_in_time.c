@@ -38,10 +38,10 @@ static points_item draft;
 static alarm_status_v1 service_state;
 static bool ready,service_valid,clock_valid;
 static const char *notice;
-static const char *const kinds[]={"Empty","Work start","Work end","Lunch","Break","Bedtime"};
+static const char *const kinds[]={"Empty","Work","Work End","Lunch","Break","Bedtime"};
 static const char *const modes[]={"System default","Vibrate","Sound","Sound and vibrate"};
 static const char *const days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
-static const char *const nova_kinds[]={"","START WORK","END WORK","LUNCH","BREAK","WIND DOWN","CUSTOM 1","CUSTOM 2"};
+static const char *const nova_kinds[]={"","Work","Work End","LUNCH","BREAK","WIND DOWN","CUSTOM 1","CUSTOM 2"};
 static const char *const nova_modes[]={"SYSTEM","VIBRATE","SOUND","VIBRATE + SOUND"};
 #define NOVA_CYAN 0x19e3ffu
 #define NOVA_WHITE 0xffffffu
@@ -400,7 +400,9 @@ static void edit_slot(unsigned slot) {
 }
 static void save_action(void) {
     int32_t rc;
-    if(writer.meta_uncertain)rc=points_writer_retry_meta(&writer,storage);
+    if(writer.meta_uncertain){rc=points_writer_retry_meta(&writer,storage);
+        if(rc==ALARM_OK&&writer.uncertain)rc=points_writer_retry(&writer,storage);
+    }
     else if(writer.uncertain)rc=points_writer_retry(&writer,storage);
     else {
         if(!writer.loaded){notice="Storage invalid: retry";return;}
@@ -427,7 +429,7 @@ static void retry_action(void) {
         if(ready)load_catalog();
         return;
     }
-    if(writer.meta_uncertain){(void)points_writer_retry_meta(&writer,storage);return;}
+    if(writer.meta_uncertain){if(writer.uncertain)save_action();else (void)points_writer_retry_meta(&writer,storage);return;}
     if(writer.uncertain){save_action();return;}
     if(page==PAGE_LIST || !writer.loaded)load_catalog();
     uint32_t now;clock_valid=read_clock(&now);(void)service->refresh(service->context);refresh_status();notice="Refreshed";
