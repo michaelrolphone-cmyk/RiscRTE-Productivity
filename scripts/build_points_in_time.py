@@ -15,7 +15,7 @@ import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
 SYSTEM_PIN = '911be9e8042f1bcc46038fb70189eebe4ca106c5'
-UTILITIES_PIN = '06104e746c6b83542c260250b91dab5ed5386eaf'
+UTILITIES_PIN = '5447e0749b91944ce10ecfb3fe24f978a31fce53'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('rtc.clock', 2), ('storage.key-value', 1), ('alarm.service', 1)]
@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.2.0', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.3.0', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
@@ -102,14 +102,14 @@ def main():
     dependencies = [p for p in (system/'lib/PortableApps').rglob('*') if p.is_file()]
     dependencies += list((system/'lib/NativeApps/include').glob('*.h'))
     dependencies += [system/'Apps/SpringboardPresentation.h']
-    dependencies += [utilities/'lib/Alarm/include'/name for name in ('AlarmServiceV1.h', 'AlarmRecords.h', 'PointsRecords.h')]
+    dependencies += [utilities/'lib/Alarm/include'/name for name in ('AlarmServiceV1.h', 'AlarmRecords.h', 'PointsRecords.h', 'PointsSchedule.h')]
     evidence = {'schema': 1, 'purpose': 'points-development-artifact-not-install-catalog', 'version': source_manifest['version'],
                 'repository_sha': git(ROOT, 'rev-parse', 'HEAD'), 'working_tree_dirty': bool(git(ROOT, 'status', '--porcelain')),
                 'system_apps_sha': SYSTEM_PIN, 'utilities_sha': UTILITIES_PIN,
                 'compiler': subprocess.check_output([cc, '--version'], text=True).splitlines()[0],
                 'time_policy': 'rtc-utc8-to-America-Denver' if args.denver else 'identity-raw', 'build_defines': defines,
                 'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data), 'imports': sorted(imports), 'exports': sorted(exports),
-                'storage_grants': [{'instance': 5, 'access': 'read-write', 'key': 'points_cfg'},
+                'storage_grants': [{'instance': 5, 'access': 'read-write', 'key': 'points_cfg'},\n                                   {'instance': 5, 'access': 'read-write', 'key': 'points_meta'},
                                    {'instance': 1, 'access': 'read-only-client', 'key': 'time_format'}],
                 'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
                 'dependency_sha256': {('system/' if p.is_relative_to(system) else 'utilities/')+str(p.relative_to(system if p.is_relative_to(system) else utilities)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(dependencies)}}
@@ -124,6 +124,6 @@ def main():
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.2.0: exact pins, target ELF validator and import/export checks passed')
+    print('Points in Time 0.3.0: exact pins, target ELF validator and import/export checks passed')
 if __name__ == '__main__':
     main()
