@@ -1,6 +1,6 @@
 {
   "min_firmware_version": "0.1.7",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "display_name": "Points in Time",
   "file_name": "points_in_time.elf",
   "icon": "solid:f017",
