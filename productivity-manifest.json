@@ -36,7 +36,7 @@
   "portable_apps": [
     {
       "id": "points_in_time",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "classification": "productivity",
       "origin": "original",
       "runtime_profile": "portable-riscrte-v1",
