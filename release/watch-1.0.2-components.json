@@ -1,0 +1,24 @@
+{
+  "release": "Watch1.0.2",
+  "repository": "michaelrolphone-cmyk/RiscRTE-Productivity",
+  "source_sha": "5acbd52d97d90c509e217a128b3ee5a6da30975c",
+  "required_workflows": [
+    ".github/workflows/build.yml",
+    ".github/workflows/points-in-time.yml",
+    ".github/workflows/timecard-portable.yml"
+  ],
+  "components": [
+    {
+      "kind": "app",
+      "id": "points_in_time",
+      "version": "0.4.3",
+      "manifest": "Apps/points_in_time.json"
+    },
+    {
+      "kind": "app",
+      "id": "timecard",
+      "version": "0.1.0",
+      "manifest": "Apps/native/timecard.json"
+    }
+  ]
+}
