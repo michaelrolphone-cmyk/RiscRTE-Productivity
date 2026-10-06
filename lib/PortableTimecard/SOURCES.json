@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "repository": "michaelrolphone-cmyk/RiscRTE",
+  "source_path": "sdk/app/RiscAppDataV1.h",
+  "source_commit": "1d9bcb204a0b12ac6483511f32ba56da47699404",
+  "git_blob": "92135489a35d61aa5aad9bf35b41c00baec81aca",
+  "sha256": "49ced12bd617ce9e29626f97ee21d824edcf5f8272524a7da8780c60979df201",
+  "publication_state": "published",
+  "purpose": "consumer-only API declaration; no backend, filesystem or authority implementation copied",
+  "source_pr": "https://github.com/michaelrolphone-cmyk/RiscRTE/pull/22",
+  "license_path": "lib/PortableTimecard/LICENSE"
+}
