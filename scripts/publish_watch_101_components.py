@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Publish only reviewed Watch1.0.1 component tags; never move refs or release assets."""
+"""Publish reviewed Watch component tags; never move refs or release assets."""
+import argparse
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -10,6 +11,10 @@ import urllib.parse
 import urllib.request
 
 CONFIG = Path('release/watch-1.0.1-components.json')
+CONFIGS = {
+    'Watch1.0.1': CONFIG,
+    'Watch1.0.2': Path('release/watch-1.0.2-components.json'),
+}
 REPOSITORIES = {
     'michaelrolphone-cmyk/RiscRTE-System-Apps',
     'michaelrolphone-cmyk/RiscRTE-Utilities',
@@ -51,7 +56,10 @@ class GitHub:
 def validate_config(config, repository):
     require(repository in REPOSITORIES and config['repository'] == repository,
             'Unexpected owning repository')
-    require(config['release'] == 'Watch1.0.1', 'Only Watch1.0.1 is authorized')
+    require(config['release'] in CONFIGS, 'Unreviewed Watch release')
+    require(config['release'] == 'Watch1.0.1' or
+            repository == 'michaelrolphone-cmyk/RiscRTE-Productivity',
+            'Watch1.0.2 publication is scoped to Productivity')
     require(re.fullmatch('[0-9a-f]{40}', config['source_sha']), 'Require immutable source SHA')
     require(config['required_workflows'], 'Require integrated-source CI')
     for path in config['required_workflows']:
@@ -148,7 +156,7 @@ def publish(config, repository, default_branch, api, git_command=git):
         print(tag + ' -> ' + config['source_sha'])
 
 
-def main():
+def main(release='Watch1.0.1'):
     repository = os.environ['GITHUB_REPOSITORY']
     event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
     default_branch = event['repository']['default_branch']
@@ -159,10 +167,14 @@ def main():
             run['status'] == 'completed' and run['conclusion'] == 'success',
             'Only successful owning default-branch push CI may publish')
     require(git('rev-parse', 'HEAD') == run['head_sha'], 'Checkout is not the trusted CI head')
-    config = json.loads(CONFIG.read_text())
+    require(release in CONFIGS, 'Unreviewed Watch release')
+    config = json.loads(CONFIGS[release].read_text())
+    require(config['release'] == release, 'Release manifest identity mismatch')
     api = GitHub(repository, os.environ['GH_TOKEN'])
     publish(config, repository, default_branch, api)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--release', choices=CONFIGS, default='Watch1.0.1')
+    main(parser.parse_args().release)

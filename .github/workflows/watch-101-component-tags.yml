@@ -1,12 +1,12 @@
-name: Tag Watch1.0.1 components
+name: Tag reviewed Watch components
 on:
   workflow_run:
-    workflows: ["Independent productivity app build", "Points in Time development build"]
+    workflows: ["Independent productivity app build", "Points in Time development build", "Timecard portable UI and model"]
     types: [completed]
 permissions:
   contents: read
 concurrency:
-  group: watch-1.0.1-component-tags
+  group: reviewed-watch-component-tags
   cancel-in-progress: false
 jobs:
   publish:
@@ -32,4 +32,6 @@ jobs:
       - name: Verify source and CI, then publish missing immutable component tags
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/publish_watch_101_components.py
+        run: |
+          python scripts/publish_watch_101_components.py
+          python scripts/publish_watch_101_components.py --release Watch1.0.2
