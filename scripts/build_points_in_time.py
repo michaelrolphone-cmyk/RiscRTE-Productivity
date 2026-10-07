@@ -134,6 +134,6 @@ def main():
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.5.0: exact pins, target ELF validator and import/export checks passed')
+    print(f"Points in Time {source_manifest['version']}: exact pins, target ELF validator and import/export checks passed")
 if __name__ == '__main__':
     main()
