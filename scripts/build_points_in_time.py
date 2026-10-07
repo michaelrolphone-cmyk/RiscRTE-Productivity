@@ -14,8 +14,8 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '574a5c84a05da2dd30895859551af90047bcad21'
-UTILITIES_PIN = '78bc4c2a0131d4525a9840827f9427f2991307fd'
+SYSTEM_PIN = '47208f387f5d080e065f7c919ef0d0bdd4830663'
+UTILITIES_PIN = 'd7ffcb57e54afcf4267701ea7d3cbc83651b34b3'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('rtc.clock', 2), ('storage.key-value', 1), ('alarm.service', 1)]
@@ -34,11 +34,11 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.4.3', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.0', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
-    if app.get('additional_sources') != ['Apps/points_writer.h', 'Apps/points_nova7.inc', 'Apps/points_nova7_picker.inc', 'Apps/points_watch_keyboard.h']:
+    if app.get('additional_sources') != ['Apps/points_writer.h', 'Apps/points_nova7.inc', 'Apps/points_nova7_picker.inc', 'Apps/points_watch_keyboard.h', 'Apps/points_paper.inc']:
         raise ValueError('Unexpected Points support source')
     validate_manifest(ROOT/app['source_path'], app['file_name'])
     manifest = json.loads((ROOT/app['manifest_path']).read_text())
@@ -52,6 +52,11 @@ def main():
     parser.add_argument('--system-apps', required=True, type=Path)
     parser.add_argument('--utilities', required=True, type=Path)
     parser.add_argument('--denver', action='store_true', help='RTC fixed UTC+08, schedule/display America/Denver; match service build')
+    parser.add_argument('--display-rotation',type=int,choices=[0,90],default=0)
+    parser.add_argument('--navigation',action='store_true')
+    parser.add_argument('--partial-damage',action='store_true',help='Use reported partial-damage support; Watch default retains full frames')
+    parser.add_argument('--return-app',help='Explicit app-owned root Back destination')
+    parser.add_argument('--output-dir',type=Path,default=ROOT/'dist/points-in-time')
     args = parser.parse_args()
     system, utilities = args.system_apps.resolve(), args.utilities.resolve()
     verify_dependency(system, SYSTEM_PIN)
@@ -60,7 +65,7 @@ def main():
     cc = os.environ.get('NATIVE_APP_CC') or shutil.which('xtensa-esp32s3-elf-gcc')
     if not cc:
         cc = str(Path(os.environ.get('PLATFORMIO_CORE_DIR', Path.home()/'.platformio'))/'packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc')
-    output = ROOT/'dist/points-in-time'
+    output = args.output_dir.resolve()
     if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True)
@@ -69,7 +74,10 @@ def main():
     mapping = output/'exports.map'
     mapping.write_text('{ global: '+ '; '.join(sorted(EXPORTS))+'; local: *; };\n')
     elf = output/app['file_name']
-    defines = ['-DPORTABLE_FORCE_FULL_FRAMES', '-DPORTABLE_ALARM_CLIENT', '-DPORTABLE_NOVA_UI']
+    defines = ['-DPORTABLE_ALARM_CLIENT','-DPORTABLE_NOVA_UI','-DPORTABLE_DISPLAY_ROTATION='+str(args.display_rotation)]
+    if not args.partial_damage:defines.append('-DPORTABLE_FORCE_FULL_FRAMES')
+    if args.navigation:defines.append('-DPORTABLE_INPUT_NAVIGATION')
+    if args.return_app:defines.append('-DPOINTS_RETURN_APP="'+args.return_app+'"')
     if args.denver:
         defines.append('-DPORTABLE_RTC_UTC8_DENVER')
     includes = [utilities/'lib/Alarm/include', system/'lib/PortableApps/include', system/'lib/NativeApps/include', system/'Apps']
@@ -96,12 +104,13 @@ def main():
     sidecar = {'type': 'application', 'id': app['id'], 'version': source_manifest['version'],
                'architecture': 'xtensa-esp32s3', 'file_name': elf.name, 'entry': 'app_main',
                'requires': [{'capability': name, 'api': version} for name, version in REQUIRES]}
+    if args.navigation:sidecar['requires'].append({'capability':'input.navigation','api':1})
     elf.with_suffix('.json').write_text(json.dumps(sidecar, indent=2)+'\n')
-    files = [ROOT/'Apps/points_in_time.c', ROOT/'Apps/points_writer.h', ROOT/'Apps/points_nova7.inc', ROOT/'Apps/points_nova7_picker.inc', ROOT/'Apps/points_watch_keyboard.h', ROOT/'Apps/points_in_time.json',
+    files = [ROOT/'Apps/points_in_time.c', ROOT/'Apps/points_writer.h', ROOT/'Apps/points_nova7.inc', ROOT/'Apps/points_nova7_picker.inc', ROOT/'Apps/points_watch_keyboard.h', ROOT/'Apps/points_paper.inc', ROOT/'Apps/points_in_time.json',
              ROOT/'scripts/build_points_in_time.py', ROOT/'productivity-manifest.json']
     dependencies = [p for p in (system/'lib/PortableApps').rglob('*') if p.is_file()]
     dependencies += list((system/'lib/NativeApps/include').glob('*.h'))
-    dependencies += [system/'Apps/SpringboardPresentation.h']
+    dependencies += [system/'Apps/SpringboardPresentation.h',system/'Apps/PaperPresentation.h']
     dependencies += [utilities/'lib/Alarm/include'/name for name in ('AlarmServiceV1.h', 'AlarmRecords.h', 'PointsRecords.h', 'PointsSchedule.h')]
     evidence = {'schema': 1, 'purpose': 'points-development-artifact-not-install-catalog', 'version': source_manifest['version'],
                 'repository_sha': git(ROOT, 'rev-parse', 'HEAD'), 'working_tree_dirty': bool(git(ROOT, 'status', '--porcelain')),
@@ -119,12 +128,12 @@ def main():
         dest = output/'licenses'/name
         dest.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(repo/'LICENSE', dest/'LICENSE')
-    for directory in ('fonts', 'settings_fonts', 'time'):
+    for directory in ('fonts', 'settings_fonts', 'paper_fonts', 'time'):
         for path in (system/'lib/PortableApps'/directory).rglob('*'):
             if path.is_file() and (path.name.startswith('LICENSE') or path.name == 'SOURCES.json'):
                 dest = output/'licenses'/'System-Apps'/directory/path.relative_to(system/'lib/PortableApps'/directory)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    print('Points in Time 0.4.3: exact pins, target ELF validator and import/export checks passed')
+    print('Points in Time 0.5.0: exact pins, target ELF validator and import/export checks passed')
 if __name__ == '__main__':
     main()
