@@ -11,6 +11,9 @@ static bool list_mode;
 static int width(void){return 240;}
 static int height(void){return 240;}
 static void clear_color(uint32_t color){assert(!color);for(unsigned y=0;y<240;y++)for(unsigned x=0;x<240;x++)test_pixels[y*244+x]=0;}
+#include "RiscDisplayOutputV1.h"
+static const uint32_t surface_format=RISC_DISPLAY_FORMAT_RGB565;
+static void np_pixel(int x,int y,uint32_t rgb,unsigned alpha){(void)x;(void)y;(void)rgb;(void)alpha;assert(!"Watch fixture must stay RGB565");}
 #include "nova_ui.inc"
 static char persisted[JSON_CAPACITY];
 static bool file_present,read_ok=true,write_ok=true,write_then_error,rtc_ok=true,provide_files=true;
