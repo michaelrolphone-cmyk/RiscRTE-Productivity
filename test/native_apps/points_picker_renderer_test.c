@@ -9,6 +9,9 @@
 static uint16_t picker_pixels[244*240];
 static struct {unsigned frame,stride_bytes;void *pixels;} surface={1,488,picker_pixels};
 static bool list_mode;
+#include "RiscDisplayOutputV1.h"
+static uint32_t surface_format=RISC_DISPLAY_FORMAT_RGB565;
+static void np_pixel(int x,int y,uint32_t rgb,unsigned alpha){(void)x;(void)y;(void)rgb;(void)alpha;assert(!"MONO1 drawing in Watch-only fixture");}
 static int width(void){return 240;}
 static int height(void){return 240;}
 static void clear_color(uint32_t color){assert(!color);for(unsigned y=0;y<240;y++)for(unsigned x=0;x<240;x++)picker_pixels[y*244+x]=0;}

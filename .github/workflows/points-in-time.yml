@@ -15,12 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 574a5c84a05da2dd30895859551af90047bcad21
+          ref: 4b564e5cb67c1c918fc1a24298e923f816de484e
           path: .deps/system-apps
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-Utilities
-          ref: 78bc4c2a0131d4525a9840827f9427f2991307fd
+          ref: d7ffcb57e54afcf4267701ea7d3cbc83651b34b3
           path: .deps/utilities
       - uses: actions/setup-python@v5
         with:
@@ -33,16 +33,22 @@ jobs:
         run: |
           python scripts/test_points_picker.py --system-apps .deps/system-apps --utilities .deps/utilities
           python scripts/test_points_gui.py --system-apps .deps/system-apps --utilities .deps/utilities
+          python scripts/test_points_paper.py --system-apps .deps/system-apps --utilities .deps/utilities
           python scripts/test_points_touch.py --system-apps .deps/system-apps --utilities .deps/utilities
       - name: Install pinned public compiler
         run: |
           python -m pip install platformio==6.1.19
           pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
       - name: Build development ELF with exact shared dependencies
-        run: python scripts/build_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities
+        run: |
+          python scripts/build_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities
+          python scripts/build_points_in_time.py --system-apps .deps/system-apps --utilities .deps/utilities --display-rotation 90 --navigation --partial-damage --return-app springboard.elf --output-dir dist/points-paper
       - uses: actions/upload-artifact@v4
         with:
           name: points-in-time-development-${{ github.sha }}
-          path: dist/points-in-time/
+          path: |
+            dist/points-in-time/
+            dist/points-paper/
+            build/points-paper/frames/
           if-no-files-found: error
           retention-days: 14

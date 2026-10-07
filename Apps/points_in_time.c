@@ -5,6 +5,7 @@
 #endif
 #include "T5AppApi.h"
 #include "SpringboardPresentation.h"
+#include "PaperPresentation.h"
 #include "RiscRuntimeV1.h"
 #include "PortableRtcClock.h"
 #include "PortableTime.h"
@@ -29,6 +30,8 @@ static const alarm_service_v1 *service;
 static risc_runtime_capability_v1 grants[4];
 static unsigned acquired,page,list_page,selected,time_format;
 static const springboard_presentation *nova;
+static const paper_presentation *paper;
+static void pe_draw(void);
 static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos,custom_key_page,custom_key_choice;
 static int nova_drag_x,nova_drag_y;
 static bool nova_drag_active,nova_delete_confirm;
@@ -58,6 +61,7 @@ static const char custom_chars[]=" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
  * original monochrome UI. A strong adapter definition overrides this weak
  * null implementation in the target ELF. */
 __attribute__((weak)) const springboard_presentation *springboard_presentation_get(void) { return NULL; }
+__attribute__((weak)) const paper_presentation *paper_presentation_get(void) { return NULL; }
 static bool duration_kind(unsigned kind) { return points_duration_kind(kind); }
 static unsigned custom_index(unsigned kind){return kind>=POINTS_CUSTOM_1&&kind<=POINTS_CUSTOM_2?kind-POINTS_CUSTOM_1:POINTS_CUSTOM_COUNT;}
 static const char *nova_kind_name(unsigned kind) {
@@ -386,6 +390,7 @@ static void save_action(void);
 static void retry_action(void);
 #include "points_nova7.inc"
 static void draw(void) {
+    if(paper){pe_draw();return;}
 #ifdef PORTABLE_NOVA_UI
     draw_nova7();
 #else
@@ -598,6 +603,9 @@ static __attribute__((unused)) void on_tap(int x,int y) {
 #endif
 }
 
+static bool on_back(void);
+#include "points_paper.inc"
+
 static bool on_back(void) {
     if(writer.uncertain||writer.meta_uncertain){notice="Retry save before leaving";return false;}
     if(service_valid && service_state.occurrence.generation){notice="Dismiss before leaving";return false;}
@@ -625,16 +633,20 @@ static bool on_back(void) {
 }
 void app_main(void) {
     app=t5_app_get_api(1);writer=(points_writer){0};draft=(points_item){0};page=PAGE_LIST;list_page=selected=0;
-    nova=NULL;nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
+    nova=NULL;paper=NULL;pe_first=pe_edit_first=pe_choice_first=pe_focus=pe_key_page=0;pe_focus_visible=pe_exit=pe_down=false;pe_clean=true;memset(pe_key_text,0,sizeof(pe_key_text));
+    nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
     time_format=PORTABLE_TIME_FORMAT_12;service_state=(alarm_status_v1){0};service_valid=clock_valid=ready=false;notice="";
     if(!app || app->abi_version!=1 || app->struct_size<offsetof(t5_app_api_v1,draw_label)+sizeof(app->draw_label) ||
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
-       !app->fill_rect || !app->present || app->screen_width()!=240 || app->screen_height()!=240)return;
+       !app->fill_rect || !app->present)return;
+    paper=paper_presentation_get();
+    if(paper&&(paper->struct_size<sizeof(*paper)||!paper->begin||!paper->text||!paper->measure||!paper->circle||!paper->contact))paper=NULL;
+    if(!paper&&(app->screen_width()!=240||app->screen_height()!=240))return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
 #ifdef PORTABLE_NOVA_UI
     p7_picker_reset();p7_contact_active=p7_contact_moved=false;
 #endif
-    nova=springboard_presentation_get();
+    nova=paper?NULL:springboard_presentation_get();
     if(nova&&(!nova->begin||!nova->caption||!nova->contact))nova=NULL;
     ready=open_dependencies();if(ready)load_catalog();draw();uint32_t last_draw=app->millis();
     for(;;) {
@@ -661,10 +673,14 @@ void app_main(void) {
 #ifndef PORTABLE_ALARM_CLIENT
         if(ready)(void)service->step(service->context);
 #endif
+        alarm_status_v1 previous_status=service_state;bool previous_valid=service_valid;
         if(ready)refresh_status();
+        bool status_changed=previous_valid!=service_valid||previous_status.state!=service_state.state||previous_status.error!=service_state.error||previous_status.occurrence.generation!=service_state.occurrence.generation;
         bool back=input.exit_requested || (input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
-        if(back){if(on_back())break;draw();last_draw=app->millis();continue;}
+        if(back){if(on_back())break;if(paper)pe_reset_page();draw();last_draw=app->millis();continue;}
         bool interacted=false;
+        if(paper){interacted=pe_input(&input);if(pe_exit)break;}
+        else {
 #ifdef PORTABLE_NOVA_UI
         if(!p7_picker_active()&&!p7_contact_active)interacted|=nova7_buttons(input.buttons);
         if(nova&&nova->contact) {
@@ -681,7 +697,8 @@ void app_main(void) {
             if(contact.released&&contact.tap_eligible){nova_tap(contact.x,contact.y);interacted=true;}
         } else if(input.tapped){on_tap(input.touch_x,input.touch_y);interacted=true;}
 #endif
-        if(interacted || (uint32_t)(app->millis()-last_draw)>=500) {
+        }
+        if(interacted || (paper?status_changed:(uint32_t)(app->millis()-last_draw)>=500)) {
             if(ready){uint32_t now;clock_valid=read_clock(&now);}
             draw();last_draw=app->millis();
         }
