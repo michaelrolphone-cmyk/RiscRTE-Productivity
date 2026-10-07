@@ -26,6 +26,11 @@
 #endif
 #include "timecard_portable_validation.h"
 #include <stdio.h>
+#ifdef TIMECARD_PAPER
+#include "PaperPresentation.h"
+#include "PaperBattery.h"
+static const paper_presentation *tcp_paper;
+#endif
 
 const t5_app_api_v1 *t5_app_get_api(uint32_t version);
 /* App-local link seam, not a new Runtime ABI. No writable Watch backend exists
@@ -204,7 +209,14 @@ static void tcp_adjust_view(uint32_t n,unsigned row_height,int32_t index) {
     if(tcp_scroll>max)tcp_scroll=max;
     (void)index;
 }
+#ifdef TIMECARD_PAPER
+static void tcp_paper_list(const t5_ui_chrome_t *,const t5_ui_list_row_t *,uint32_t,int32_t);
+static void tcp_paper_table(const t5_ui_chrome_t *,const t5_ui_table_column_t *,uint32_t,const t5_ui_table_row_t *,uint32_t,int32_t);
+#endif
 static void tcp_list(const t5_ui_chrome_t *chrome,const t5_ui_list_row_t *rows,uint32_t n,int32_t index) {
+#ifdef TIMECARD_PAPER
+    if(tcp_paper){tcp_paper_list(chrome,rows,n,index);return;}
+#endif
     tcp_adjust_view(n,TCP_ROW_HEIGHT,index);portable_nova_begin();
     for(unsigned i=0;i<n;i++) {
         int y=TCP_TOP+(int)i*TCP_ROW_HEIGHT-tcp_scroll;
@@ -219,6 +231,9 @@ static void tcp_list(const t5_ui_chrome_t *chrome,const t5_ui_list_row_t *rows,u
     tcp_chrome(chrome);app->present(false);
 }
 static void tcp_table(const t5_ui_chrome_t *chrome,const t5_ui_table_column_t *columns,uint32_t count,const t5_ui_table_row_t *rows,uint32_t n,int32_t index) {
+#ifdef TIMECARD_PAPER
+    if(tcp_paper){tcp_paper_table(chrome,columns,count,rows,n,index);return;}
+#endif
     tcp_adjust_view(n,TCP_TABLE_HEIGHT,index);portable_nova_begin();
     for(unsigned i=0;i<n;i++) {
         int y=TCP_TOP+(int)i*TCP_TABLE_HEIGHT-tcp_scroll;
@@ -252,7 +267,13 @@ const t5_system_api_v1 *tcp_source_system_api(uint32_t version) {return version=
 const t5_system_ui_api_v1 *tcp_source_system_ui_api(uint32_t version) {return version==1?&tcp_system_ui:NULL;}
 const t5_ui_api_v1 *tcp_source_ui_api(uint32_t version) {return version==1?&tcp_ui:NULL;}
 
+#ifdef TIMECARD_PAPER
+static void tcp_paper_editor(void);
+#endif
 static void tcp_editor_draw(void) {
+#ifdef TIMECARD_PAPER
+    if(tcp_paper){tcp_paper_editor();return;}
+#endif
     portable_nova_begin();portable_nova_text(0,12,24,216,tcp_editor_title,NOVA_CYAN);
     portable_nova_text(1,12,49,216,tcp_entry,NOVA_TEXT);
     for(unsigned key=0;key<PWK_COUNT;key++) {
@@ -318,7 +339,13 @@ static void tcp_tap(int x,int y) {
     if(portable_nova_hit(x,y,96,211,132,29)){tcp_activate();return;}
     int32_t hit=tcp_hit((int16_t)x,(int16_t)y);if(hit>=0){selected=hit;tcp_activate();}
 }
+#ifdef TIMECARD_PAPER
+#include "timecard_paper.inc"
+#endif
 static void tcp_input(const t5_app_input_t *input) {
+#ifdef TIMECARD_PAPER
+    if(tcp_paper){tcp_paper_input(input);return;}
+#endif
     if(input->exit_requested){tcp_external_exit=true;return;}
     if(input->buttons&T5_APP_BUTTON_BACK){tcp_reset_gesture();tcp_back();return;}
     t5_app_contact_t contact={0};bool down=app->touch_contact && app->touch_contact(&contact) && contact.down;
@@ -379,6 +406,16 @@ static void tcp_dependencies_open(void) {
 #endif
 }
 static void tcp_draw(void) {
+#ifdef TIMECARD_PAPER
+    if(tcp_paper) {
+        if(tcp_editor)tcp_paper_editor();
+        else {
+            tcp_clock_valid=tcp_files && tcp_read_datetime(&tcp_snapshot);
+            if(!tcp_clock_valid)tcp_paper_unavailable();else render();
+        }
+        tcp_dirty=false;return;
+    }
+#endif
     if(tcp_editor)tcp_editor_draw();
     else if(!tcp_files) {
         portable_nova_begin();portable_nova_text(0,20,49,200,"TIME CARD",NOVA_CYAN);
@@ -399,6 +436,9 @@ __attribute__((visibility("default"))) void app_main(void) {
     app=t5_app_get_api(T5_APP_ABI_VERSION);
     if(!app || app->abi_version!=T5_APP_ABI_VERSION || app->struct_size<offsetof(t5_app_api_v1,touch_contact)+sizeof(app->touch_contact) || !app->poll || !app->present || !app->set_back_exits_app || !app->touch_contact)return;
     if(!app->screen_width || !app->screen_height || app->screen_width()<240 || app->screen_height()<240)return;
+#ifdef TIMECARD_PAPER
+    tcp_paper=paper_presentation_get();tcp_paper_first=0;
+#endif
     tcp_home=tcp_editor=tcp_external_exit=false;tcp_dirty=true;tcp_scroll=0;tcp_draw_screen=UINT32_MAX;tcp_reset_gesture();
     screen_id=SCREEN_WEEK_LIST;week_offset=selected=editing_ymd=day_count=0;store_ready=false;status_text[0]=0;
     tcp_dependencies_open();tcp_files=timecard_portable_file_storage();

@@ -2,7 +2,7 @@ name: Timecard portable UI and model
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, codex/nova7-timecard]
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: dbd358746bc8f1254619ca42073e1d44f6ad45df
+          ref: 2775b0b898c432825d9cb5685175c0647dd4dc30
           path: .deps/system-apps
       - uses: actions/checkout@v4
         with:
@@ -29,6 +29,7 @@ jobs:
         run: |
           python scripts/test_timecard_portable.py --system-apps .deps/system-apps --runtime-appdata .deps/runtime
           bash scripts/test_timecard_app_data.sh .deps/runtime
+          python scripts/test_timecard_paper.py --system-apps .deps/system-apps
       - name: Preserve migration and original app inventory
         run: python -m unittest discover -s tests -v
       - name: Install exact public target compiler
@@ -39,7 +40,8 @@ jobs:
         run: |
           python scripts/build_timecard_portable.py --system-apps .deps/system-apps
           python scripts/build_timecard_portable.py --system-apps .deps/system-apps --app-data-client --alarm-client --navigation --denver
-          python scripts/build_timecard_portable.py --system-apps .deps/system-apps --runtime-appdata .deps/runtime --package-profile --denver
+          python scripts/build_timecard_portable.py --system-apps .deps/system-apps --runtime-appdata .deps/runtime --package-profile --denver --quick-actions
+          python scripts/build_timecard_portable.py --system-apps .deps/system-apps --runtime-appdata .deps/runtime --package-profile --paper --display-rotation 90 --quick-actions
       - uses: actions/upload-artifact@v4
         with:
           name: timecard-ui-development-${{ github.sha }}
@@ -47,6 +49,8 @@ jobs:
             dist/timecard-ui-development/
             dist/timecard-appdata-development/
             dist/timecard-portable/
+            dist/timecard-paper/
+            build/timecard-paper/frames-*/
             build/timecard-portable/profile-frames-0/
             build/timecard-portable/adapter-frames-0/
           if-no-files-found: error
