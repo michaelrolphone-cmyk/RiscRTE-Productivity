@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.2', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.3', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
