@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = 'a91770df140173955fe7b0c8ea38a2a75197aa94'
+SYSTEM_PIN = '969d2210e1bf517c1299801c8ad205c956e06810'
 UTILITIES_PIN = '23a4887f1eeb7b7ce867c0e243158b899e43f0f8'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.0', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.1', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
