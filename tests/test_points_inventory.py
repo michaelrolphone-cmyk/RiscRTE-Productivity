@@ -8,7 +8,7 @@ from build_points_in_time import ROOT, SYSTEM_PIN, UTILITIES_PIN, REQUIRES, inve
 class PointsInventoryTests(unittest.TestCase):
     def test_distinct_original_profile_preserves_legacy(self):
         app, manifest = inventory()
-        self.assertEqual(app['version'], '0.5.2')
+        self.assertEqual(app['version'], '0.5.3')
         self.assertEqual(manifest['display_name'], 'Points in Time')
         data = json.loads((ROOT/'productivity-manifest.json').read_text())
         self.assertEqual([row['id'] for row in data['apps']], ['text_editor', 'timecard'])

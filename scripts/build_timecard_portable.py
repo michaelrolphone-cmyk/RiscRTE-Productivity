@@ -13,11 +13,11 @@ import shutil
 import importlib.util
 import subprocess
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '2aa0cf63346e507525af884bbfbf6b69313442c4'
+SYSTEM_PIN = 'a7f08a9db7342a69ef5b9bc03e3b1ea60dafbb7c'
 MODEL_SHA256 = 'c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9'
 MODEL_VERSION = '1.0.4'
 PROFILE_VERSION = '0.1.1'
-PAPER_PROFILE_VERSION = '0.1.3'
+PAPER_PROFILE_VERSION = '0.1.4'
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('input.navigation', 1),
