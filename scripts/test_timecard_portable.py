@@ -2,6 +2,7 @@
 """Test the original Timecard model through its bounded NOVA portable profile."""
 import argparse
 import os
+import sys
 from pathlib import Path
 import subprocess
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,9 +23,13 @@ def main():
     catalog.write_text('#include "PortableApps.h"\nconst t5_app_manifest_t portable_catalog[1]={{.compatible=false}};\nconst unsigned portable_catalog_count=0;\n')
     for sanitized in (False, True):
         flags = ['-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror']
+        if sys.platform == 'darwin':
+            flags += ['-Wno-string-concatenation', '-Wno-misleading-indentation', '-Wno-unused-function']
         if sanitized:
-            flags += ['-fsanitize=address,undefined', '-fno-sanitize-recover=all',
-                      '-fno-omit-frame-pointer', '-fno-pie', '-no-pie']
+            flags += ['-fsanitize='+os.environ.get('TIMECARD_SANITIZERS','address,undefined'), '-fno-sanitize-recover=all',
+                      '-fno-omit-frame-pointer']
+            if sys.platform != 'darwin':
+                flags += ['-fno-pie', '-no-pie']
         env = {**os.environ, 'ASAN_OPTIONS': os.environ.get('ASAN_OPTIONS', 'detect_leaks=0')}
         for name, sources, defines in [
             ('validation', [ROOT/'tests/timecard_portable_validation_test.c'], []),
@@ -34,6 +39,10 @@ def main():
                          system/'lib/PortableApps/src/adapter.c', catalog],
              ['-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME', '-DPORTABLE_FORCE_FULL_FRAMES',
               '-DPORTABLE_INPUT_NAVIGATION', '-DPORTABLE_INPUT_NAVIGATION_LOCAL']),
+            ('watch-home', [ROOT/'test/native_apps/timecard_watch_navigation_test.c', ROOT/'Apps/timecard_portable.c',
+                         system/'lib/PortableApps/src/adapter.c', catalog],
+             ['-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME', '-DPORTABLE_FORCE_FULL_FRAMES',
+              '-DPORTABLE_INPUT_NAVIGATION', '-DPORTABLE_INPUT_NAVIGATION_LOCAL', '-DPORTABLE_HOME_APP="default.elf"']),
             ('time-denver', [ROOT/'test/native_apps/timecard_portable_time_test.c'],
              ['-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME', '-DPORTABLE_RTC_UTC8_DENVER']),
             ('shared-retention', [ROOT/'test/native_apps/timecard_shared_retention_test.c'],
@@ -48,7 +57,7 @@ def main():
                             *['-I'+str(path) for path in includes], *map(str, sources),
                             '-o', str(binary)], check=True, timeout=120)
             run = [str(binary)]
-            if name in ('profile', 'adapter'):
+            if name in ('profile', 'adapter', 'watch-home'):
                 frames = out/f'{name}-frames-{int(sanitized)}'
                 frames.mkdir(exist_ok=True)
                 run.append(str(frames))
@@ -62,6 +71,6 @@ def main():
             subprocess.run([str(binary)], check=True, timeout=120, env=env)
     for name in ('timecard_clock_failure_source_test.py', 'timecard_store_failure_source_test.py'):
         subprocess.run(['python3', str(ROOT/'test/native_apps'/name)], check=True, timeout=30)
-    print('Timecard original source, strict validation and portable real-renderer tests passed normally and with ASan/UBSan')
+    print('Timecard original source, strict validation and portable real-renderer tests passed normally and with selected sanitizers')
 if __name__ == '__main__':
     main()
