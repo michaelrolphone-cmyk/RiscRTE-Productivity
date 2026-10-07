@@ -141,6 +141,8 @@ int main(void){
  puts("Points NOVA-7 single-line list primitives and original Watch keyboard entry passed");return 0;
 #else
  writer_tests();
+ setup();tap(80,42);events[event_count++]=(t5_app_input_t){.exit_requested=true};back();
+ app_main();assert(event_index==2 && page==PAGE_EDIT && releases==4 && !launches && !puts_count);
  setup();app_main();assert(!puts_count&&releases==4&&writer.saved.revision==1);assert(strstr(rendered,"Empty"));
 #ifdef PORTABLE_ALARM_CLIENT
  assert(!steps&&!stops);setup();retained_test=true;app_main();assert(!releases&&!stops&&!steps);

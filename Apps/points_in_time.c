@@ -686,13 +686,16 @@ void app_main(void) {
 #endif
             break;
         }
+        /* A deployment adapter has already accepted the global Home handoff.
+         * This is terminal, unlike the app's local/nested Back navigation. */
+        if(input.exit_requested)break;
 #ifndef PORTABLE_ALARM_CLIENT
         if(ready)(void)service->step(service->context);
 #endif
         alarm_status_v1 previous_status=service_state;bool previous_valid=service_valid;
         if(ready)refresh_status();
         bool status_changed=previous_valid!=service_valid||previous_status.state!=service_state.state||previous_status.error!=service_state.error||previous_status.occurrence.generation!=service_state.occurrence.generation;
-        bool back=input.exit_requested || (input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
+        bool back=(input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
         if(back){if(on_back())break;if(paper)pe_reset_page();draw();last_draw=app->millis();continue;}
         bool interacted=false;
         if(paper){interacted=pe_input(&input);if(pe_exit)break;}

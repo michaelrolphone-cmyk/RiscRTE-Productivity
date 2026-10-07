@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '969d2210e1bf517c1299801c8ad205c956e06810'
+SYSTEM_PIN = '2775b0b898c432825d9cb5685175c0647dd4dc30'
 UTILITIES_PIN = '23a4887f1eeb7b7ce867c0e243158b899e43f0f8'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
@@ -34,7 +34,7 @@ def inventory():
     if len(apps) != 1:
         raise ValueError('Expected exactly one original portable productivity app')
     app = apps[0]
-    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.1', 'origin': 'original',
+    if any(app.get(k) != v for k, v in {'id': 'points_in_time', 'version': '0.5.2', 'origin': 'original',
             'runtime_profile': 'portable-riscrte-v1', 'source_path': 'Apps/points_in_time.c',
             'manifest_path': 'Apps/points_in_time.json', 'file_name': 'points_in_time.elf'}.items()):
         raise ValueError('Invalid Points identity/provenance')
@@ -56,6 +56,8 @@ def main():
     parser.add_argument('--navigation',action='store_true')
     parser.add_argument('--partial-damage',action='store_true',help='Use reported partial-damage support; Watch default retains full frames')
     parser.add_argument('--return-app',help='Explicit app-owned root Back destination')
+    parser.add_argument('--home-app',help='Explicit global Home destination')
+    parser.add_argument('--quick-actions',action='store_true',help='Capability-selected shared controls without radio grants')
     parser.add_argument('--output-dir',type=Path,default=ROOT/'dist/points-in-time')
     args = parser.parse_args()
     system, utilities = args.system_apps.resolve(), args.utilities.resolve()
@@ -78,10 +80,15 @@ def main():
     if not args.partial_damage:defines.append('-DPORTABLE_FORCE_FULL_FRAMES')
     if args.navigation:defines.append('-DPORTABLE_INPUT_NAVIGATION')
     if args.return_app:defines.append('-DPOINTS_RETURN_APP="'+args.return_app+'"')
+    if args.home_app:
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.elf',args.home_app):raise ValueError('Invalid Home target')
+        defines.append('-DPORTABLE_HOME_APP="'+args.home_app+'"')
+    if args.quick_actions:defines.append('-DPORTABLE_QUICK_ACTIONS')
     if args.denver:
         defines.append('-DPORTABLE_RTC_UTC8_DENVER')
     includes = [utilities/'lib/Alarm/include', system/'lib/PortableApps/include', system/'lib/NativeApps/include', system/'Apps']
     sources = [ROOT/app['source_path'], system/'lib/PortableApps/src/adapter.c', catalog]
+    if args.quick_actions:sources += [system/'lib/PortableApps/src'/name for name in ('quick_actions.c','quick_render.c','quick_session.c')]
     subprocess.run([cc, '-std=c11', '-Os', '-fPIC', '-mtext-section-literals', '-mlongcalls', '-fvisibility=hidden',
                     '-ffreestanding', '-fno-builtin', '-nostdlib', '-nostartfiles', '-shared', '-Wl,--no-relax',
                     '-Wl,--hash-style=sysv', '-Wl,--version-script='+str(mapping), '-Wall', '-Wextra', '-Werror',
