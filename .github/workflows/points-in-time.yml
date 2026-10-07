@@ -15,12 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 4b564e5cb67c1c918fc1a24298e923f816de484e
+          ref: a91770df140173955fe7b0c8ea38a2a75197aa94
           path: .deps/system-apps
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-Utilities
-          ref: d7ffcb57e54afcf4267701ea7d3cbc83651b34b3
+          ref: 23a4887f1eeb7b7ce867c0e243158b899e43f0f8
           path: .deps/utilities
       - uses: actions/setup-python@v5
         with:

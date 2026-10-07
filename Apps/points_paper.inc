@@ -80,11 +80,11 @@ static void pe_edit(void) {
   else if(row==1)format_time(&draft,value,sizeof(value));
   else if(row==2)nova_duration(value,draft.duration_minutes);
   else if(row==3||row==4||row==7)snprintf(value,sizeof(value),"%s",(row==3?draft.notify_end:row==4?draft.warn3:draft.enabled)?"ON":"OFF");
-  else if(row==5)snprintf(value,sizeof(value),"%s",nova_modes[draft.mode]);
+  else if(row==5)snprintf(value,sizeof(value),"%s",point_mode_name(draft.mode,true));
   else if(row==6)format_days(draft.weekdays,value,sizeof(value));
   else if(row==8)snprintf(value,sizeof(value),"%s",nova_delete_confirm?"TAP AGAIN TO DELETE":"EXPLICIT CONFIRMATION REQUIRED");
   pe_row(at,names[row],value,pe_focus_visible&&pe_focus==row);
-  if((row==0||row==1||row==2||row==5||row==6)&&app->draw_icon)(void)app->draw_icon(pe_width()-72,PE_TOP+(int)at*PE_ROW+30,"solid:f054",24,!(pe_focus_visible&&pe_focus==row));
+  if((row==0||row==1||row==2||(row==5&&!points_visual_only())||row==6)&&app->draw_icon)(void)app->draw_icon(pe_width()-72,PE_TOP+(int)at*PE_ROW+30,"solid:f054",24,!(pe_focus_visible&&pe_focus==row));
  }
  pe_text(32,pe_height()-146,pe_width()-64,notice&&*notice?notice:"SWIPE FOR MORE OPTIONS",false,true);pe_footer("CANCEL","SAVE");
 }
@@ -108,7 +108,7 @@ static void pe_draw(void) {
   pe_header(page==PAGE_TYPE?"POINT TYPE":"NOTIFY START",NULL);
   unsigned choices[8],n=page==PAGE_TYPE?nova_type_choices(choices):4;
   for(unsigned at=0;at<pe_rows()&&pe_choice_first+at<n;at++){unsigned i=pe_choice_first+at;unsigned kind=page==PAGE_TYPE?choices[i]:0;
-   pe_row(at,page==PAGE_TYPE?(kind?nova_kind_name(kind):"+ CUSTOM TYPE"):nova_modes[i],page==PAGE_TYPE&&custom_index(kind)<POINTS_CUSTOM_COUNT?"TAP RIGHT TO EDIT":"",pe_focus_visible&&pe_focus==i);}
+   pe_row(at,page==PAGE_TYPE?(kind?nova_kind_name(kind):"+ CUSTOM TYPE"):point_mode_name(i,true),page==PAGE_TYPE&&custom_index(kind)<POINTS_CUSTOM_COUNT?"TAP RIGHT TO EDIT":"",pe_focus_visible&&pe_focus==i);}
   pe_footer("< BACK","MORE >");
  } else if(page==PAGE_TIME||page==PAGE_DURATION) {
   pe_header(page==PAGE_TIME?"TIME":"DURATION","DRAFT ONLY - USE SAVE");char value[32];
@@ -145,7 +145,7 @@ static void pe_edit_action(unsigned row) {
  else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";}
  else if(row==3){if(timed)draft.notify_end^=1;else notice="Set a duration first";}
  else if(row==4){if(timed&&draft.duration_minutes>=3)draft.warn3^=1;else notice="Set duration to at least 3 min";}
- else if(row==5)page=PAGE_MODE;else if(row==6)page=PAGE_DAYS;
+ else if(row==5)open_mode_page();else if(row==6)page=PAGE_DAYS;
  else if(row==7){draft.enabled^=1;nova_delete_confirm=false;}
  else if(row==8){if(!nova_delete_confirm){nova_delete_confirm=true;notice="Tap delete again to confirm";}else{draft=(points_item){0};save_action();nova_delete_confirm=false;pe_edit_first=0;}}
 }
@@ -175,7 +175,7 @@ static void pe_tap(int x,int y) {
  } else if(page==PAGE_EDIT&&y>=PE_TOP&&y<PE_TOP+(int)pe_rows()*PE_ROW)pe_edit_action(pe_edit_first+(unsigned)(y-PE_TOP)/PE_ROW);
  else if((page==PAGE_TYPE||page==PAGE_MODE)&&y>=PE_TOP&&y<PE_TOP+(int)pe_rows()*PE_ROW) {
   unsigned at=pe_choice_first+(unsigned)(y-PE_TOP)/PE_ROW;
-  if(page==PAGE_TYPE)pe_choose_type(at,x>=pe_width()-112);else if(at<4){draft.mode=(uint8_t)at;page=PAGE_EDIT;}
+  if(page==PAGE_TYPE)pe_choose_type(at,x>=pe_width()-112);else if(at<4){select_mode(at);}
  } else if(page==PAGE_TIME||page==PAGE_DURATION) {
   if(x>=pe_width()/2-8&&x<pe_width()/2+8)return;
   int direction=x<pe_width()/2?-1:1;
@@ -206,7 +206,7 @@ static bool pe_input(const t5_app_input_t *input) {
   if(page==PAGE_LIST){unsigned order[POINTS_MAX],n=nova_configured(order);if(n){edit_slot(order[pe_focus<n?pe_focus:0]);pe_edit_first=0;}else nova_new_point();}
   else if(page==PAGE_EDIT)pe_edit_action(pe_focus);
   else if(page==PAGE_TYPE)pe_choose_type(pe_focus,false);
-  else if(page==PAGE_MODE){draft.mode=(uint8_t)(pe_focus%4);page=PAGE_EDIT;}
+  else if(page==PAGE_MODE){select_mode(pe_focus%4);}
   else if(page==PAGE_DAYS){if(pe_focus<7)draft.weekdays^=(uint8_t)(1u<<pe_focus);else draft.weekdays=pe_focus==7?127:pe_focus==8?62:65;}
   changed=true;
  }

@@ -46,6 +46,22 @@ static const char *const modes[]={"System default","Vibrate","Sound","Sound and 
 static const char *const days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char *const nova_kinds[]={"","Work","Work End","LUNCH","BREAK","WIND DOWN","CUSTOM 1","CUSTOM 2"};
 static const char *const nova_modes[]={"SYSTEM","VIBRATE","SOUND","VIBRATE + SOUND"};
+static bool points_visual_only(void) {
+    return service && alarm_service_output_modes(service)==ALARM_MODE_VISUAL;
+}
+static const char *point_mode_name(unsigned mode,bool compact) {
+    if(points_visual_only())return "VISUAL ONLY";
+    return compact?nova_modes[mode]:modes[mode];
+}
+static void open_mode_page(void) {
+    if(points_visual_only()){notice="Visual only - saved mode kept";return;}
+    page=PAGE_MODE;
+}
+static void select_mode(unsigned mode) {
+    if(!points_visual_only())draft.mode=(uint8_t)mode;
+    else notice="Visual only - saved mode kept";
+    page=PAGE_EDIT;
+}
 #define NOVA_CYAN 0x19e3ffu
 #define NOVA_WHITE 0xffffffu
 #define NOVA_MUTED 0x6b8288u
@@ -180,14 +196,14 @@ static __attribute__((unused)) void draw_legacy(void) {
         snprintf(text,sizeof(text),"Type: %s",kinds[draft.kind]);label(8,42,224,text);line(63);
         format_time(&draft,value,sizeof(value));snprintf(text,sizeof(text),"Time: %s",value);label(8,72,224,text);line(93);
         format_days(draft.weekdays,value,sizeof(value));snprintf(text,sizeof(text),"Days: %s",value);label(8,102,224,text);line(123);
-        snprintf(text,sizeof(text),"Alert: %s",modes[draft.mode]);label(8,132,224,text);line(153);
+        snprintf(text,sizeof(text),"Alert: %s",point_mode_name(draft.mode,false));label(8,132,224,text);line(153);
         if(duration_kind(draft.kind))snprintf(text,sizeof(text),"Duration: %u min",draft.duration_minutes);
         else snprintf(text,sizeof(text),"Duration: not used");
         label(8,162,224,text);line(183);button(8,188,106,draft.enabled?"On":"Off");button(124,188,108,"Save...");
     } else if(page==PAGE_TYPE) {
         for(unsigned i=1;i<=5;i++){snprintf(text,sizeof(text),"%s%s",draft.kind==i?"X ":"",kinds[i]);button(8,39+(int)(i-1)*32,224,text);}
     } else if(page==PAGE_MODE) {
-        for(unsigned i=0;i<4;i++){snprintf(text,sizeof(text),"%s%s",draft.mode==i?"X ":"",modes[i]);button(8,47+(int)i*37,224,text);}
+        for(unsigned i=0;i<4;i++){snprintf(text,sizeof(text),"%s%s",draft.mode==i?"X ":"",point_mode_name(i,false));button(8,47+(int)i*37,224,text);}
     } else if(page==PAGE_TIME) {
         label(8,42,224,"24-hour editor (HH:MM)");button(24,70,80,"Hour up");button(136,70,80,"Min up");
         snprintf(text,sizeof(text),"%02u : %02u",draft.hour,draft.minute);label(24,114,192,text);
@@ -297,7 +313,7 @@ static void nova_draw_edit(void) {
         else if(row==2){nova_duration(v,draft.duration_minutes);snprintf(line,sizeof(line),"DURATION  %s",duration_kind(draft.kind)?v:"NOT USED");if(!duration_kind(draft.kind))col=NOVA_DIM;}
         else if(row==3){snprintf(line,sizeof(line),"NOTIFY AT END  %s",draft.notify_end?"ON":"OFF");if(!timed)col=NOVA_DIM;}
         else if(row==4){snprintf(line,sizeof(line),"3 MIN WARNING  %s",draft.warn3?"ON":"OFF");if(!timed||draft.duration_minutes<3)col=NOVA_DIM;}
-        else if(row==5)snprintf(line,sizeof(line),"NOTIFY  %s",nova_modes[draft.mode]);
+        else if(row==5)snprintf(line,sizeof(line),"NOTIFY  %s",point_mode_name(draft.mode,true));
         else if(row==6){nova_short_days(draft.weekdays,v);snprintf(line,sizeof(line),"DAYS  %s",v);}
         else if(row==7)snprintf(line,sizeof(line),"ENABLED  %s",draft.enabled?"ON":"OFF");
         else if(row==8){snprintf(line,sizeof(line),"SAVE CHANGES");col=NOVA_CYAN;}
@@ -329,7 +345,7 @@ static void nova_draw_custom(void) {
 }
 static void nova_draw_mode(void) {
     nova_header("NOTIFY","HOW TO ALERT YOU");
-    for(unsigned i=0;i<4;i++){int y=82+(int)i*36;uint32_t col=i==draft.mode?NOVA_CYAN:NOVA_WHITE;nova_dot(25,y+2,i==draft.mode?5:2,col,220);nova_cap(y,nova_modes[i],false,col);}
+    for(unsigned i=0;i<4;i++){int y=82+(int)i*36;uint32_t col=i==draft.mode?NOVA_CYAN:NOVA_WHITE;nova_dot(25,y+2,i==draft.mode?5:2,col,220);nova_cap(y,point_mode_name(i,true),false,col);}
 }
 static void nova_draw_time(void) {
     nova_header("TIME","DRAG OR TAP A COLUMN");
@@ -462,7 +478,7 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
     } else if(page==PAGE_EDIT) {
         if(hit(x,y,8,35,224,149)) {
             unsigned row=(unsigned)(y-35)/30;
-            page=row==0?PAGE_TYPE:row==1?PAGE_TIME:row==2?PAGE_DAYS:row==3?PAGE_MODE:duration_kind(draft.kind)?PAGE_DURATION:PAGE_EDIT;
+            page=row==0?PAGE_TYPE:row==1?PAGE_TIME:row==2?PAGE_DAYS:row==3?(points_visual_only()?PAGE_EDIT:PAGE_MODE):duration_kind(draft.kind)?PAGE_DURATION:PAGE_EDIT;
         } else if(hit(x,y,8,188,106,28))draft.enabled^=1;
         else if(hit(x,y,124,188,108,28))page=PAGE_SAVE;
     } else if(page==PAGE_TYPE) {
@@ -470,7 +486,7 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
             draft.kind=(uint8_t)i;if(!duration_kind(i))draft.duration_minutes=0;page=PAGE_EDIT;break;
         }
     } else if(page==PAGE_MODE) {
-        for(unsigned i=0;i<4;i++)if(hit(x,y,8,47+(int)i*37,224,28)){draft.mode=(uint8_t)i;page=PAGE_EDIT;break;}
+        for(unsigned i=0;i<4;i++)if(hit(x,y,8,47+(int)i*37,224,28)){select_mode(i);break;}
     } else if(page==PAGE_TIME) {
         if(hit(x,y,24,70,80,28))draft.hour=(uint8_t)((draft.hour+1)%24);
         else if(hit(x,y,136,70,80,28))draft.minute=(uint8_t)((draft.minute+1)%60);
@@ -528,7 +544,7 @@ static __attribute__((unused)) void nova_tap(int x,int y) {
         else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";}
         else if(row==3){if(timed)draft.notify_end^=1;else notice="Set a duration first";}
         else if(row==4){if(timed&&draft.duration_minutes>=3)draft.warn3^=1;else notice="Set duration to at least 3 min";}
-        else if(row==5)page=PAGE_MODE;
+        else if(row==5)open_mode_page();
         else if(row==6)page=PAGE_DAYS;
         else if(row==7){draft.enabled^=1;nova_delete_confirm=false;}
         else if(row==8){page=PAGE_SAVE;nova_delete_confirm=false;}
@@ -541,7 +557,7 @@ static __attribute__((unused)) void nova_tap(int x,int y) {
                 custom_pos=0;page=PAGE_CUSTOM;}
         }}
     } else if(page==PAGE_MODE) {
-        if(y>=64&&y<220){unsigned row=(unsigned)(y-64)/36u;if(row<4){draft.mode=(uint8_t)row;page=PAGE_EDIT;}}
+        if(y>=64&&y<220){unsigned row=(unsigned)(y-64)/36u;if(row<4){select_mode(row);}}
     } else if(page==PAGE_TIME) {
         if(y>=56&&y<216){int row=(y-56)/32,j=row-2;if(j){if(x<120){int h=(int)draft.hour+j;while(h<0)h+=24;draft.hour=(uint8_t)(h%24);}else{int m=(int)draft.minute+j*5;while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}}}
     } else if(page==PAGE_DURATION) {

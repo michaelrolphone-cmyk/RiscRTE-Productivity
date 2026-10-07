@@ -14,8 +14,8 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '4b564e5cb67c1c918fc1a24298e923f816de484e'
-UTILITIES_PIN = 'd7ffcb57e54afcf4267701ea7d3cbc83651b34b3'
+SYSTEM_PIN = 'a91770df140173955fe7b0c8ea38a2a75197aa94'
+UTILITIES_PIN = '23a4887f1eeb7b7ce867c0e243158b899e43f0f8'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('rtc.clock', 2), ('storage.key-value', 1), ('alarm.service', 1)]

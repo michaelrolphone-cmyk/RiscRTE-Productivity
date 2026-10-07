@@ -70,6 +70,18 @@ static void finish(void){close_dependencies();app_module_fini();assert(!renderer
 static void frame(const char *name){const char *dir=getenv("POINTS_PAPER_FRAMES");if(!dir)return;char path[512];snprintf(path,sizeof(path),"%s/%s.pbm",dir,name);FILE *f=fopen(path,"wb");assert(f);fprintf(f,"P4\n800 480\n");assert(fwrite(pixels,1,sizeof(pixels),f)==sizeof(pixels));fclose(f);}
 static void touch(unsigned contacts,int x,int y){renderer_touch.contact_count=contacts;renderer_touch.contacts[0]=(risc_touch_contact_v1){.id=1,.x=(uint16_t)x,.y=(uint16_t)y};t5_app_input_t in;assert(app->poll(&in,20));(void)pe_input(&in);}
 int main(void){
+ for(unsigned mode=0;mode<=3;mode++) {
+  start();alarm_service_outputs_v1 visual={.service=*service,.output_modes=ALARM_MODE_VISUAL};
+  visual.service.struct_size=sizeof(visual);service=&visual.service;
+  nova_new_point();draft.mode=(uint8_t)mode;draft.weekdays=127;
+  assert(points_visual_only()&&!strcmp(point_mode_name(mode,true),"VISUAL ONLY"));
+  pe_edit_action(5);assert(page==PAGE_EDIT&&draft.mode==mode);
+  pe_edit_first=3;draw();if(mode==3)frame("points-visual-only");
+  page=PAGE_MODE;select_mode((mode+1)%4);assert(page==PAGE_EDIT&&draft.mode==mode);
+  pe_tap(350,730);assert(page==PAGE_LIST&&puts_count==1&&writer.saved.points[selected].mode==mode);
+  finish();
+ }
+
  start();paper->begin();paper->text(32,32,100,"A",1,false,true);memcpy(first_pixels,pixels,sizeof(pixels));paper->begin();paper->text(32,32,100,"a",1|PAPER_TEXT_LITERAL,false,true);assert(memcmp(first_pixels,pixels,sizeof(pixels)));writer.saved=points_default_config();writer.meta=points_default_meta();time_format=PORTABLE_TIME_FORMAT_24;draw();frame("points-list");unsigned drawn=renderer_presents;pe_clean=false;draw();assert(renderer_presents==drawn);assert(!puts_count&&!meta_puts_count);
  touch(0,0,0);touch(1,150,600);touch(1,150,180);touch(0,0,0);assert(page==PAGE_LIST&&pe_first==6&&!puts_count);draw();frame("points-list-page-2");
  pe_first=0;pe_tap(100,150);assert(page==PAGE_EDIT&&!puts_count);draw();frame("points-edit");points_item original=writer.saved.points[selected];pe_tap(350,730);assert(page==PAGE_LIST);assert(puts_count==1);assert(!memcmp(&writer.saved.points[selected],&original,sizeof(original)));finish();

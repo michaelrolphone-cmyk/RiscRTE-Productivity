@@ -24,8 +24,8 @@ save locks edits and Retry reuses the exact pending record.
 
 ## Dependencies and development build
 
-- System Apps: `4b564e5cb67c1c918fc1a24298e923f816de484e` (Nova7 paper client).
-- Utilities: `d7ffcb57e54afcf4267701ea7d3cbc83651b34b3` (matching copied CUE status).
+- System Apps: `a91770df140173955fe7b0c8ea38a2a75197aa94` (Nova7 paper client).
+- Utilities: `23a4887f1eeb7b7ce867c0e243158b899e43f0f8` (matching copied CUE status).
 - Point config/custom metadata serialization is unchanged. The app still does
   not own occurrence records or output hardware.
 - Shared runtime imports remain `risc_runtime_get_api` plus bounded libc; there
@@ -75,3 +75,12 @@ circle, square, caret-up, diamond, plus, grip-lines-vertical and solid circle.
 Back, Add, More and edit chevrons also use genuine FA subset glyphs. Shared
 font provenance and OFL notices are shipped with the artifact; no custom
 geometry stands in for a Font Awesome symbol.
+
+## Visual-only output profiles
+
+The acquired alarm service reports supported physical outputs through the optional
+size-gated output descriptor. A visual-only service displays `VISUAL ONLY` for
+Notify Start. Its sound/vibration selector cannot change the draft; saving other
+point fields preserves the existing portable mode, including System Default.
+Legacy Watch service tables retain their existing audio/haptic choices. No app
+receives output authority or rewrites existing records just to display them.
