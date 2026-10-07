@@ -686,9 +686,10 @@ void app_main(void) {
 #endif
             break;
         }
-        /* A deployment adapter has already accepted the global Home handoff.
-         * This is terminal, unlike the app's local/nested Back navigation. */
-        if(input.exit_requested)break;
+        /* Accepted global Home consumes Back before reporting its handoff.
+         * Legacy Watch header taps also set exit_requested, but carry Back:
+         * keep those app-owned so nested navigation and save guards still run. */
+        if(input.exit_requested && !(input.buttons&T5_APP_BUTTON_BACK))break;
 #ifndef PORTABLE_ALARM_CLIENT
         if(ready)(void)service->step(service->context);
 #endif
