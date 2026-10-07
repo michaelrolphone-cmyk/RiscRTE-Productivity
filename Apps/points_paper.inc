@@ -16,8 +16,18 @@ static void pe_button(int x,int y,int w,const char *s,bool selected) {
  app->fill_rect(x,y,w,88,true);if(!selected)app->fill_rect(x+3,y+3,w-6,82,false);
  int n=paper->measure(s,false);pe_text(x+(w-n)/2,y+30,w-12,s,false,!selected);
 }
+static void pe_control(int x,int y,int w,const char *caption,bool selected) {
+ const char *glyph=NULL,*text=caption;
+ if(!strcmp(caption,"< BACK")){glyph="solid:f053";text="BACK";}
+ else if(!strcmp(caption,"MORE >")){glyph="solid:f054";text="MORE";}
+ else if(!strcmp(caption,"+ ADD POINT")){glyph="solid:f067";text="ADD POINT";}
+ if(!glyph){pe_button(x,y,w,text,selected);return;}
+ pe_button(x,y,w,"",selected);int n=paper->measure(text,false),left=x+(w-n-36)/2;
+ if(app->draw_icon)(void)app->draw_icon(left,y+31,glyph,24,!selected);
+ pe_text(left+36,y+30,w-48,text,false,!selected);
+}
 static void pe_footer(const char *left,const char *right) {
- int w=(pe_width()-80)/2;pe_button(32,pe_height()-112,w,left,false);pe_button(pe_width()/2+8,pe_height()-112,w,right,true);
+ int w=(pe_width()-80)/2;pe_control(32,pe_height()-112,w,left,false);pe_control(pe_width()/2+8,pe_height()-112,w,right,true);
 }
 static void pe_header(const char *s,const char *sub) {
  pe_text(32,24,pe_width()-64,s,true,true);
@@ -25,15 +35,8 @@ static void pe_header(const char *s,const char *sub) {
  app->fill_rect(32,106,pe_width()-64,3,true);
 }
 static void pe_shape(unsigned kind,int x,int y,bool black) {
- switch(kind%7) {
-  case 0:paper->circle(x,y,11,black);paper->circle(x,y,7,!black);break;
-  case 1:app->fill_rect(x-10,y-10,20,20,black);break;
-  case 2:for(int j=0;j<20;j++)app->fill_rect(x-j/2,y-10+j,1+j,1,black);break;
-  case 3:for(int j=-12;j<=12;j++)app->fill_rect(x-12+abs(j),y+j,25-2*abs(j),1,black);break;
-  case 4:app->fill_rect(x-4,y-13,8,26,black);app->fill_rect(x-13,y-4,26,8,black);break;
-  case 5:app->fill_rect(x-4,y-12,8,24,black);break;
-  default:paper->circle(x,y,11,black);break;
- }
+ static const char *const glyphs[]={"regular:f111","solid:f0c8","solid:f0d8","solid:f219","solid:f067","solid:f7a5","solid:f111"};
+ if(!app->draw_icon||!app->draw_icon(x-13,y-13,glyphs[kind%7],26,black))notice="FONT AWESOME ICON UNAVAILABLE";
 }
 static void pe_row(unsigned shown,const char *title,const char *value,bool selected) {
  int y=PE_TOP+(int)shown*PE_ROW;
@@ -81,6 +84,7 @@ static void pe_edit(void) {
   else if(row==6)format_days(draft.weekdays,value,sizeof(value));
   else if(row==8)snprintf(value,sizeof(value),"%s",nova_delete_confirm?"TAP AGAIN TO DELETE":"EXPLICIT CONFIRMATION REQUIRED");
   pe_row(at,names[row],value,pe_focus_visible&&pe_focus==row);
+  if((row==0||row==1||row==2||row==5||row==6)&&app->draw_icon)(void)app->draw_icon(pe_width()-72,PE_TOP+(int)at*PE_ROW+30,"solid:f054",24,!(pe_focus_visible&&pe_focus==row));
  }
  pe_text(32,pe_height()-146,pe_width()-64,notice&&*notice?notice:"SWIPE FOR MORE OPTIONS",false,true);pe_footer("CANCEL","SAVE");
 }

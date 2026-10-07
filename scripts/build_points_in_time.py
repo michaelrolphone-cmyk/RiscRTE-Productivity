@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from app_manifest import validate_manifest
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = '47208f387f5d080e065f7c919ef0d0bdd4830663'
+SYSTEM_PIN = '4b564e5cb67c1c918fc1a24298e923f816de484e'
 UTILITIES_PIN = 'd7ffcb57e54afcf4267701ea7d3cbc83651b34b3'
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}

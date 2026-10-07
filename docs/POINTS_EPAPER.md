@@ -6,7 +6,7 @@ layout and its original keyboard/picker paths remain unchanged. For X4's native
 800×480 MONO1 panel plus 480×800 touch, the deployment selects software display
 rotation 90; app layout is chosen from the resulting capability geometry.
 
-The paper list displays the actual saved/default catalog, type markers, time,
+The paper list displays the actual saved/default catalog, Font Awesome type markers, time,
 name, duration, days, active count and explicit Add. Six 88px rows fit the X4
 screen, with static paging for the remaining records. Selection is inverted.
 There is no kinetic scrolling, picker motion, per-second redraw or invented
@@ -24,7 +24,7 @@ save locks edits and Retry reuses the exact pending record.
 
 ## Dependencies and development build
 
-- System Apps: `47208f387f5d080e065f7c919ef0d0bdd4830663` (Nova7 paper client).
+- System Apps: `4b564e5cb67c1c918fc1a24298e923f816de484e` (Nova7 paper client).
 - Utilities: `d7ffcb57e54afcf4267701ea7d3cbc83651b34b3` (matching copied CUE status).
 - Point config/custom metadata serialization is unchanged. The app still does
   not own occurrence records or output hardware.
@@ -67,3 +67,11 @@ Screens below are actual native MONO1 output rotated only for viewing:
 These are development fixtures and ELF checks, not installed-bundle or physical
 hardware qualification. X4 provisioning remains separate. Frozen Watch 1.0.2
 tag tests read historical manifest fixtures; no old component tag is moved.
+
+## Font Awesome icons
+
+The closest existing FA glyphs replace the mockup's custom markers: regular
+circle, square, caret-up, diamond, plus, grip-lines-vertical and solid circle.
+Back, Add, More and edit chevrons also use genuine FA subset glyphs. Shared
+font provenance and OFL notices are shipped with the artifact; no custom
+geometry stands in for a Font Awesome symbol.
