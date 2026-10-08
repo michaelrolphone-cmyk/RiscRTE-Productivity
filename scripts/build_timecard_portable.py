@@ -12,10 +12,10 @@ from pathlib import Path
 import shutil
 import subprocess
 ROOT = Path(__file__).resolve().parents[1]
-SYSTEM_PIN = 'dbd358746bc8f1254619ca42073e1d44f6ad45df'
+SYSTEM_PIN = '13f5fd4bed27d77d566fa7c34b89b62445b86798'
 MODEL_SHA256 = 'c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9'
 MODEL_VERSION = '1.0.4'
-PROFILE_VERSION = '0.1.1'
+PROFILE_VERSION = '0.1.6'
 EXPORTS = {'app_main', 'app_module_init', 'app_module_fini'}
 IMPORTS = {'risc_runtime_get_api', 'memcpy', 'memset', 'memcmp', 'strcmp', 'strlen', 'snprintf', 'malloc', 'free', 'strcpy'}
 REQUIRES = [('display.output', 1), ('input.touch.raw', 1), ('input.navigation', 1),

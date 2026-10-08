@@ -51,7 +51,7 @@ class TimecardProfileTests(unittest.TestCase):
                     builder.package_manifest(ROOT)
             with patch.object(builder, 'git', side_effect=['a'*40, '']):
                 manifest = builder.package_manifest(ROOT)
-        self.assertEqual((manifest['id'], manifest['file_name'], manifest['version']), ('timecard', 'timecard.elf', '0.1.1'))
+        self.assertEqual((manifest['id'], manifest['file_name'], manifest['version']), ('timecard', 'timecard.elf', '0.1.6'))
         self.assertEqual([(x['capability'], x['api']) for x in manifest['requires']], builder.REQUIRES)
         self.assertEqual(len(manifest['requires']), 7)
         self.assertNotIn('optional', manifest)

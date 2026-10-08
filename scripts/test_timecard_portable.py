@@ -55,7 +55,8 @@ def main():
             subprocess.run(run, check=True, timeout=120, env=env)
         api_include = ROOT/'lib/PortableTimecard/include'
         for name, source in [('appdata-bridge', ROOT/'tests/timecard_appdata_bridge_test.c'),
-                             ('appdata-profile', ROOT/'test/native_apps/timecard_appdata_profile_test.c')]:
+                             ('appdata-profile', ROOT/'test/native_apps/timecard_appdata_profile_test.c'),
+                             ('appdata-broadcast', ROOT/'test/native_apps/timecard_broadcast_storage_test.c')]:
             binary = out/f'{name}-{int(sanitized)}'
             subprocess.run([os.environ.get('CC', 'cc'), *flags, '-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME',
                             '-I'+str(api_include), *['-I'+str(path) for path in includes], str(source), '-o', str(binary)], check=True, timeout=120)
