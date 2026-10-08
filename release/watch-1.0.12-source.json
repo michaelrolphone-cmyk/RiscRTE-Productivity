@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "repository": "michaelrolphone-cmyk/RiscRTE-Productivity",
+  "tag": "watch-v1.0.12",
+  "title": "Watch 1.0.12 source snapshot",
+  "source": {
+    "local_commit": "6fc3c6d367aa26ab0b35e2b7f8da0bcc1ced0f0c",
+    "public_commit": "110fee4aac4c6b8322f34309d54e19af9906801b",
+    "tree": "99f3e7b271f32664a7a8c6f8e632ecafa814a851"
+  },
+  "verification": {
+    "commit": "809b812a5a1b4b3219c646a35218c9a5a80103c6",
+    "checks": [
+      "build",
+      "points-in-time",
+      "profile"
+    ]
+  },
+  "notes": "The public source tree is identical to the original local build source. Verification commit 809b812a5a1b4b3219c646a35218c9a5a80103c6 only updates standalone CI dependency/version metadata; the source tag preserves the exact tree built into Watch."
+}
