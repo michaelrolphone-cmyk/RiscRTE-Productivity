@@ -37,7 +37,14 @@ static bool acquire(const char *name,uint32_t version,uint64_t instance,risc_run
  if(!strcmp(name,"rtc.clock")){assert(version==2&&instance==0);grant->api=&rtc_api;}else {assert(!strcmp(name,"storage.key-value")&&version==1&&instance==1);grant->api=&pref_api;}grants++;return true;}
 static bool release(risc_runtime_capability_v1 *grant){assert(grant->api&&grants);grant->api=NULL;grants--;return true;}
 static bool launch(const char *name){assert(!strcmp(name,"springboard.elf"));launches++;return true;}
-static const risc_runtime_api_v1 runtime={.api_version=1,.struct_size=sizeof(runtime),.request_launch=launch,.acquire=acquire,.release=release};
+#ifdef PORTABLE_BLE_BROADCAST
+static void fixture_broadcast_yield(uint32_t);
+#endif
+static const risc_runtime_api_v1 runtime={
+#ifdef PORTABLE_BLE_BROADCAST
+.yield_ms=fixture_broadcast_yield,
+#endif
+.api_version=1,.struct_size=sizeof(runtime),.request_launch=launch,.acquire=acquire,.release=release};
 const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t version){assert(version==1);return &runtime;}
 static bool back_exits=true;
 static int view_width=240,view_height=240;

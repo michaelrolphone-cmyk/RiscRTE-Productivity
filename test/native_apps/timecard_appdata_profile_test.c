@@ -29,7 +29,10 @@ static int32_t ad_replace(void *context,const char *name,uint64_t expected,const
 static const risc_app_data_v1 ad_api={1,sizeof(ad_api),NULL,ad_stat,ad_read,ad_replace};
 static const risc_app_data_v1 *fixture_appdata_api(void){return &ad_api;}
 static void ad_init(void){init();tcp_data=(tcp_appdata){0};assert(tcp_appdata_bind(&tcp_data,&ad_api));tcp_files=&tcp_ad_files;ad_stat_error=ad_read_error=ad_write_error=0;ad_commit_error=false;ad_version=1;assert(tcp_reload());}
-int main(void){
+#ifndef TIMECARD_APPDATA_TEST_MAIN
+#define TIMECARD_APPDATA_TEST_MAIN main
+#endif
+int TIMECARD_APPDATA_TEST_MAIN(void){
  ad_init();assert(day_count==0&&store_ready);assert(tcp_mutate(20261005,0,480));assert(writes==1&&tcp_data.revision==2);assert(tcp_mutate(20261005,3,1020)&&tcp_data.revision==3);
  ad_stat_error=RISC_APP_DATA_UNAVAILABLE;assert(!tcp_reload()&&day_count==1&&!store_ready);assert(!tcp_mutate(20261006,0,500)&&writes==2);ad_stat_error=0;assert(tcp_reload());
  ad_version++;assert(!tcp_mutate(20261005,0,600)&&tcp_data.status==RISC_APP_DATA_STALE&&!store_ready&&writes==2);assert(tcp_reload()&&get_day(20261005).punches[0]==480);

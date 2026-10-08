@@ -38,6 +38,18 @@ const t5_app_api_v1 *t5_app_get_api(uint32_t version);
 #define TIMECARD_APP_DATA_INSTANCE 1u
 #endif
 static tcp_appdata tcp_data;
+#ifdef PORTABLE_BLE_BROADCAST
+#include "PortableBroadcastAppData.h"
+static portable_broadcast_app_data tcp_broadcast_data;
+#endif
+static bool tcp_bind_data(const risc_app_data_v1 *api,const risc_runtime_api_v1 *runtime) {
+#ifdef PORTABLE_BLE_BROADCAST
+    api=portable_broadcast_data_bind(&tcp_broadcast_data,api,runtime);
+#else
+    (void)runtime;
+#endif
+    return tcp_appdata_bind(&tcp_data,api);
+}
 static bool tcp_ad_exists(const char *path) { return tcp_appdata_exists(&tcp_data,path); }
 static bool tcp_ad_read(const char *path,void *buffer,size_t capacity,size_t *size) { return tcp_appdata_read(&tcp_data,path,buffer,capacity,size); }
 static bool tcp_ad_write(const char *path,const void *data,size_t size) { return tcp_appdata_write(&tcp_data,path,data,size); }
@@ -374,7 +386,7 @@ static void tcp_dependencies_open(void) {
 #ifdef TIMECARD_APP_DATA
     slot=tcp_grant_count;tcp_grants[slot]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[slot])};
     if(tcp_runtime->acquire(RISC_APP_DATA_CAPABILITY,RISC_APP_DATA_API_V1,TIMECARD_APP_DATA_INSTANCE,&tcp_grants[slot])) {
-        tcp_grant_count++;(void)tcp_appdata_bind(&tcp_data,tcp_grants[slot].api);
+        tcp_grant_count++;(void)tcp_bind_data(tcp_grants[slot].api,tcp_runtime);
     }
 #endif
 }
