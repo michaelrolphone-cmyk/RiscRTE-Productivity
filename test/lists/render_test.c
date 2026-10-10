@@ -47,5 +47,9 @@ int main(int argc,char **argv){
  allow_complete=false;update_ui();begin_frame();touch_tap(40*scale,(64+20)*scale);assert(tick(&e)==RISC_SCENE_OK&&e.action==LA_MARKER);assert(!lists_ui_event(&ui,&e));update_ui();
  /* Invalid component documents are rejected without losing the prior route. */
  risc_components_document_v1 bad=ui.document;bad.revision++;bad.nodes[0].maximum=7;assert(components->update(NULL,session,&bad)==RISC_SCENE_INVALID);
- allow_complete=true;settle();finish();printf("Lists actual renderer + separated touch targets + pending frame %s PASS\n",device);return 0;
+ allow_complete=true;settle();
+ /* Capture the completed state that was missing from the original review. */
+ for(unsigned i=0;i<ui.data.task_count;i++)ui.data.tasks[i].done=1;
+ ui.page=LISTS_VIEW;ui.filter=0;ui.notice[0]=0;update_ui();frame(argv[2],"completed");
+ finish();printf("Lists actual renderer + separated touch targets + pending frame %s PASS\n",device);return 0;
 }

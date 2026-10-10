@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-10",
-  "runtime_sdk_commit": "04e81c4773e5bc87f1a84abff9e90a799f8728c7",
+  "runtime_sdk_commit": "a9587bec00015ad56c302192a8359b6d70cde01a",
   "reference_inputs": [
     {
       "file": "Contexts \u2014 NOVA-7 watch + e-ink.html",
@@ -46,7 +46,7 @@
       "version": "0.2.0",
       "file": "driver.elf",
       "size_bytes": 258136,
-      "sha256": "3cc8a522a7d51cc1f8c48aa5b1f4d739d8c25336929f1e1f60c8586c3ca0fff6",
+      "sha256": "5dbeb8feb6e2b736ac60218e75b44eebcf129db0a3815042d1f9e8c910605814",
       "imports": [
         "memchr",
         "memcmp",
@@ -102,7 +102,7 @@
       "version": "0.1.0",
       "file": "lists.elf",
       "size_bytes": 33192,
-      "sha256": "caf38bd57e69acfce61f6724d2201cab32a6b50318fb4279a97f5cebeeee71b4",
+      "sha256": "8e6e192ab46b78805b8d25324a1c48fc8c48bb12916d5b3937da5bcd3d2d62ea",
       "imports": [
         "memchr",
         "memcmp",
@@ -134,8 +134,10 @@
       "watch",
       "paper"
     ],
-    "rendered_screens_per_profile": 8,
-    "undefined_behavior_sanitizer": "new host suites passed"
+    "rendered_screens_per_profile": 9,
+    "undefined_behavior_sanitizer": "new host suites passed",
+    "completed_circle_pixel_checks": "passed on Watch and X4",
+    "profile_baselines": 59
   },
   "compositions": {
     "watch": {
@@ -185,5 +187,11 @@
     "Verify linked native provider capacity",
     "Bind and build the product cohort/image",
     "Physical-device testing"
-  ]
+  ],
+  "system_components_commit": "a7279b60222d9c549a78c0c9cd1bc8524fb1ebf6",
+  "screenshots": {
+    "watch.png": "5951b824fc2823d0766f4a5e4627e47329fc5e3181e5d96d349f9bd0cf56870a",
+    "x4.png": "8a952b95171b910822fafac244e726079af590b17f9bb384c166325aad22a7fe",
+    "completed.png": "920d2bf4a97ef2c6ced22f37eff1b50926ba6012bfd1d1101b8ff38c32b5fa0b"
+  }
 }

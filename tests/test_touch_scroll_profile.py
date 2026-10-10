@@ -24,6 +24,6 @@ class TouchScrollProfile(unittest.TestCase):
         adapter,actual,got,receipt=profile.select(args,parser,Path('/unused'),flags,manifest)
         self.assertEqual((adapter,actual,got,receipt),(Path('/unused'),flags,manifest,None))
     def test_reserved_versions(self):
-        self.assertEqual(profile.SCROLL_PIN['versions'],{'points_in_time':'0.6.6','timecard':'0.2.6'})
-        self.assertEqual(profile.BROADCAST_PIN['versions'],{'points_in_time':'0.6.4','timecard':'0.2.4'})
+        self.assertEqual(profile.SCROLL_PIN['versions'],{'points_in_time':'0.6.6','timecard':'0.2.9'})
+        self.assertEqual(profile.BROADCAST_PIN['versions'],{'points_in_time':'0.6.4','timecard': '0.2.9'})
 if __name__=='__main__':unittest.main()

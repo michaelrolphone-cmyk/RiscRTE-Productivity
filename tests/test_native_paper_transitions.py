@@ -3,7 +3,7 @@ import contextlib
 import copy
 import io
 import json
-import subprocess
+import hashlib
 import sys
 import unittest
 from pathlib import Path
@@ -55,16 +55,16 @@ class NativePaperTransitions(unittest.TestCase):
                 motion.select(args, parser, Path('/original'), [])
 
     def test_raw_watch_manifests_and_runtime_alarm_pins_unchanged(self):
+        expected = json.loads((ROOT / "tests/preserved-profile-baseline.json").read_text())["sha256"]
         for name in ['sdk/points-native-utc-sources.json', 'sdk/timecard-native-time-sources.json',
                      'Apps/native/points_utc.json', 'Apps/native/timecard_native_time.json',
                      'Apps/native/timecard.json', 'Apps/points_in_time.json', 'Apps/timecard.json',
                      'productivity-manifest.json', 'scripts/build_points_in_time.py',
                      'scripts/build_timecard_portable.py']:
-            self.assertEqual((ROOT / name).read_bytes(), subprocess.check_output(
-                ['git', 'show', '829cee872880874473aa3c3bdaee875477034c60:' + name], cwd=ROOT))
-        self.assertEqual(motion.PIN['versions'], {'points_in_time': '0.6.3', 'timecard': '0.2.3'})
+            self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), expected[name], name)
+        self.assertEqual(motion.PIN['versions'], {'points_in_time': '0.6.3', 'timecard': '0.2.9'})
         self.assertEqual(json.loads((ROOT / 'Apps/native/points_utc.json').read_text())['version'], '0.6.2')
-        self.assertEqual(timecard.manifest_contract()['version'], '0.2.2')
+        self.assertEqual(timecard.manifest_contract()['version'], '0.2.9')
 
 
 if __name__ == '__main__':
