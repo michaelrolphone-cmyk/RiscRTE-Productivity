@@ -80,7 +80,7 @@ reminder detection while leaving ordinary undated lists usable.
 Use a Runtime SDK that includes app-data, the resident-shell contract and platform
 realtime. CI uses public Runtime commit
 `a9587bec00015ad56c302192a8359b6d70cde01a` and System commit
-`319d19da30327bcac252b8a88ac6cc68adf18344`. The `Lists shared scene build`
+`efed0cc6ffd82ff60363132fba8da32285533b3e`. The `Lists shared scene build`
 workflow tests both renders and publishes the app/providers as build artifacts.
 
 ```sh
@@ -112,7 +112,7 @@ Timecard 0.2.9 manifests; no profile versions or authority were changed.
 
 `deployment/lists/watch.json` selects compact color, the Watch RTC policy and
 namespace 62. `x4.json` selects portrait monochrome and native UTC plus the
-installed timezone preference. The composer refuses a namespace collision,
+installed timezone preference, with its isolated Lists namespace 63. The composer refuses a namespace collision,
 ambiguous provider, provider downgrade, missing catalog app or capacity overflow.
 It upgrades the shared presenter in place when already present, adds the app to
 resident foreground admission where applicable, and preserves other apps and

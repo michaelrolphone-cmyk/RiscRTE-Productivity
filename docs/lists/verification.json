@@ -170,7 +170,7 @@
     "x4": {
       "provider_count": 27,
       "source_boot_sha256": "685f9626389142eee84a8f475855abd215ce5fab3e5e7b0fc125cd9cf7239cbe",
-      "boot_sha256": "debc0a32cb3407e5fd0b89cf96d01772cc96f1ec1fbe753f4259eb6cd9f60f9d",
+      "boot_sha256": "2ef3c69f286dbb4e8e92360e1e90343319a6f7cc6fd8fae91662c283b25c4c1d",
       "changed_files": [
         "boot.json",
         "civil-clock-x4/driver.elf",
@@ -184,7 +184,8 @@
         "ui-scene/licenses/LICENSE-Rajdhani.txt",
         "ui-scene/licenses/SOURCES.json",
         "ui-scene/manifest.json"
-      ]
+      ],
+      "app_data_namespace": 63
     }
   },
   "physical_testing": "not performed",
@@ -195,7 +196,7 @@
     "Bind and build the product cohort/image",
     "Physical-device testing"
   ],
-  "system_components_commit": "319d19da30327bcac252b8a88ac6cc68adf18344",
+  "system_components_commit": "efed0cc6ffd82ff60363132fba8da32285533b3e",
   "screenshots": {
     "completed.png": "52238525f8c9ccd1523b104d11b08279072f23e7b5c2b8b5e3fa37706f52fd18",
     "tabs.png": "3be5ab22c8fd07415fbcbafb0a02468dd287bfa626fcd5e404627fc182cf3600",
