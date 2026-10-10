@@ -320,7 +320,7 @@ static void pc_tap(int x,int y) {
 static void pc_input(const t5_app_input_t *input) {
     if(!pc_live()||name_client.active)return;
 #ifdef ALARM_NATIVE_UTC
-    if(paper&&!paper_input_ready&&!clean_frame&&paper_frame_ready())paper_input_ready=true;
+    if(paper&&!paper_input_ready&&!clean_frame&&paper_frame_idle())paper_input_ready=true;
 #endif
 
     /* A new page must become visible once before it can accept contacts.

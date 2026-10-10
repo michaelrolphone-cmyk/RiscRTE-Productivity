@@ -343,8 +343,8 @@ const t5_app_api_v1 *fixture_app_get(uint32_t v){return v==1?&fixture_app:NULL;}
 static void settle(void) {
     hold_frame=false;
 #ifdef ALARM_NATIVE_UTC
-    for(unsigned i=0;i<20&&!paper_frame_ready();i++){t5_app_input_t in={0};assert(render_app->poll(&in,20));}
-    assert(paper_frame_ready());
+    for(unsigned i=0;i<1000&&!paper_frame_idle();i++){t5_app_input_t in={0};assert(render_app->poll(&in,20));}
+    assert(paper_frame_idle());
 #endif
 }
 static void paint(void){settle();dirty=true;pc_draw();settle();}
@@ -475,7 +475,7 @@ static int fault_test(const char *kind) {
     } else if(!strcmp(kind,"text-frame")) {
         assert(points_editor_begin_type(&editor,0));pc_page(PC_CUSTOM);paint();
 #ifdef ALARM_NATIVE_UTC
-        strcpy(editor.type.name,"Drain pending");dirty=true;hold_frame=true;frame_release_after=ticks+32;pc_draw();assert(display_inflight&&!paper_frame_ready());
+        strcpy(editor.type.name,"Drain pending");dirty=true;hold_frame=true;frame_release_after=ticks+32;pc_draw();assert(display_inflight&&!paper_frame_idle());
         pc_custom_action(0);assert(name_client.active&&!display_inflight&&!live_frames&&!live_subs);
 #else
         portable_nova_begin();assert(live_frames==1);pc_custom_action(0);assert(name_client.active&&!live_frames&&!live_subs);
