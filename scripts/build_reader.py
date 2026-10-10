@@ -20,6 +20,8 @@ def build(a):
         actual = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()
         if actual != lock['dependencies'][name]['commit']:
             raise ValueError(name + ' does not match the source lock')
+        if subprocess.run(['git', '-C', str(checkout), 'diff-index', '--quiet', 'HEAD', '--']).returncode:
+            raise ValueError(name + ' tracked source is modified')
     objects = a.output / 'objects'
     subprocess.run([sys.executable, str(ROOT / 'scripts/compile_reader.py'), '--target',
                     '--upstream', str(staged), '--runtime', str(a.runtime), '--system', str(a.system),

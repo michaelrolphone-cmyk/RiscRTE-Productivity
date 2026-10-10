@@ -48,6 +48,7 @@ bool Engine::openLibrary(){library.close();return Storage.recoverFile(library::l
 bool Engine::scanLibrary(){library.close();library::BuildStats stats;clearError();bool ok=library::buildLibraryIndex("/",stats,true);if(!ok||failed()){message="Library scan failed; previous index kept";openLibrary();return false;}return openLibrary();}
 bool Engine::open(const std::string& path){
  if(!FsHelpers::hasReflowableBookExtension(std::string_view(path))){message="Choose an EPUB, TXT or MD file";return false;}
+ if(!book)clearError(); // A reported catalog/open failure must not poison the next independent open.
  if(!close())return false;clearError();if(!selectFont())return false;book=std::make_shared<Epub>(path,stateRoot);
  if(!book->load()||failed()){message=book->getProtectionError().empty()?"Book could not be opened":book->getProtectionError();book.reset();return false;}
  state=BookState();stateGeneration=0;stateWritable=true;

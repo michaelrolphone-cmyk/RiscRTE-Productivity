@@ -9,8 +9,10 @@ def stage(source,output,apply_patches=True):
  lock=json.loads((ROOT/'reader/upstream.json').read_text())
  actual=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
  if actual!=lock['commit']:raise ValueError('CrossPoint source differs from upstream lock')
+ if subprocess.run(['git','-C',str(source),'diff-index','--quiet','HEAD','--']).returncode:raise ValueError('CrossPoint tracked source is modified')
  sdk=source/'freeink-sdk'
  if subprocess.check_output(['git','-C',str(sdk),'rev-parse','HEAD'],text=True).strip()!=lock['sdk_commit']:raise ValueError('FreeInk SDK differs from upstream lock')
+ if subprocess.run(['git','-C',str(sdk),'diff-index','--quiet','HEAD','--']).returncode:raise ValueError('FreeInk tracked source is modified')
  if output.exists():shutil.rmtree(output)
  output.mkdir(parents=True)
  for lib in LIBS:shutil.copytree(source/'lib'/lib,output/'lib'/lib)

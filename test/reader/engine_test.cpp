@@ -8,7 +8,7 @@ void hostBind(const char*);void hostCheckClosed();void hostFailReplace(bool);
 static void settle(reader::Engine& e){unsigned n=0;while(e.busy()){assert(++n<10000);assert(e.step());}assert(e.render());unsigned ink=0;for(size_t i=0;i<e.bitmapSize();++i)ink+=e.bitmap()[i]!=255;assert(ink>100);}
 int main(int argc,char** argv){assert(argc==2);hostBind(argv[1]);
  {reader::Engine e;assert(e.init(480,632));assert(e.scanLibrary());assert(e.library.bookCount()==4);
- hostFailReplace(true);assert(!e.scanLibrary());hostFailReplace(false);assert(e.openLibrary());assert(e.library.bookCount()==4);reader::clearError();
+ hostFailReplace(true);assert(!e.scanLibrary());hostFailReplace(false);assert(e.openLibrary());assert(e.library.bookCount()==4);
  for(const char* path:{"/Books/sample.epub","/Books/sample-ncx.epub","/Books/sample.txt","/Books/sample.md"}){
   assert(e.open(path));settle(e);if(std::string(path).find(".epub")!=std::string::npos){std::cerr<<path<<" toc "<<e.tocCount()<<" spine "<<e.toc(0).spineIndex<<" anchor "<<e.toc(0).anchor<<"\n";assert(e.tocCount()==1);assert(e.jumpToc(0));settle(e);assert(e.position().spine==0);}std::cout<<path<<" "<<e.title()<<" "<<e.footer()<<"\n";
   unsigned black=0;for(size_t i=0;i<e.bitmapSize();i++)black+=e.bitmap()[i]!=255;assert(black>100);
