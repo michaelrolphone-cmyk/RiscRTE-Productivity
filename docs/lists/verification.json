@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "date": "2026-10-10",
+  "runtime_sdk_commit": "a9587bec00015ad56c302192a8359b6d70cde01a",
+  "reference_inputs": [
+    {
+      "file": "Contexts \u2014 NOVA-7 watch + e-ink.html",
+      "sha256": "c784d312f66717b8f56f472124326a587c842dfc8e48e758cef7b62ad35e9594"
+    },
+    {
+      "file": "NOVA-7 Component Bible \u2014 watch + e-ink.html",
+      "sha256": "29ff62f1de411c995a1921308425d4719c4830bb429f55550582bb21ba08c33f"
+    },
+    {
+      "file": "Lists (To-Do) \u2014 NOVA-7 watch + e-ink.html",
+      "sha256": "4b05043f2924b752bb04313f59c92b81c0b36880119e7559be126ba64201fbcf"
+    },
+    {
+      "file": "Lists (To-Do) \u2014 NOVA-7 watch + e-ink(1).html",
+      "sha256": "4b05043f2924b752bb04313f59c92b81c0b36880119e7559be126ba64201fbcf"
+    }
+  ],
+  "packages": [
+    {
+      "id": "scene-host",
+      "version": "0.2.0",
+      "file": "driver.elf",
+      "size_bytes": 282264,
+      "sha256": "0ee9a690aa54cdc76aa070ab4573f9f5bae00983ed8ab8365646dddf1adc6e50",
+      "imports": [
+        "memchr",
+        "memcmp",
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strlen"
+      ],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
+    {
+      "id": "scene-profile-compact-color",
+      "version": "0.1.0",
+      "file": "driver.elf",
+      "size_bytes": 2276,
+      "sha256": "4556ce0cb7a660712b3a032e77e0589a1e20edf78a9f90417894e1fd8bb77a5b",
+      "imports": [],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
+    {
+      "id": "scene-profile-portrait-monochrome",
+      "version": "0.1.1",
+      "file": "driver.elf",
+      "size_bytes": 2284,
+      "sha256": "81793b9d445b495b6e324f03e445d4922abb48101b62ba35482046a3abafd341",
+      "imports": [],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
+    {
+      "id": "civil-clock-watch",
+      "version": "0.1.0",
+      "file": "driver.elf",
+      "size_bytes": 37464,
+      "sha256": "ba8e0b60c7694defb4674fdae532a9d0bf1ace7b7b251bbce2bb420c89463256",
+      "imports": [
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp"
+      ],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
+    {
+      "id": "civil-clock-x4",
+      "version": "0.1.0",
+      "file": "driver.elf",
+      "size_bytes": 38156,
+      "sha256": "d19f4281f20032f750b8df1676e2bc905ddfed67db6f914f06ffde554ca9362d",
+      "imports": [
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "strcmp"
+      ],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
+    {
+      "id": "lists",
+      "version": "0.1.0",
+      "file": "lists.elf",
+      "size_bytes": 33192,
+      "sha256": "716458214fe30123c186d1972a6950332820f5922397a7a506b3802edffbb582",
+      "imports": [
+        "memchr",
+        "memcmp",
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strlen"
+      ],
+      "exports": [
+        "app_main",
+        "risc_resident_app_descriptor_v1"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    }
+  ],
+  "same_application_for_both_profiles": true,
+  "tests": {
+    "legacy_scene_profile_executions": 179,
+    "component_profiles": [
+      "watch",
+      "paper"
+    ],
+    "civil_clock_cases": 4,
+    "lists_model_calendar_storage_intents": "passed",
+    "lists_app_lifecycle_cases": 3,
+    "actual_lists_renderer_profiles": [
+      "watch",
+      "paper"
+    ],
+    "rendered_screens_per_profile": 12,
+    "undefined_behavior_sanitizer": "new host suites passed",
+    "completed_circle_pixel_checks": "passed on Watch and X4",
+    "profile_baselines": 59,
+    "segmented_tab_pixel_checks": "both selections passed on Watch and X4",
+    "mockup_control_interactions": "tabs during pending refresh, dialog cancel and inert interior, chip and marker targets passed",
+    "watch_keyboard_touch_cancel": "passed",
+    "row_icon_padding_pixel_checks": "8px interior padding on both profiles; X4 custom-list marker checked",
+    "dialog_action_outline_pixel_checks": "KEEP and DISMISS have no focus underline on Watch and X4"
+  },
+  "compositions": {
+    "watch": {
+      "provider_count": 27,
+      "source_boot_sha256": "8db4c8ae634b7320f47e526f8a2462fa0ef99b48862db54b977c92d50455cf54",
+      "boot_sha256": "ad12994baeb07dece6356094d302914b973df98869024023da961db9527f87f0",
+      "changed_files": [
+        "boot.json",
+        "civil-clock-watch/driver.elf",
+        "civil-clock-watch/manifest.json",
+        "lists.elf",
+        "lists.json",
+        "scene-host/driver.elf",
+        "scene-host/licenses/COMPONENT-SOURCES.json",
+        "scene-host/licenses/LICENSE-Orbitron.txt",
+        "scene-host/licenses/LICENSE-Rajdhani.txt",
+        "scene-host/licenses/SOURCES.json",
+        "scene-host/manifest.json",
+        "scene-profile-compact-color/driver.elf",
+        "scene-profile-compact-color/manifest.json"
+      ]
+    },
+    "x4": {
+      "provider_count": 27,
+      "source_boot_sha256": "685f9626389142eee84a8f475855abd215ce5fab3e5e7b0fc125cd9cf7239cbe",
+      "boot_sha256": "2ef3c69f286dbb4e8e92360e1e90343319a6f7cc6fd8fae91662c283b25c4c1d",
+      "changed_files": [
+        "boot.json",
+        "civil-clock-x4/driver.elf",
+        "civil-clock-x4/manifest.json",
+        "lists.elf",
+        "lists.json",
+        "ui-profile/driver.elf",
+        "ui-scene/driver.elf",
+        "ui-scene/licenses/COMPONENT-SOURCES.json",
+        "ui-scene/licenses/LICENSE-Orbitron.txt",
+        "ui-scene/licenses/LICENSE-Rajdhani.txt",
+        "ui-scene/licenses/SOURCES.json",
+        "ui-scene/manifest.json"
+      ],
+      "app_data_namespace": 63
+    }
+  },
+  "physical_testing": "not performed",
+  "firmware_images_created": false,
+  "remaining_deployment_steps": [
+    "Rebuild the selected product launcher from the complete emitted catalog",
+    "Verify linked native provider capacity",
+    "Bind and build the product cohort/image",
+    "Physical-device testing"
+  ],
+  "system_components_commit": "eec748ca081fe59346be03180600c65013cc7298",
+  "screenshots": {
+    "completed.png": "24381389c8e6135478a24f050e1b9ff569ef195220f05cddd409b4935bcb0d9a",
+    "tabs.png": "bcf8c76522e27ba80045192da903b43e72a87118aec740f95a46c4f3947a89b0",
+    "watch.png": "5a1178ff1fa73172b059f625a3e2164f88d9296ca2bcf46ba63fb0d71aee41f8",
+    "x4.png": "ad4e631695e8603673d9ef2ee08464ab02b3fb0848a6fb69953b4adb3fbeaeb5"
+  }
+}

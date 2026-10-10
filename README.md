@@ -48,3 +48,9 @@ Watch and other profiles retain byte-identical target artifacts.
 shared-text composition profile, preserving the installed native-time, storage,
 telemetry and resident-policy selections. It has separate target and lifecycle
 qualification; no publication or hardware activation is implied.
+
+## Declarative Lists
+
+The NOVA-7 Lists app uses one executable on T-Watch-S3 and X4 and the shared
+intent component presenter. See [the implementation, screenshots, builds and
+deployment profiles](docs/LISTS_SCENE.md).

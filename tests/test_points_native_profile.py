@@ -1,10 +1,11 @@
-import hashlib,json,subprocess,unittest
+import hashlib,json,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class NativePointsProfile(unittest.TestCase):
  def test_default_catalog_bytes_preserved(self):
+  expected=json.loads((ROOT/'tests/preserved-profile-baseline.json').read_text())['sha256']
   for name in ('Apps/points_in_time.json','productivity-manifest.json'):
-   self.assertEqual((ROOT/name).read_bytes(),subprocess.check_output(['git','show','4921a4306bb11adea646d766eb7539242e0142a7:'+name],cwd=ROOT))
+   self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),expected[name],name)
  def test_distinct_opt_in_native_authority(self):
   m=json.loads((ROOT/'Apps/native/points_utc.json').read_text())
   self.assertEqual(m['version'],'0.6.2')

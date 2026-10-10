@@ -17,6 +17,6 @@ class IdleProfile(unittest.TestCase):
   p,a=self.args([]);m={'requires':[]};inc=[Path('/unused')]
   self.assertEqual(profile.configure_idle(a,p,Path('/unused'),Path('/unused'),inc,['-DBASE'],m),(inc,['-DBASE'],[],None));self.assertEqual(m,{'requires':[]})
  def test_versions_separate_from_watch_and_prior_profiles(self):
-  self.assertEqual(profile.IDLE_PIN['versions'],{'points_in_time':'0.6.7','timecard':'0.2.7'})
+  self.assertEqual(profile.IDLE_PIN['versions'],{'points_in_time':'0.6.7','timecard':'0.2.9'})
   self.assertNotEqual(profile.IDLE_PIN['versions'],profile.SCROLL_PIN['versions'])
 if __name__=='__main__':unittest.main()
