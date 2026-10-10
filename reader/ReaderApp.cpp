@@ -8,10 +8,11 @@
 #include <cstdio>
 #include <FsHelpers.h>
 #include <cstring>
+#include "port/Logging.h"
 
 namespace {
 using namespace reader;
-enum class Screen { Library, Reading, Menu, Contents, Bookmarks, Bookmark, Rename, Layout, Fonts, Files, Notice };
+enum class Screen { Library, Reading, Menu, Contents, Bookmarks, Bookmark, Rename, Layout, Fonts, Files, Notice, Starting };
 enum Action : uint32_t {
  Back=1, Exit, Read, Previous, Next, Menu, Library, Scan, Browse, Sort,
  OlderRows, MoreRows, OpenRow=100, Contents=200, Bookmarks, AddBookmark,
@@ -32,7 +33,7 @@ struct App {
  uint64_t session=0,lastSequence=0;
  uint32_t revision=0;
  Engine* engine=nullptr;
- Screen screen=Screen::Library,noticeBack=Screen::Library;
+ Screen screen=Screen::Starting,noticeBack=Screen::Library;
  unsigned first=0,selected=0,sort=0,keyLayer=0;
  std::vector<Row> rows;
  std::string directory="/",notice,draft;
@@ -93,6 +94,7 @@ struct App {
  bool declare(){
   if(!loadRows()){error("The SD card could not be read");}
   switch(screen){
+  case Screen::Starting:begin("READER");node(RISC_COMPONENT_PROGRESS,"Opening reader","Preparing library and fonts",0);break;
   case Screen::Library:
    begin("READER");
    if(engine->preferences.recentPath[0])row("Continue reading",engine->preferences.recentPath,Read);
@@ -122,8 +124,8 @@ struct App {
   return true;
  }
  bool openScene(){
-  declare();int rc=presenter->components.open(scene->context,&doc,nullptr,&session);if(!checked(rc)||rc)return false;lastSequence=0;
-  rc=presenter->components.lifecycle.configure(scene->context,session,resident.enabled?RISC_SCENE_FEATURE_SHARED_CONTROLS:0);return checked(rc)&&rc==0;
+  declare();int rc=presenter->components.open(scene->context,&doc,nullptr,&session);if(!checked(rc)||rc){LOG_ERR("startup","scene open failed status=%d",rc);return false;}lastSequence=0;
+  rc=presenter->components.lifecycle.configure(scene->context,session,resident.enabled?RISC_SCENE_FEATURE_SHARED_CONTROLS:0);if(rc)LOG_ERR("startup","scene configure failed status=%d",rc);return checked(rc)&&rc==0;
  }
  bool closeScene(){
   if(!session)return true;for(unsigned i=0;i<1000&&alive();++i){int rc=scene->close(scene->context,session);if(!checked(rc))return false;if(!rc){session=0;return true;}if(rc!=RISC_SCENE_AGAIN){retain();return false;}rt->yield_ms(5);}retain();return false;
@@ -235,22 +237,27 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
  bind(rt,nullptr);setTerminal(terminalReturn);risc_cpp_set_failure_handler(reader::retain);
  auto* a=new App; a->rt=rt;
  for(const char* name:{"ui.scene","storage.volume","memory.heap","random.bytes","file.open"}){
-  auto& g=a->grants[a->acquired];g.struct_size=sizeof(g);bool ok=a->rt->acquire(name,1,0,&g);if(!alive())return;if(!ok)break;++a->acquired;
+  auto& g=a->grants[a->acquired];g.struct_size=sizeof(g);bool ok=a->rt->acquire(name,1,0,&g);if(!alive())return;if(!ok){LOG_ERR("startup","capability unavailable: %s",name);break;}++a->acquired;
  }
  if(a->acquired==5){
   a->scene=static_cast<const risc_scene_api_v1*>(a->grants[0].api);a->presenter=risc_scene_page_get_v1(a->scene);
   const auto* v=static_cast<const risc_storage_volume_api_v1*>(a->grants[1].api);const auto* ext=risc_storage_volume_extension(v);const auto* heap=static_cast<const risc_memory_heap_api_v1*>(a->grants[2].api);
   const auto* random=static_cast<const risc_random_api_v1*>(a->grants[3].api);bind(a->rt,v,heap,random);
   if(random&&random->api_version==1&&random->struct_size>=sizeof(*random)&&random->fill&&a->presenter&&risc_storage_volume_fs(v)&&heap&&heap->api_version==1&&heap->struct_size>=sizeof(*heap)&&heap->snapshot&&ext&&ext->file_open&&ext->file_seek&&ext->file_info&&ext->file_sync&&ext->dir_rewind&&ext->dir_close_checked&&ext->handle_error&&ext->mkdir&&ext->rename&&risc_scene_resident_bind_v1(a->rt,&a->resident)){
+   // Opening the scene establishes the selected display/profile geometry.
+   // Querying it before open fails on a fresh scene provider.
+   if(a->openScene()){
+   setService(App::service,a);
    a->geometry.struct_size=sizeof(a->geometry);
    int geometryResult=a->presenter->geometry(a->scene->context,&a->geometry);
+   if(geometryResult)LOG_ERR("startup","page geometry failed status=%d",geometryResult);
    if(a->checked(geometryResult)&&geometryResult==0){
     a->engine=new Engine;
     a->initialized=a->engine->init(a->geometry.width,a->geometry.height);
     {
-     if(a->initialized)a->engine->openLibrary();else a->error("SD card unavailable");
-     if(a->openScene()){
-      setService(App::service,a);
+     if(a->initialized){a->engine->openLibrary();a->show(Screen::Library);}else a->error("SD card unavailable");
+     {
+      LOG_INF("startup","scene ready page=%ux%u sd=%s",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
       const auto* files=static_cast<const t5_file_open_api_v1*>(a->grants[4].api);char source[512]{};
       if(a->initialized&&files&&files->struct_size>=sizeof(*files)&&files->source_path_get&&files->source_path_get(source,sizeof(source))){if(!strncmp(source,"/sd/",4))a->openBook(source+3);else a->error("Unsupported book location");}
       unsigned ticks=0;
@@ -274,7 +281,8 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
      }
     }
    }
-  }
+   }
+  }else LOG_ERR("startup","required scene/storage/memory/random interface or resident binding unavailable");
  }
  setService(nullptr,nullptr);
  if(a->closeScene()){
