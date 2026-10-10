@@ -188,7 +188,7 @@
     "Bind and build the product cohort/image",
     "Physical-device testing"
   ],
-  "system_components_commit": "a7279b60222d9c549a78c0c9cd1bc8524fb1ebf6",
+  "system_components_commit": "a88eaf5d3b2c3af99b135f35b22ea5ae61add6e1",
   "screenshots": {
     "watch.png": "5951b824fc2823d0766f4a5e4627e47329fc5e3181e5d96d349f9bd0cf56870a",
     "x4.png": "8a952b95171b910822fafac244e726079af590b17f9bb384c166325aad22a7fe",
