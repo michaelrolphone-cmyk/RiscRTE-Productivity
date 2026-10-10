@@ -29,7 +29,8 @@ The renderer follows the attached mockup
 | Suggested names | Wrapping, content-sized chips |
 | List shapes | One row of six selectable shapes |
 | Show completed | Compact OFF/ON capsule |
-| Confirmation and reminder | Centered dialog with horizontal action buttons |
+| Confirmation and reminder | Centered dialog with horizontal action pills; no focus underline |
+| Row icons and list markers | 8px inset inside the left frame, followed by a 7px label gap |
 | Task completion | Checkbox with separate detail target; trailing checkbox in task details |
 | Time | Watch wheels; inverted value cards and +/- controls on paper |
 
@@ -80,7 +81,7 @@ reminder detection while leaving ordinary undated lists usable.
 Use a Runtime SDK that includes app-data, the resident-shell contract and platform
 realtime. CI uses public Runtime commit
 `a9587bec00015ad56c302192a8359b6d70cde01a` and System commit
-`efed0cc6ffd82ff60363132fba8da32285533b3e`. The `Lists shared scene build`
+`eec748ca081fe59346be03180600c65013cc7298`. The `Lists shared scene build`
 workflow tests both renders and publishes the app/providers as build artifacts.
 
 ```sh
@@ -98,7 +99,7 @@ byte corruption, failed/uncertain saves, editing/reminder flows, separate row
 hit targets during a pending frame, tab switching without changing routes,
 disabled/gap targets, modal inside/outside cancellation, wrapped chip intents,
 and close/storage context loss. Pixel checks guard both tab selections and the
-completed circle on both profiles. Run
+completed circle, row icon padding and clean dialog action outlines on both profiles. Run
 `python scripts/render_lists_previews.py --frames ../build/frames` to regenerate
 the review sheets from the C captures (requires Pillow). System's
 179 legacy scene cases also pass with the extended presenter.
