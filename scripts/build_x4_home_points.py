@@ -8,14 +8,18 @@ ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser(description=__doc__)
 for name in ('baseline-target','baseline-sdk','system','runtime','utilities','output','reservation'):p.add_argument('--'+name,type=Path,required=True)
 p.add_argument('--common-system',action='store_true',help='Stage the complete selected clean System and Runtime SDK for the recovered source union')
+p.add_argument('--raster-snapshot',action='store_true')
 a=p.parse_args();out=a.output.resolve()
+if a.raster_snapshot and not a.common_system:p.error('--raster-snapshot requires --common-system')
 if out.exists():raise FileExistsError(out)
 sha=lambda q:hashlib.sha256(Path(q).read_bytes()).hexdigest()
 base=json.loads((a.baseline_target/'x4-native-app.json').read_text())
 assert sha(a.baseline_target/'x4-native-app.json')=='4db91aeec690e6b4168b553f75597b97e080b77c05f9f3b7794abacebf7648f2'
 assert base['version']=='0.6.12'
 assert json.loads(a.reservation.read_text())['Points']=='0.6.14'
-assert sha(a.utilities/'scripts/resident_client_build.py')=='1f7209b1f74d8f706b7b5f73be9aaf52061ce5679bbb99dea79f8aa7bd0779de'
+helper_sha=sha(a.utilities/'scripts/resident_client_build.py')
+assert helper_sha in {'1f7209b1f74d8f706b7b5f73be9aaf52061ce5679bbb99dea79f8aa7bd0779de','d8be689c466ec52b11b97710af3b3758d489865029b764f57578293b6ee7bfb1'}
+if a.raster_snapshot:assert helper_sha=='d8be689c466ec52b11b97710af3b3758d489865029b764f57578293b6ee7bfb1'
 # Verify every frozen SDK header before changing only the two negotiated text
 # headers and optional physical-Home callback declaration from selected source.
 for name,digest in base['sdk_sha256'].items():assert sha(a.baseline_sdk/'include'/name)==digest,name
@@ -24,7 +28,7 @@ assert '8.4.0' in version and '2021r2-patch5' in version
 sys.path.insert(0,str(a.utilities.resolve()/'scripts'));import resident_client_build as resident
 if a.common_system:
  resident.RUNTIME=resident.git(a.runtime,'rev-parse','HEAD')
- options=argparse.Namespace(system_apps=a.system,system_revision=resident.git(a.system,'rev-parse','HEAD'),runtime=a.runtime,output=out,display_sdk=a.baseline_sdk/'include',development_system=False)
+ options=argparse.Namespace(system_apps=a.system,system_revision=resident.git(a.system,'rev-parse','HEAD'),runtime=a.runtime,output=out,display_sdk=a.baseline_sdk/'include',development_system=False,raster_snapshot=a.raster_snapshot,runtime_revision=resident.git(a.runtime,'rev-parse','HEAD'))
  c=resident.prepare(options,p,a.utilities.resolve());inc=c['inc']
 else:
  out.mkdir(parents=True);shutil.copytree(a.baseline_sdk,out/'sdk');inc=out/'sdk/include'
@@ -39,6 +43,8 @@ assert record['requires']==base['requires'] and record['required_grants']==base[
 record['recovery_custody']=dict(baseline_source='53e0a82bca754a3d302c2cefd26cb596a8734bab',baseline_tree='d78de5c647212f34694987a9fedeb0c6d5a14de1',baseline_receipt_sha256=sha(a.baseline_target/'x4-native-app.json'),baseline_sdk_headers_verified=len(base['sdk_sha256']),changed_sdk_headers=[name for name,digest in record['sdk_sha256'].items() if base['sdk_sha256'].get(name)!=digest],added_defines=['-DPORTABLE_APP_HOME_GUARD'],added_grants=[],native_product_binary_reused=False,baseline_elf_used_as_input=False)
 record['recovery_custody']['common_system']=a.common_system
 if not a.common_system:assert set(record['recovery_custody']['changed_sdk_headers'])=={'RiscTextEntryV1.h','PortableTextInputClient.h','PortableAppLaunchGuard.h'}
+record['raster_snapshot']=a.raster_snapshot
+assert ('-DPORTABLE_RASTER_SNAPSHOT' in record['build_defines'])==a.raster_snapshot
 record['selected_build_helper_sha256']=sha(Path(__file__));record['reservation_sha256']=sha(a.reservation)
 record['stack_frames']=[]
 for path in (out/'points_in_time').glob('*.su'):
