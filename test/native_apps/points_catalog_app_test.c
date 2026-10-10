@@ -149,11 +149,28 @@ static bool display_submit(void *c,risc_display_frame_v1 f,const risc_display_re
 }
 static bool display_status(void *c,risc_display_present_token_v1 t,risc_display_present_status_v1 *s){(void)c;io();assert(t);if(frame_release_after&&ticks>=frame_release_after){hold_frame=false;frame_release_after=0;}s->state=hold_frame?RISC_DISPLAY_PRESENT_ACTIVE:RISC_DISPLAY_PRESENT_COMPLETE;if(!hold_frame)display_inflight=false;return true;}
 static const risc_display_output_api_v1 display_api={.api_version=1,.struct_size=sizeof(display_api),.get_info=display_info,.acquire=display_acquire,.release=display_release,.submit=display_submit,.present_status=display_status};
-static uint64_t subscribe(void *c){(void)c;io();live_subs++;return 1;}
+/* Model the actual queued raw-touch contract, including report watermarks.
+ * contact is physical state; snapshot exposes only the last polled report. */
+static risc_touch_snapshot_v1 touch_report;
+static risc_touch_event_v1 touch_events[32];
+static unsigned touch_at,touch_count;
+static uint64_t touch_sequence;
+static int touch_find(const risc_touch_snapshot_v1 *s,unsigned id){for(unsigned i=0;i<s->contact_count;i++)if(s->contacts[i].id==id)return (int)i;return -1;}
+static void touch_edge(unsigned kind,const risc_touch_contact_v1 *c){assert(touch_count<32);touch_events[touch_count++]=(risc_touch_event_v1){++touch_sequence,ticks,(uint8_t)kind,c->id,c->x,c->y};}
+static uint64_t subscribe(void *c){(void)c;io();live_subs++;touch_at=touch_count=0;touch_report=contact;touch_report.sequence=touch_sequence;touch_report.timestamp_ms=ticks;return 1;}
 static bool unsubscribe(void *c,uint64_t token){(void)c;io();assert(token==1&&live_subs);live_subs--;return true;}
-static bool touch_poll(void *c,size_t n){(void)c;io();assert(n==1);polls++;return true;}
-static int32_t touch_next(void *c,uint64_t t,risc_touch_event_v1 *e){(void)c;(void)t;(void)e;io();return 0;}
-static bool touch_snapshot(void *c,risc_touch_snapshot_v1 *s){(void)c;io();*s=contact;return true;}
+static bool touch_poll(void *c,size_t n){
+    (void)c;io();assert(n==1);polls++;if(touch_at==touch_count)touch_at=touch_count=0;
+    for(unsigned i=0;i<touch_report.contact_count;i++)if(touch_find(&contact,touch_report.contacts[i].id)<0)touch_edge(RISC_TOUCH_EVENT_UP,&touch_report.contacts[i]);
+    for(unsigned i=0;i<contact.contact_count;i++){
+        int old=touch_find(&touch_report,contact.contacts[i].id);
+        if(old<0)touch_edge(RISC_TOUCH_EVENT_DOWN,&contact.contacts[i]);
+        else if(contact.contacts[i].x!=touch_report.contacts[old].x||contact.contacts[i].y!=touch_report.contacts[old].y)touch_edge(RISC_TOUCH_EVENT_MOVE,&contact.contacts[i]);
+    }
+    touch_report=contact;touch_report.sequence=touch_sequence;touch_report.timestamp_ms=ticks;return true;
+}
+static int32_t touch_next(void *c,uint64_t t,risc_touch_event_v1 *e){(void)c;(void)t;io();if(touch_at==touch_count)return 0;*e=touch_events[touch_at++];return 1;}
+static bool touch_snapshot(void *c,risc_touch_snapshot_v1 *s){(void)c;io();*s=touch_report;return true;}
 static const risc_touch_api_v1 touch_api={1,sizeof(touch_api),NULL,subscribe,unsubscribe,touch_poll,touch_next,touch_snapshot};
 static bool nav_poll(void *c,risc_input_navigation_frame_v1 *out){(void)c;io();*out=(risc_input_navigation_frame_v1){0};if(nav_home){out->buttons=out->pressed=RISC_NAV_HOME;nav_home=false;}return true;}
 static bool nav_foreground(void *c,const risc_input_foreground_v1 *claims,size_t count){(void)c;(void)claims;io();assert(count<=1);return true;}
@@ -480,9 +497,15 @@ static int fault_test(const char *kind) {
         text_close_error=RISC_TEXT_ENTRY_RETAINED;text_complete(RISC_TEXT_ENTRY_ACCEPTED,"Retained");assert(terminal&&retained&&retains==1&&text_opened&&name_client.active&&!live_subs&&!writes);
     } else if(!strcmp(kind,"text-alarm")) {
         assert(points_editor_begin_type(&editor,0));pc_page(PC_CUSTOM);pc_custom_action(0);
-        fake_alarm_state=ALARM_STATE_ALERT;text_state.flags=RISC_TEXT_ENTRY_PRESENTING;pc_name_step();assert(name_client.active);
-        text_state.flags=0;pc_name_step();assert(!name_client.active&&page==PC_CUSTOM&&!editor.type.name[0]&&!writes);fake_alarm_state=ALARM_STATE_READY;
-        finish();puts("Alarm foreground cancels host only after presentation settles and close completes");return 0;
+        unsigned before_close=text_closes;
+        fake_alarm_state=ALARM_STATE_ALERT;text_state.flags=RISC_TEXT_ENTRY_PRESENTING;text_pending=2;pc_name_step();assert(name_client.active);
+#ifdef TEST_DECOUPLED_UI
+        assert(name_client.closing&&text_closes==before_close+1);
+#else
+        assert(!name_client.closing&&text_closes==before_close);
+#endif
+        text_pending=0;text_state.flags=0;pc_name_step();assert(!name_client.active&&page==PC_CUSTOM&&!editor.type.name[0]&&!writes);fake_alarm_state=ALARM_STATE_READY;
+        finish();puts("Alarm attention follows selected logical policy; close custody must complete before app resumes");return 0;
     } else if(!strcmp(kind,"service-busy")) {
         assert(points_editor_begin_event(&editor,0));pc_page(PC_EDIT);fake_alarm_state=ALARM_STATE_ALERT;
         pc_save(false);assert(!writes&&editor.editing_event);fake_alarm_state=ALARM_STATE_READY;pc_save(false);assert(writes==1&&!editor.editing_event);finish();

@@ -48,6 +48,7 @@ def main():
     for old,new in replacements.items():cmd=[x.replace(old,new) for x in cmd]
     flags = [s for s in cmd if s.startswith(('-D', '-I'))]
     if '-DPORTABLE_APP_HOME_GUARD' not in flags:flags.append('-DPORTABLE_APP_HOME_GUARD')
+    if receipt.get('recovery_custody',{}).get('common_system'):flags.append('-DTEST_DECOUPLED_UI')
     sources = [s for s in cmd if s.endswith('.c') and Path(s).name not in
                ('catalog.c', 'points_catalog_app.c')]
     results = []
