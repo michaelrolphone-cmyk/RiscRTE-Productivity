@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-07",
+  "source_sha": "9fca7fea8db1155551b494fe691cc4c7322c38d5",
+  "source_clean_at_build": true,
+  "version": "0.2.0",
+  "native_target": {
+    "schema": 1,
+    "app": "timecard",
+    "version": "0.2.0",
+    "source_repo": "michaelrolphone-cmyk/RiscRTE-Productivity",
+    "source_revision": "9fca7fea8db1155551b494fe691cc4c7322c38d5",
+    "system_source_revision": "47464cf914c77e8561af49370bdd02ea8f08492b",
+    "runtime_source_revision": "30dcec5ce6ce33223f2b203a2399283e1f758567",
+    "alarm_source_revision": "637e13b0bce62ad49b756bec2468a6271d163fc7",
+    "alarm_api": 2,
+    "time_policy": "native-realtime-iana",
+    "elf_sha256": "e5f37d66c23a0be1db1095ed619f6b63e3b1b96ec51be6891e68d8beaa73c0d4",
+    "elf_bytes": 241584,
+    "requires": [
+      {
+        "capability": "display.output",
+        "api": 1
+      },
+      {
+        "capability": "input.touch.raw",
+        "api": 1
+      },
+      {
+        "capability": "input.navigation",
+        "api": 1
+      },
+      {
+        "capability": "runtime.realtime",
+        "api": 1
+      },
+      {
+        "capability": "storage.key-value",
+        "api": 1
+      },
+      {
+        "capability": "alarm.service",
+        "api": 2
+      },
+      {
+        "capability": "storage.app-data",
+        "api": 1
+      }
+    ],
+    "sdk_sha256": {
+      "RiscRuntimeV1.h": "2f1b785d65729c0866691570bb920299a8c5187765f3eac204df3cb427ce9c84",
+      "RiscRealtimeV1.h": "639781f728841cda6d40c3033877436b9e5d59519a4b15e11a9bc99b2365395d",
+      "AlarmServiceV1.h": "c70c087550306c123255e1ace41aeb504809e16b0193e382ec8dfbd7cb5531f5",
+      "AlarmServiceV2.h": "d7e750a8093e1b5e698483254edc38533b7242a3446d0bca5866c9dfd6ad07a1"
+    }
+  },
+  "native_build_evidence": {
+    "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+    "defines": [
+      "-DTIMECARD_NATIVE_TIME",
+      "-DTIMECARD_APP_DATA",
+      "-DTIMECARD_PAPER",
+      "-DPORTABLE_APP_OWNS_TOUCH_CHROME",
+      "-DALARM_SERVICE_TAGGED_V2",
+      "-DPORTABLE_ALARM_CLIENT",
+      "-DPORTABLE_NOVA_UI",
+      "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+      "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+      "-DPORTABLE_INPUT_NAVIGATION",
+      "-DPORTABLE_DISPLAY_ROTATION=90",
+      "-DTIMECARD_RETURN_APP=\"springboard.elf\"",
+      "-DPORTABLE_HOME_APP=\"default.elf\"",
+      "-DPORTABLE_QUICK_ACTIONS"
+    ],
+    "imports": [
+      "free",
+      "malloc",
+      "memcmp",
+      "memcpy",
+      "memset",
+      "risc_runtime_get_api",
+      "snprintf",
+      "strcmp",
+      "strcpy"
+    ],
+    "exports": [
+      "app_main",
+      "app_module_fini",
+      "app_module_init"
+    ],
+    "pins": {
+      "system_public_sha": "1d589d90bf27c7ffb76420de46564088ddb3714f",
+      "adapter_sha": "47464cf914c77e8561af49370bdd02ea8f08492b",
+      "adapter_public": false,
+      "utilities_sha": "637e13b0bce62ad49b756bec2468a6271d163fc7",
+      "runtime_sha": "30dcec5ce6ce33223f2b203a2399283e1f758567"
+    }
+  },
+  "raw_targets": [
+    {
+      "profile": "watch",
+      "sha256": "24629b4da6e5d2ed4208af10e6a30f0abd6ce4ab3a4285153e537d3f34fed0ac",
+      "size_bytes": 154784,
+      "exact_source_d9ef6af0_bytes": true
+    },
+    {
+      "profile": "paper",
+      "sha256": "abdb1cfe7446fe401f05a6909be2f59e852cdd89fa092225ce9537950b6fed6f",
+      "size_bytes": 197432,
+      "exact_source_d9ef6af0_bytes": true
+    }
+  ],
+  "checks": {
+    "native_actual_controller_adapter": "33 fresh-process scenarios x normal and ASan/UBSan; passed",
+    "raw_paper_adapter": "72 normal/ASan+UBSan portrait/native-rotation scenarios; passed",
+    "legacy_and_portable": "normal + ASan/UBSan; passed",
+    "python_tests": 46,
+    "target": "Xtensa ELF32 ET_DYN structure, imports/exports, exact native manifest, SDK hashes and license/provenance files passed",
+    "Points": "all completed Points implementation/build/pin files unchanged",
+    "original_Timecard": "model, manifests, raw builder, paper renderer and app-data bridge unchanged"
+  },
+  "limitations": [
+    "LeakSanitizer disabled for executor ptrace; ASan/UBSan enabled",
+    "System47464cf is a local dependency checkpoint; publication is centrally owned",
+    "No hardware, product/BIN, install, flash, storage migration, or sleep qualification"
+  ],
+  "source_sha256": {
+    "Apps/timecard.c": "c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9",
+    "Apps/timecard.json": "20dd3433258a3f74f14d5063506052625aa6d8b0a396101233fd76c30412bf5b",
+    "Apps/timecard_portable.c": "ecb8a7ce3ac433ac322156a0eca56db5135d583ec3acbb8e9ec5524cdfecffa7",
+    "Apps/timecard_native_time.h": "15828e828c8587ab338397d0d890730d85f94fc0e0ebe7b13eb040809afe04f0",
+    "Apps/timecard_paper.inc": "90d47bcd0daa9da513ed20634ba2796239da8d86fae916a7b620c4d8724172fa",
+    "Apps/timecard_portable_validation.h": "6f86fb034b96fa3dc15f902182efd6e4a850699dd9be0e944823d9cddfe429e8",
+    "Apps/timecard_appdata_bridge.h": "0adf349d3aba15dd29575d57c14d6ecf8123d304c939f4a32589d91e0c9ba585",
+    "Apps/native/timecard_native_time.json": "e35ae2c8f9181ca5342fa4459902e8879b2cce4937721466206cad8cb9170d6d",
+    "scripts/build_timecard_native_time.py": "05686449ff6507e11cc7118447296a9b7d4d6b7df8bf1ad1c2ec14f9d6e7bcdc",
+    "sdk/timecard-native-time-sources.json": "0050f22f88b6cf02f7dbd4da24b2942a67b8720e82ad9738f0c4597d05385820"
+  },
+  "log_sha256": {
+    "native-time.log": "76ce4fde9e337c1db3238ea84ef6c3429d445b0864d5d25f9d3af3d34f38e381",
+    "raw-portable.log": "57d33ca33d8587942cbf5739a0b63c6bccbc43a934ebacc1e7d1b56b472079b6",
+    "raw-paper.log": "29de2850abed9a0a9d1913d7727b33b54279835f9511ec45696059ef887b6e90",
+    "python-tests.log": "ee319ed6298d1fb43e22b223337cd5643373a271189dbea23131f3a6bc625fa3",
+    "native-target.log": "8c7a502e53d9bbc588f4a99f3e49129e37ba1d58b0258a083fb171cf67dadb2f"
+  },
+  "license_sha256": {
+    "Productivity/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "Runtime/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "System-Apps/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "System-Apps/fonts/LICENSE-FontAwesome.txt": "b2a1cf9b4d876a266020de7ff41ce6f58e814f8efd07d4cdb7695a86e875c17c",
+    "System-Apps/fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/fonts/SOURCES.json": "0acbeddd8f275c6f36cd2274d7beb4c8495b9d975b602a4c1ceb05011d000157",
+    "System-Apps/paper_fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/paper_fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/paper_fonts/SOURCES.json": "1dde2a1a887df1c067a125dfe76f0c185904dc059f66af583120109228b441c1",
+    "System-Apps/quick_fonts/SOURCES.json": "1701c1c3564f03d8038658904245a58bc5acc260aa0458444ea1f312a5292e61",
+    "System-Apps/settings_fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/settings_fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/settings_fonts/SOURCES.json": "b436517cca24f5ccf79bc122da6ed254c7c560f176a22f88cc7c5d2d0fd7adad",
+    "System-Apps/time/SOURCES.json": "4e7f30ef9414cc625484bd693ff5cbf8a00adc7571f55feae36f9cdf0b2bc5b3",
+    "System-Apps/time/TIMEZONE_PROVENANCE.json": "4dda9d416b6ca815155dbf3ecac6452789564ff1312bba2d28a6d5a9b7eaab1b",
+    "Utilities/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640"
+  }
+}

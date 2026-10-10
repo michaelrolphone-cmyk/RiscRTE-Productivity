@@ -5,7 +5,9 @@
 #define PE_ROW 88
 static unsigned pe_first,pe_edit_first,pe_choice_first,pe_focus,pe_key_page;
 static bool pe_focus_visible,pe_exit,pe_down,pe_clean;
+#ifndef PORTABLE_PRODUCTIVITY_SCROLL
 static int pe_start_x,pe_start_y,pe_last_x,pe_last_y;
+#endif
 static char pe_key_text[POINTS_CUSTOM_NAME_MAX+1];
 static int pe_width(void){return app->screen_width();}
 static int pe_height(void){return app->screen_height();}
@@ -38,20 +40,28 @@ static void pe_shape(unsigned kind,int x,int y,bool black) {
  static const char *const glyphs[]={"regular:f111","solid:f0c8","solid:f0d8","solid:f219","solid:f067","solid:f7a5","solid:f111"};
  if(!app->draw_icon||!app->draw_icon(x-13,y-13,glyphs[kind%7],26,black))notice="FONT AWESOME ICON UNAVAILABLE";
 }
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+#include "points_scroll_model.inc"
+#else
+#define pe_render_rows pe_rows
+#define pe_row_y(shown) (PE_TOP+(int)(shown)*PE_ROW)
+#define pe_clip(enabled) ((void)(enabled))
+#endif
 static void pe_row(unsigned shown,const char *title,const char *value,bool selected) {
- int y=PE_TOP+(int)shown*PE_ROW;
+ int y=pe_row_y(shown);pe_clip(true);
  if(selected)app->fill_rect(32,y,pe_width()-64,PE_ROW,true);
  pe_text(48,y+10,pe_width()-112,title,false,!selected);
  if(value&&*value)pe_text(48,y+42,pe_width()-112,value,false,!selected);
- app->fill_rect(32,y+PE_ROW-3,pe_width()-64,3,true);
+ app->fill_rect(32,y+PE_ROW-3,pe_width()-64,3,true);pe_clip(false);
 }
 static void pe_list(void) {
- unsigned order[POINTS_MAX],count=nova_configured(order),rows=pe_rows();char sub[40];
+ unsigned order[POINTS_MAX],count=nova_configured(order),rows=pe_render_rows();char sub[40];
  snprintf(sub,sizeof(sub),"%u ACTIVE  %u TOTAL",nova_active_count(),count);pe_header("POINTS IN TIME",sub);
  if(pe_first>=count)pe_first=0;
+ pe_clip(true);
  for(unsigned at=0;at<rows&&pe_first+at<count;at++) {
   unsigned index=pe_first+at;const points_item *p=&writer.saved.points[order[index]];
-  int y=PE_TOP+(int)at*PE_ROW;bool selected=pe_focus_visible&&pe_focus==index;
+  int y=pe_row_y(at);bool selected=pe_focus_visible&&pe_focus==index;
   if(selected)app->fill_rect(32,y,pe_width()-64,PE_ROW,true);
   pe_shape(p->kind,56,y+37,!selected);
   char tm[24],days_text[16],duration[16],meta[48];
@@ -67,14 +77,21 @@ static void pe_list(void) {
   pe_text(222,y+44,pe_width()-254,meta,false,!selected);
   app->fill_rect(32,y+PE_ROW-3,pe_width()-64,3,true);
  }
+ pe_clip(false);
  if(!count)pe_text(32,150,pe_width()-64,"NO POINTS YET",true,true);
  pe_text(32,pe_height()-146,pe_width()-64,count>rows?"SWIPE TO SEE MORE POINTS":status_message(),false,true);
- pe_footer("< BACK",count<POINTS_MAX?"+ ADD POINT":"MORE >");
+ pe_footer("< BACK",count<POINTS_MAX?"+ ADD POINT":
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ "ALL 8 USED"
+#else
+ "MORE >"
+#endif
+ );
 }
 static void pe_edit(void) {
  pe_header("EDIT POINT",nova_kind_name(draft.kind));
  static const char *const names[]={"TYPE","TIME","DURATION","NOTIFY AT END","3 MIN WARNING","NOTIFY START","DAYS","ENABLED","DELETE POINT"};
- for(unsigned at=0;at<pe_rows()&&pe_edit_first+at<9;at++) {
+ for(unsigned at=0;at<pe_render_rows()&&pe_edit_first+at<9;at++) {
   unsigned row=pe_edit_first+at;char value[48]={0};
   if(row==0)snprintf(value,sizeof(value),"%s",nova_kind_name(draft.kind));
   else if(row==1)format_time(&draft,value,sizeof(value));
@@ -84,7 +101,9 @@ static void pe_edit(void) {
   else if(row==6)format_days(draft.weekdays,value,sizeof(value));
   else if(row==8)snprintf(value,sizeof(value),"%s",nova_delete_confirm?"TAP AGAIN TO DELETE":"EXPLICIT CONFIRMATION REQUIRED");
   pe_row(at,names[row],value,pe_focus_visible&&pe_focus==row);
-  if((row==0||row==1||row==2||(row==5&&!points_visual_only())||row==6)&&app->draw_icon)(void)app->draw_icon(pe_width()-72,PE_TOP+(int)at*PE_ROW+30,"solid:f054",24,!(pe_focus_visible&&pe_focus==row));
+  pe_clip(true);
+  if((row==0||row==1||row==2||(row==5&&!points_visual_only())||row==6)&&app->draw_icon)(void)app->draw_icon(pe_width()-72,pe_row_y(at)+30,"solid:f054",24,!(pe_focus_visible&&pe_focus==row));
+  pe_clip(false);
  }
  pe_text(32,pe_height()-146,pe_width()-64,notice&&*notice?notice:"SWIPE FOR MORE OPTIONS",false,true);pe_footer("CANCEL","SAVE");
 }
@@ -97,6 +116,9 @@ static void pe_keyboard(void) {
  int w2=(pe_width()-80)/2;pe_button(32,pe_height()-216,w2,"NEXT KEYS",false);pe_button(pe_width()/2+8,pe_height()-216,w2,"DELETE",false);pe_footer("CANCEL","DONE");
 }
 static void pe_draw(void) {
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ pe_scroll_prepare();pe_scroll.dirty=true;if(!portable_paper_scroll_available()||!paper_frame_ready())return;
+#endif
  paper->begin();
  if(!ready||writer.uncertain||writer.meta_uncertain||!writer.loaded) {
   pe_header("POINTS IN TIME",NULL);pe_text(32,150,pe_width()-64,status_message(),false,true);
@@ -107,11 +129,23 @@ static void pe_draw(void) {
  else if(page==PAGE_TYPE||page==PAGE_MODE) {
   pe_header(page==PAGE_TYPE?"POINT TYPE":"NOTIFY START",NULL);
   unsigned choices[8],n=page==PAGE_TYPE?nova_type_choices(choices):4;
-  for(unsigned at=0;at<pe_rows()&&pe_choice_first+at<n;at++){unsigned i=pe_choice_first+at;unsigned kind=page==PAGE_TYPE?choices[i]:0;
+  for(unsigned at=0;at<pe_render_rows()&&pe_choice_first+at<n;at++){unsigned i=pe_choice_first+at;unsigned kind=page==PAGE_TYPE?choices[i]:0;
    pe_row(at,page==PAGE_TYPE?(kind?nova_kind_name(kind):"+ CUSTOM TYPE"):point_mode_name(i,true),page==PAGE_TYPE&&custom_index(kind)<POINTS_CUSTOM_COUNT?"TAP RIGHT TO EDIT":"",pe_focus_visible&&pe_focus==i);}
-  pe_footer("< BACK","MORE >");
+  pe_footer("< BACK",
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ "DONE"
+#else
+ "MORE >"
+#endif
+ );
  } else if(page==PAGE_TIME||page==PAGE_DURATION) {
-  pe_header(page==PAGE_TIME?"TIME":"DURATION","DRAFT ONLY - USE SAVE");char value[32];
+  pe_header(page==PAGE_TIME?"TIME":"DURATION",
+#ifdef ALARM_NATIVE_UTC
+      page==PAGE_TIME?points_time_zone():"DRAFT ONLY - USE SAVE"
+#else
+      "DRAFT ONLY - USE SAVE"
+#endif
+      );char value[32];
   if(page==PAGE_TIME)format_time(&draft,value,sizeof(value));else nova_duration(value,draft.duration_minutes);
   pe_center(150,value,true,true);int w=(pe_width()-80)/2;
   pe_button(32,256,w,page==PAGE_TIME?"HOUR -":"- 5 MIN",false);pe_button(pe_width()/2+8,256,w,page==PAGE_TIME?"HOUR +":"+ 5 MIN",false);
@@ -119,7 +153,7 @@ static void pe_draw(void) {
   pe_footer("< BACK","DONE");
  } else if(page==PAGE_DAYS) {
   pe_header("DAYS","SWIPE FOR DAYS AND PRESETS");
-  for(unsigned at=0;at<pe_rows()&&pe_choice_first+at<10;at++){unsigned i=pe_choice_first+at;const char *name=i<7?days[i]:i==7?"DAILY":i==8?"MON-FRI":"WEEKEND";pe_row(at,name,i<7?(draft.weekdays&(1u<<i)?"ON":"OFF"):"APPLY PRESET",pe_focus_visible&&pe_focus==i);}
+  for(unsigned at=0;at<pe_render_rows()&&pe_choice_first+at<10;at++){unsigned i=pe_choice_first+at;const char *name=i<7?days[i]:i==7?"DAILY":i==8?"MON-FRI":"WEEKEND";pe_row(at,name,i<7?(draft.weekdays&(1u<<i)?"ON":"OFF"):"APPLY PRESET",pe_focus_visible&&pe_focus==i);}
   pe_footer("< BACK","DONE");
  } else if(page==PAGE_CUSTOM) {
   pe_header("CUSTOM TYPE",notice&&*notice?notice:"SHARED NAME AND COLOR");unsigned ci=custom_index(custom_kind);
@@ -127,7 +161,13 @@ static void pe_draw(void) {
    for(unsigned i=0;i<8;i++){char name[16];snprintf(name,sizeof(name),"COLOR %u",i+1);int w=(pe_width()-88)/4;pe_button(32+(int)(i%4)*(w+8),288+(int)(i/4)*104,w,name,custom_draft.custom[ci].color==i);}}
   pe_footer("CANCEL","SAVE");
  } else {pe_header("SAVE POINT",NULL);pe_text(32,150,pe_width()-64,"ONLY FUTURE STARTS RUN AFTER SAVE",false,true);pe_footer("CANCEL","SAVE");}
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ productivity_scroll_bar(&pe_scroll,app);
+#endif
  app->present(pe_clean);pe_clean=false;
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ productivity_scroll_record(&pe_scroll,pe_focus_visible?(int)pe_focus:-1);
+#endif
 }
 static void pe_reset_page(void){pe_focus=0;pe_focus_visible=false;pe_choice_first=0;pe_down=false;pe_clean=true;}
 static void pe_back(void){if(page==PAGE_CUSTOM_KEYBOARD){page=PAGE_CUSTOM;notice="Name edit discarded";}else pe_exit=on_back();pe_reset_page();}
@@ -150,11 +190,15 @@ static void pe_edit_action(unsigned row) {
  else if(row==8){if(!nova_delete_confirm){nova_delete_confirm=true;notice="Tap delete again to confirm";}else{draft=(points_item){0};save_action();nova_delete_confirm=false;pe_edit_first=0;}}
 }
 static void pe_advance(void) {
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+ if(page==PAGE_TYPE||page==PAGE_MODE)page=PAGE_EDIT;
+#else
  unsigned count=0,order[POINTS_MAX],*first=&pe_choice_first;
  if(page==PAGE_LIST){count=nova_configured(order);first=&pe_first;}
  else if(page==PAGE_EDIT){count=9;first=&pe_edit_first;}
  else if(page==PAGE_TYPE)count=nova_type_choices(order);else if(page==PAGE_MODE)count=4;else if(page==PAGE_DAYS)count=10;
  *first=*first+pe_rows()<count?*first+pe_rows():0;
+#endif
 }
 static void pe_tap(int x,int y) {
  if(x<32||x>=pe_width()-32)return;
@@ -194,6 +238,7 @@ static void pe_tap(int x,int y) {
  }
  if(page!=old_page)pe_reset_page();
 }
+#ifndef PORTABLE_PRODUCTIVITY_SCROLL
 static bool pe_input(const t5_app_input_t *input) {
  bool changed=false;unsigned old_page=page;
  if(input->buttons&(T5_APP_BUTTON_UP|T5_APP_BUTTON_LEFT|T5_APP_BUTTON_DOWN|T5_APP_BUTTON_RIGHT)) {
@@ -223,3 +268,7 @@ static bool pe_input(const t5_app_input_t *input) {
  if(page!=old_page)pe_reset_page();
  return changed;
 }
+
+#else
+#include "points_scroll_input.inc"
+#endif

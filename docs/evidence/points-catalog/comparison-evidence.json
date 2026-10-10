@@ -1,0 +1,42 @@
+[
+  {
+    "screen": "Points list",
+    "reference": "/workspace/shared/refined-home-render-20261009/4.png",
+    "reference_sha256": "0eee283f6d863082e3e9492f003d06c3b518df910c057d1d08ae89aa5c2ff054",
+    "actual": "/workspace/shared/points-catalog-editor/build/points-catalog-qualified/x4/frames/reference-points.png",
+    "actual_sha256": "525a6e058911b451439a2a84f59d007871e0fb8d18b4c83a57e0d90e35a71ffb",
+    "comparison_sha256": "7f6a1be490cbaf1dabbdfbcd824c948472970ddffca4756768cb14702ff4f8c8",
+    "pixels": "Unscaled 480x800, reference antialiased SVG raster and actual 1-bit rotated X4 frame",
+    "intentional_difference": "Hours below 10 are unpadded; symbols belong to types."
+  },
+  {
+    "screen": "Edit Point",
+    "reference": "/workspace/shared/refined-home-render-20261009/5.png",
+    "reference_sha256": "a67f0373e25d803a14b5883fb6525b1b42aa25201597fe1d5889a685641ba0db",
+    "actual": "/workspace/shared/points-catalog-editor/build/points-catalog-qualified/x4/frames/reference-edit.png",
+    "actual_sha256": "0d97be14ec620dfe48dc31d84919c2a6fcac01b7afb54325f9996a2ca110210d",
+    "comparison_sha256": "4106e15fc81f845306947e0fddf70530e151407c28666b73e6dc00dfc01e433e",
+    "pixels": "Unscaled 480x800, reference antialiased SVG raster and actual 1-bit rotated X4 frame",
+    "intentional_difference": "X4 reports visual alerts. Scroll down for explicit Cancel / Save."
+  },
+  {
+    "screen": "Set Time",
+    "reference": "/workspace/shared/refined-home-render-20261009/6.png",
+    "reference_sha256": "09adbfa44ce1641b42b4825c66a4cf2b25a3c1536945065064b0eae312236c14",
+    "actual": "/workspace/shared/points-catalog-editor/build/points-catalog-qualified/x4/frames/reference-time.png",
+    "actual_sha256": "2cf0745331cf744e3ec8595c99bd028c4a5fd3402c0c76409225e4a1e269ae67",
+    "comparison_sha256": "cfd037c0b1ed3ce15a449e5585e1eb941fea48954f42bb941eefab3bf5aba3f7",
+    "pixels": "Unscaled 480x800, reference antialiased SVG raster and actual 1-bit rotated X4 frame",
+    "intentional_difference": "Hour and minute controls preserve one-minute precision."
+  },
+  {
+    "screen": "Custom type keyboard",
+    "reference": "/workspace/shared/refined-home-render-20261009/7.png",
+    "reference_sha256": "2874ebf69d65ad9da93895328ad8bce2211b25ddd40db458bec58fa59e4b1ac2",
+    "actual": "/workspace/shared/points-catalog-editor/build/points-catalog-qualified/x4/frames/reference-keyboard.png",
+    "actual_sha256": "4578390afffc5d9f7440eb4db49c0bc6f640d5f0d18e9234fa220fc56fde66a4",
+    "comparison_sha256": "2390776f8c53fec402e2b35c3a18f6517752bac8ab2f139b1315752982139729",
+    "pixels": "Unscaled 480x800, reference antialiased SVG raster and actual 1-bit rotated X4 frame",
+    "intentional_difference": "The accepted model retains 31-character names."
+  }
+]

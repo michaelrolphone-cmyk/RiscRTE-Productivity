@@ -101,7 +101,7 @@ static void ui_tests(const char *directory){
  t5_app_input_t back={.buttons=T5_APP_BUTTON_BACK};tcp_input(&back);assert(!tcp_editor&&screen_id==SCREEN_DAY);tcp_input(&back);assert(screen_id==SCREEN_WEEK);tcp_input(&back);assert(screen_id==SCREEN_WEEK_LIST);tcp_input(&back);assert(tcp_home);
  init();open_day(20261005);tcp_draw();input_contact(false,0,0,false);input_contact(true,60,120,false);input_contact(true,102,122,false);assert(screen_id==SCREEN_WEEK);input_contact(false,102,122,true);assert(screen_id==SCREEN_WEEK);
  init();open_day(20261005);tcp_draw();input_contact(false,0,0,false);input_contact(true,60,120,false);input_contact(false,120,120,false);assert(screen_id==SCREEN_DAY); /* A lost held sample is not a swipe. */
- init();tcp_time_format=PORTABLE_TIME_FORMAT_24;assert(tcp_mutate(20261005,0,0));assert(tcp_mutate(20261005,3,780));open_week(0);tcp_draw();frame(directory,"week-24h");char value[24];tcp_display_time("12:00 AM",value,sizeof(value));assert(!strcmp(value,"00:00"));tcp_display_time("1:00 PM",value,sizeof(value));assert(!strcmp(value,"13:00"));
+ init();tcp_time_format=PORTABLE_TIME_FORMAT_24;assert(tcp_mutate(20261005,0,0));assert(tcp_mutate(20261005,3,780));open_week(0);tcp_draw();frame(directory,"week-24h");char value[24];tcp_display_time("12:00 AM",value,sizeof(value));assert(!strcmp(value,"0:00"));tcp_display_time("1:00 PM",value,sizeof(value));assert(!strcmp(value,"13:00"));
  /* The shared NOVA renderer centers its 240px surface. Raw touch coordinates
   * use the matching origin on a larger display; outside contacts never act. */
  init();tcp_draw();view_width=320;view_height=300;input_contact(false,0,0,false);

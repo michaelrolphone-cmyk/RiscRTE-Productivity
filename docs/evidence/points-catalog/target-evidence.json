@@ -1,0 +1,227 @@
+{
+  "version": "0.6.9",
+  "hardware_verified": false,
+  "legacy_base": "8c8263a8d52c8435d291f82b65f98bd3756b2c4b",
+  "legacy_points_source_recipe_parity": true,
+  "legacy_host_note": "Baseline raw-API descriptor compile defect repaired separately by parent 830e50c550ab187d88b83fd5a009414deb563a92",
+  "targets": {
+    "watch": {
+      "sha256": "74d89cf436acdb82100a7bb2b04f2aa20719a84f41058620f784491ebd2ed943",
+      "size_bytes": 197068,
+      "defines": [
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_ALARM_TERMINAL_RETENTION",
+        "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DPORTABLE_RTC_WALL_TIME",
+        "-DPORTABLE_BLE_BROADCAST",
+        "-DPORTABLE_CONTEXTS_CLIENT",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_APP_SLEEP_LOCAL",
+        "-DWATCH_ALARM_SLEEP_RESUME",
+        "-DPORTABLE_LOW_BATTERY",
+        "-DPORTABLE_QUICK_RADIOS"
+      ],
+      "requires": [
+        {
+          "capability": "display.output",
+          "api": 1
+        },
+        {
+          "capability": "input.touch.raw",
+          "api": 1
+        },
+        {
+          "capability": "input.navigation",
+          "api": 1
+        },
+        {
+          "capability": "rtc.clock",
+          "api": 2
+        },
+        {
+          "capability": "storage.key-value",
+          "api": 1
+        },
+        {
+          "capability": "alarm.service",
+          "api": 1
+        },
+        {
+          "capability": "storage.app-data",
+          "api": 1
+        },
+        {
+          "capability": "board.battery",
+          "api": 1
+        },
+        {
+          "capability": "telemetry.broadcast",
+          "api": 1
+        },
+        {
+          "capability": "contexts.service",
+          "api": 1
+        },
+        {
+          "capability": "net.wifi",
+          "api": 1
+        },
+        {
+          "capability": "bluetooth.hci",
+          "api": 1
+        }
+      ],
+      "dependency_revisions": {
+        "adapter-system": "e2b2b8b7d903acb6aec6b07ebee7d037de2babb1",
+        "presentation-system": "5a5cdbf92a6d307708cfa432b28caa9218c1a109",
+        "utilities": "9bd572791a8304194ceb2b7542fc9cbd124e911b",
+        "runtime": "34095f642d307f157ac0ed32ee5cb7f6532f9ac1",
+        "watch-firmware": "b3d41db86d95773b2944d2d2b6746b6e0ed98d51"
+      },
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+      "source_sha256": {
+        "Apps/points_catalog_app.c": "7dea48b39f48e8f36657e3cab809b2ba48e481f0f0c02c55638fb0c5455741ee",
+        "Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
+        "Apps/points_catalog_view.inc": "def8cd8909e938234b1f054cb3e00a8e28a117fb556124a47fabee77b9b86293",
+        "Apps/points_catalog_paper.inc": "5abc54ab20a1a307915c0436fe18dde52d41bffc177446bf2a4196b8a483ba5f",
+        "lib/PointsCatalog/fonts/text.inc": "0150d2c13eaa00178903e44ec4e00ec7f082f4167eea76cd41ab3e20a45b41b1",
+        "lib/PointsCatalog/fonts/SOURCES.json": "f5347fbdef7e4a88f5de9603d3cc9d6a232f98ba8b6450bcd39a4026cee47562",
+        "scripts/generate_points_catalog_fonts.py": "a475943541be75abb30a9a489355d0085435b1f757c4bad10e7ca0de0ab2953a",
+        "Apps/native/points_catalog_watch.json": "9dca838c8259d3db0cf726cf9d3a43756c826a3c22c4b55d4f488b00b1ff3898",
+        "scripts/build_points_catalog.py": "b96f725b0ec533e3d93f27bf67adf5873806cbd312a4455fa49f1d3ff2abbc7c",
+        "scripts/points_catalog_sdk.py": "1da93e99f3f014981e8bec0c0ae506500193bd54e342235cb7ba0c4f033cf049"
+      },
+      "imports": [
+        "free",
+        "malloc",
+        "memchr",
+        "memcmp",
+        "memcpy",
+        "memmove",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strcpy",
+        "strlen",
+        "strncmp"
+      ],
+      "exports": [
+        "app_main",
+        "app_module_fini",
+        "app_module_init"
+      ],
+      "largest_individual_stack_frame": {
+        "function": "quick_render.c:134:6:pqa_render",
+        "bytes": 656,
+        "kind": "static"
+      },
+      "stack_note": "Compiler static individual frames; not a measured hardware high-water mark. App stack budget 16 KiB.",
+      "commands": "Full local compile command and exact CLI inputs are in build/points-catalog-final-watch/build-evidence.json; reproduce using sdk/points-catalog-sources.json and scripts/build_points_catalog.py."
+    },
+    "x4": {
+      "sha256": "10168fed4c924f4cf7b76e3e0b1a5e6c5d85658305e7578980989bcfe5b1b5b5",
+      "size_bytes": 469084,
+      "defines": [
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_ALARM_TERMINAL_RETENTION",
+        "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DALARM_NATIVE_UTC",
+        "-DALARM_SERVICE_TAGGED_V2",
+        "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+        "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+        "-DPORTABLE_DISPLAY_ROTATION=90",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_BLE_BROADCAST"
+      ],
+      "requires": [
+        {
+          "capability": "display.output",
+          "api": 1
+        },
+        {
+          "capability": "input.touch.raw",
+          "api": 1
+        },
+        {
+          "capability": "input.navigation",
+          "api": 1
+        },
+        {
+          "capability": "runtime.realtime",
+          "api": 1
+        },
+        {
+          "capability": "storage.key-value",
+          "api": 1
+        },
+        {
+          "capability": "alarm.service",
+          "api": 2
+        },
+        {
+          "capability": "storage.app-data",
+          "api": 1
+        },
+        {
+          "capability": "board.battery",
+          "api": 1
+        },
+        {
+          "capability": "telemetry.broadcast",
+          "api": 1
+        }
+      ],
+      "dependency_revisions": {
+        "adapter-system": "b1d539df71c7e2c32bf3be6c4ed4228d13f45e0b",
+        "presentation-system": "5a5cdbf92a6d307708cfa432b28caa9218c1a109",
+        "utilities": "9bd572791a8304194ceb2b7542fc9cbd124e911b",
+        "runtime": "34095f642d307f157ac0ed32ee5cb7f6532f9ac1"
+      },
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+      "source_sha256": {
+        "Apps/points_catalog_app.c": "7dea48b39f48e8f36657e3cab809b2ba48e481f0f0c02c55638fb0c5455741ee",
+        "Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
+        "Apps/points_catalog_view.inc": "def8cd8909e938234b1f054cb3e00a8e28a117fb556124a47fabee77b9b86293",
+        "Apps/points_catalog_paper.inc": "5abc54ab20a1a307915c0436fe18dde52d41bffc177446bf2a4196b8a483ba5f",
+        "lib/PointsCatalog/fonts/text.inc": "0150d2c13eaa00178903e44ec4e00ec7f082f4167eea76cd41ab3e20a45b41b1",
+        "lib/PointsCatalog/fonts/SOURCES.json": "f5347fbdef7e4a88f5de9603d3cc9d6a232f98ba8b6450bcd39a4026cee47562",
+        "scripts/generate_points_catalog_fonts.py": "a475943541be75abb30a9a489355d0085435b1f757c4bad10e7ca0de0ab2953a",
+        "Apps/native/points_catalog_x4.json": "5ef1f081b6d7b6d34d0e16e950dac7c662808c4d068e01550de49d5122b52e4d",
+        "scripts/build_points_catalog.py": "b96f725b0ec533e3d93f27bf67adf5873806cbd312a4455fa49f1d3ff2abbc7c",
+        "scripts/points_catalog_sdk.py": "1da93e99f3f014981e8bec0c0ae506500193bd54e342235cb7ba0c4f033cf049"
+      },
+      "imports": [
+        "free",
+        "malloc",
+        "memcmp",
+        "memcpy",
+        "memmove",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strcpy",
+        "strlen"
+      ],
+      "exports": [
+        "app_main",
+        "app_module_fini",
+        "app_module_init"
+      ],
+      "largest_individual_stack_frame": {
+        "function": "quick_render.c:134:6:pqa_render",
+        "bytes": 656,
+        "kind": "static"
+      },
+      "stack_note": "Compiler static individual frames; not a measured hardware high-water mark. App stack budget 16 KiB.",
+      "commands": "Full local compile command and exact CLI inputs are in build/points-catalog-final-x4/build-evidence.json; reproduce using sdk/points-catalog-sources.json and scripts/build_points_catalog.py."
+    }
+  }
+}

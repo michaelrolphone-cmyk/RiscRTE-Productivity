@@ -1,0 +1,33 @@
+{
+  "tests": [
+    "watch/controller/normal",
+    "watch/app-renderer/normal",
+    "watch/app-background/normal",
+    "watch/controller/ASan-UBSan",
+    "watch/app-renderer/ASan-UBSan",
+    "watch/app-background/ASan-UBSan",
+    "x4/controller/normal",
+    "x4/app-renderer/normal",
+    "x4/app-background/normal",
+    "x4/controller/ASan-UBSan",
+    "x4/app-renderer/ASan-UBSan",
+    "x4/app-background/ASan-UBSan"
+  ],
+  "leak_sanitizer": "Disabled: this executor ptrace prevents LeakSanitizer; ASan and UBSan remain enabled",
+  "dependency_revisions": {
+    "utilities": "9bd572791a8304194ceb2b7542fc9cbd124e911b",
+    "runtime": "34095f642d307f157ac0ed32ee5cb7f6532f9ac1",
+    "presentation_system": "5a5cdbf92a6d307708cfa432b28caa9218c1a109"
+  },
+  "adapter_revisions": {
+    "watch": "e2b2b8b7d903acb6aec6b07ebee7d037de2babb1",
+    "x4": "b1d539df71c7e2c32bf3be6c4ed4228d13f45e0b"
+  },
+  "production_source_sha256": {
+    "Apps/points_catalog_app.c": "7dea48b39f48e8f36657e3cab809b2ba48e481f0f0c02c55638fb0c5455741ee",
+    "Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
+    "Apps/points_catalog_paper.inc": "5abc54ab20a1a307915c0436fe18dde52d41bffc177446bf2a4196b8a483ba5f",
+    "Apps/points_catalog_view.inc": "def8cd8909e938234b1f054cb3e00a8e28a117fb556124a47fabee77b9b86293"
+  },
+  "hardware_verified": false
+}

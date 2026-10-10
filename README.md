@@ -35,3 +35,16 @@ history guards. It has independent host/target evidence and preserves the legacy
 migration build. Its explicit package mode requires the exact published app-data
 Runtime dependency. Watch integration selects the separate ABI 2 layout and
 provisioned filesystem; the default UI build remains unbound.
+
+[Native UTC Points 0.6.0](docs/POINTS_NATIVE_UTC.md) is an explicit X4 development
+profile with timezone-aware projections and tagged alarm API 2. The default
+Points 0.5.3 manifests and Timecard remain unchanged.
+
+[Selected X4 touch scrolling](docs/NATIVE_TOUCH_SCROLLING.md) adds bounded,
+finger-tracked paper lists in explicit Points 0.6.6 and Timecard 0.2.6 profiles.
+Watch and other profiles retain byte-identical target artifacts.
+
+[X4 resident Points 0.6.12](docs/X4_SHARED_TEXT_POINTS_0612.md) is the explicit
+shared-text composition profile, preserving the installed native-time, storage,
+telemetry and resident-policy selections. It has separate target and lifecycle
+qualification; no publication or hardware activation is implied.

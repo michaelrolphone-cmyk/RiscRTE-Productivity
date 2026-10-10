@@ -123,7 +123,7 @@ static void p7_picker_draw(bool duration) {
         for(int j=-2;j<=2;j++) {
             unsigned value;if(!p7_picker_value(column,j,&value))continue;
             if(!duration&&!column&&time_format!=PORTABLE_TIME_FORMAT_24)value=value%12?value%12:12;
-            char text[4];snprintf(text,sizeof(text),"%02u",value);
+            char text[4];snprintf(text,sizeof(text),column?"%02u":"%u",value);
             int y=P7_PICKER_TEXT_Y+j*P7_PICKER_ROW+offset;
             if(y+31<=P7_PICKER_TOP||y+9>=P7_PICKER_BOTTOM)continue;
             portable_nova_center(4,column?130:30,y,P7_PICKER_WIDTH,text,j?NOVA_CAP:NOVA_CYAN);

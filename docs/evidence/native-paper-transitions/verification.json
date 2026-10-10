@@ -1,0 +1,308 @@
+{
+  "schema": 1,
+  "base_revision": "829cee872880874473aa3c3bdaee875477034c60",
+  "motion_revision": "1ef795cfcf9dcc6c5c6df5dd91312a9fbeb688fe",
+  "qualification": "local host and target only",
+  "tests": {
+    "python_unittest": 50,
+    "motion_controller_cases": {
+      "points": 17,
+      "timecard": 41,
+      "modes": [
+        "normal",
+        "ASan+UBSan"
+      ]
+    },
+    "static_controller_cases": {
+      "points": 9,
+      "timecard": 33,
+      "modes": [
+        "normal",
+        "ASan+UBSan"
+      ]
+    },
+    "reader_host_and_ubsan_regressions": "passed",
+    "reader_target_release_parity": "2/2 byte-identical",
+    "legacy_profile_target_parity": "6/6 byte-identical"
+  },
+  "targets": [
+    {
+      "version": "0.6.3",
+      "sha256": "b9e05190bc2b4cfc4d4fe36b1492dc78b511e2fb60be76bfd5c78e8e79f42488",
+      "size_bytes": 256664,
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+      "defines": [
+        "-DPORTABLE_STAGE_LOGS",
+        "-DALARM_NATIVE_UTC",
+        "-DALARM_SERVICE_TAGGED_V2",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+        "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_DISPLAY_ROTATION=90",
+        "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_PAPER_TRANSITIONS"
+      ],
+      "imports": [
+        "free",
+        "malloc",
+        "memcmp",
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strcpy",
+        "strlen"
+      ],
+      "exports": [
+        "app_main",
+        "app_module_fini",
+        "app_module_init"
+      ],
+      "paper_transitions": {
+        "enabled": true,
+        "build_define": "-DPORTABLE_PAPER_TRANSITIONS",
+        "source_revision": "1ef795cfcf9dcc6c5c6df5dd91312a9fbeb688fe",
+        "source_public": false,
+        "source_directory": "/workspace/scratch/c744abbbbd60/x4-complete-ui-012",
+        "source_sha256": {
+          "lib/PortableApps/src/adapter.c": "5fcf2cf5f868afc0b576e20d44be0b172e565b21ea4adaae19c699bce16f548d",
+          "lib/PortableApps/src/quick_actions.c": "6305f26b7f16b7e708bc9bea26ba62dee8f05c8ff2ea63c8fd64bd15218e298e",
+          "lib/PortableApps/src/quick_adapter.inc": "6a7ba99febe66b33884b2abdb838ac99145a2922ba24f58cc4eb5324b67f5097",
+          "lib/PortableApps/src/quick_paper.inc": "79b6c98c82e9253415f788fb91186a7dc90b723322c6953a2aa94901e7a88496",
+          "lib/PortableApps/include/PortableQuickActions.h": "f75a61a9904492a9aa74356c5c4becb8b3ad0ceae78efdc8e6aabc471909f91f"
+        },
+        "scope": "paper Quick Controls only",
+        "hardware_verified": false
+      },
+      "dependency_paths": {
+        "system": "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+        "adapter": "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+        "motion": "/workspace/scratch/c744abbbbd60/x4-complete-ui-012",
+        "runtime": "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+        "utilities": "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc"
+      },
+      "compile_command": [
+        "/workspace/scratch/c744abbbbd60/watch-build-tools/platformio-core/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc",
+        "-std=c11",
+        "-Os",
+        "-fPIC",
+        "-mtext-section-literals",
+        "-mlongcalls",
+        "-fvisibility=hidden",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-nostdlib",
+        "-nostartfiles",
+        "-shared",
+        "-Wl,--no-relax",
+        "-Wl,--hash-style=sysv",
+        "-Wl,--version-script=/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/points-native-utc-paper-transitions/exports.map",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DPORTABLE_STAGE_LOGS",
+        "-DALARM_NATIVE_UTC",
+        "-DALARM_SERVICE_TAGGED_V2",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+        "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_DISPLAY_ROTATION=90",
+        "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_PAPER_TRANSITIONS",
+        "-I/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/points-native-utc-paper-transitions/sdk/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-points-utilities-utc/lib/Alarm/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public/sdk/app",
+        "-I/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/NativeApps/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-complete-ui-012/Apps",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/Apps/points_in_time.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/adapter.c",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/points-native-utc-paper-transitions/catalog.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableRealtimeClient.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZone.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZoneCatalog.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZonePreference.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_actions.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_render.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_session.c",
+        "-lgcc",
+        "-o",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/points-native-utc-paper-transitions/points_in_time.elf"
+      ]
+    },
+    {
+      "version": "0.2.3",
+      "sha256": "32caed9ab14af809fa942ae5217308963ba5511b38dd62a133161f2463bba593",
+      "size_bytes": 247112,
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+      "defines": [
+        "-DPORTABLE_STAGE_LOGS",
+        "-DTIMECARD_NATIVE_TIME",
+        "-DTIMECARD_APP_DATA",
+        "-DTIMECARD_PAPER",
+        "-DPORTABLE_APP_OWNS_TOUCH_CHROME",
+        "-DALARM_SERVICE_TAGGED_V2",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+        "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_DISPLAY_ROTATION=90",
+        "-DTIMECARD_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_PAPER_TRANSITIONS"
+      ],
+      "imports": [
+        "free",
+        "malloc",
+        "memcmp",
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strcpy"
+      ],
+      "exports": [
+        "app_main",
+        "app_module_fini",
+        "app_module_init"
+      ],
+      "paper_transitions": {
+        "enabled": true,
+        "build_define": "-DPORTABLE_PAPER_TRANSITIONS",
+        "source_revision": "1ef795cfcf9dcc6c5c6df5dd91312a9fbeb688fe",
+        "source_public": false,
+        "source_directory": "/workspace/scratch/c744abbbbd60/x4-complete-ui-012",
+        "source_sha256": {
+          "lib/PortableApps/src/adapter.c": "5fcf2cf5f868afc0b576e20d44be0b172e565b21ea4adaae19c699bce16f548d",
+          "lib/PortableApps/src/quick_actions.c": "6305f26b7f16b7e708bc9bea26ba62dee8f05c8ff2ea63c8fd64bd15218e298e",
+          "lib/PortableApps/src/quick_adapter.inc": "6a7ba99febe66b33884b2abdb838ac99145a2922ba24f58cc4eb5324b67f5097",
+          "lib/PortableApps/src/quick_paper.inc": "79b6c98c82e9253415f788fb91186a7dc90b723322c6953a2aa94901e7a88496",
+          "lib/PortableApps/include/PortableQuickActions.h": "f75a61a9904492a9aa74356c5c4becb8b3ad0ceae78efdc8e6aabc471909f91f"
+        },
+        "scope": "paper Quick Controls only",
+        "hardware_verified": false
+      },
+      "dependency_paths": {
+        "system": "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+        "adapter": "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+        "motion": "/workspace/scratch/c744abbbbd60/x4-complete-ui-012",
+        "runtime": "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+        "utilities": "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc"
+      },
+      "compile_command": [
+        "/workspace/scratch/c744abbbbd60/watch-build-tools/platformio-core/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc",
+        "-std=c11",
+        "-Os",
+        "-fPIC",
+        "-mtext-section-literals",
+        "-mlongcalls",
+        "-fvisibility=hidden",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-nostdlib",
+        "-nostartfiles",
+        "-shared",
+        "-Wl,--no-relax",
+        "-Wl,--hash-style=sysv",
+        "-Wl,--version-script=/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/timecard-native-time-paper-transitions/exports.map",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DPORTABLE_STAGE_LOGS",
+        "-DTIMECARD_NATIVE_TIME",
+        "-DTIMECARD_APP_DATA",
+        "-DTIMECARD_PAPER",
+        "-DPORTABLE_APP_OWNS_TOUCH_CHROME",
+        "-DALARM_SERVICE_TAGGED_V2",
+        "-DPORTABLE_ALARM_CLIENT",
+        "-DPORTABLE_NOVA_UI",
+        "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+        "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+        "-DPORTABLE_INPUT_NAVIGATION",
+        "-DPORTABLE_DISPLAY_ROTATION=90",
+        "-DTIMECARD_RETURN_APP=\"springboard.elf\"",
+        "-DPORTABLE_HOME_APP=\"default.elf\"",
+        "-DPORTABLE_QUICK_ACTIONS",
+        "-DPORTABLE_PAPER_TRANSITIONS",
+        "-I/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/timecard-native-time-paper-transitions/sdk/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-points-utilities-utc/lib/Alarm/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public/sdk/app",
+        "-I/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/NativeApps/include",
+        "-I/workspace/scratch/c744abbbbd60/x4-complete-ui-012/Apps",
+        "-I/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/lib/NativeApps/include",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/Apps/timecard_portable.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/adapter.c",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/timecard-native-time-paper-transitions/catalog.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableRealtimeClient.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZone.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZoneCatalog.c",
+        "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63/lib/PortableApps/src/PortableTimeZonePreference.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/PortableNativeTimeSource.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_actions.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_render.c",
+        "/workspace/scratch/c744abbbbd60/x4-complete-ui-012/lib/PortableApps/src/quick_session.c",
+        "-lgcc",
+        "-o",
+        "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/timecard-native-time-paper-transitions/timecard.elf"
+      ]
+    }
+  ],
+  "baseline_parity": [
+    {
+      "profile": "points-native-static",
+      "matched": true,
+      "sha256": "3a3b2ce20081267eef2e3605db50e2c9a48770e83f580890bb26aa501041ced6",
+      "bytes": 256524
+    },
+    {
+      "profile": "timecard-native-static",
+      "matched": true,
+      "sha256": "61919fbeab89895c18227a8516fcb4b01d623b26357ef21f47004c63a6eb3020",
+      "bytes": 246996
+    },
+    {
+      "profile": "points-watch",
+      "matched": true,
+      "sha256": "94b929cf3f87dcfb1c862b7c5d36e597207370bb1d22d4b0ecb61e0b5bb00d77",
+      "bytes": 167268
+    },
+    {
+      "profile": "points-raw-paper",
+      "matched": true,
+      "sha256": "1ec96abecd795e9bbc8e2048f1de0d34a705efb22e7605f811d2e4408d5e55ce",
+      "bytes": 202892
+    },
+    {
+      "profile": "timecard-watch",
+      "matched": true,
+      "sha256": "693b19285dba19c528e323dd826c2fd1f8718839f632c52d030de545f171d45b",
+      "bytes": 188364
+    },
+    {
+      "profile": "timecard-raw-paper",
+      "matched": true,
+      "sha256": "abdb1cfe7446fe401f05a6909be2f59e852cdd89fa092225ce9537950b6fed6f",
+      "bytes": 197432
+    }
+  ],
+  "log_sha256": {
+    "points-motion.log": "e46df955a9196304766ad1082a94f0d6c6b40c9d47baffc9121a5c294a2f54f3",
+    "timecard-motion.log": "1d6e9d4fb908d8f0fbc2417e9281023da756bfb0afa81f92ce119171787259a6",
+    "regression.log": "084579ac62529fd0529963e0f635516876fbd229d027984ecda772a3bce38945",
+    "points-static.log": "495aa3be28f151aa7999f4e846f34eec27e47f9cd183f6ced89f784e0241f2cd",
+    "timecard-static.log": "76ce4fde9e337c1db3238ea84ef6c3429d445b0864d5d25f9d3af3d34f38e381"
+  },
+  "hardware_verified": false,
+  "later_shared_backlight_toggle_included": false
+}

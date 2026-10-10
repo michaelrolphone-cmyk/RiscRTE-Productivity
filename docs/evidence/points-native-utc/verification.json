@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-07",
+  "source_sha": "2b9cc77879ba7be11d82548002f8981abe8976b2",
+  "source_clean_at_build": true,
+  "version": "0.6.0",
+  "native_target": {
+    "sha256": "5b804836e68c1f07df33d0bf7f4c2f49be0469d5b71b65a3a2fc111e025dbc26",
+    "size_bytes": 251124,
+    "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+    "imports": [
+      "free",
+      "malloc",
+      "memcmp",
+      "memcpy",
+      "memset",
+      "risc_runtime_get_api",
+      "snprintf",
+      "strcmp",
+      "strcpy",
+      "strlen"
+    ],
+    "exports": [
+      "app_main",
+      "app_module_fini",
+      "app_module_init"
+    ],
+    "pins": {
+      "system_public_sha": "1d589d90bf27c7ffb76420de46564088ddb3714f",
+      "adapter_sha": "81f884b8a053cf917054fb1433c7850714cd0c48",
+      "adapter_public": false,
+      "utilities_sha": "637e13b0bce62ad49b756bec2468a6271d163fc7",
+      "runtime_sha": "30dcec5ce6ce33223f2b203a2399283e1f758567"
+    },
+    "defines": [
+      "-DALARM_NATIVE_UTC",
+      "-DALARM_SERVICE_TAGGED_V2",
+      "-DPORTABLE_ALARM_CLIENT",
+      "-DPORTABLE_NOVA_UI",
+      "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+      "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+      "-DPORTABLE_INPUT_NAVIGATION",
+      "-DPORTABLE_DISPLAY_ROTATION=90",
+      "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+      "-DPORTABLE_HOME_APP=\"default.elf\"",
+      "-DPORTABLE_QUICK_ACTIONS"
+    ]
+  },
+  "raw_targets": [
+    {
+      "profile": "watch",
+      "sha256": "94b929cf3f87dcfb1c862b7c5d36e597207370bb1d22d4b0ecb61e0b5bb00d77",
+      "size_bytes": 167268,
+      "exact_source_4921a430_bytes": true
+    },
+    {
+      "profile": "paper",
+      "sha256": "144c8aaeb9ba197f852c68349ade1857f106fea10886a72eea1934bdd2c4259d",
+      "size_bytes": 168648,
+      "exact_source_4921a430_bytes": true
+    }
+  ],
+  "checks": {
+    "native_controller_and_pure_schedule": "normal + ASan/UBSan passed",
+    "native_app_helper_toolbar_composition": "9 fresh-process scenarios x normal/ASan+UBSan, Quick enabled; passed",
+    "native_toolbar_timezones": [
+      "UTC virtual default",
+      "America/Denver",
+      "Asia/Tokyo"
+    ],
+    "python_inventory_and_manifest": 43,
+    "raw_controller_keyboard": "normal + ASan/UBSan passed",
+    "raw_picker": "3601 actual renderer frames per normal/sanitized run; passed",
+    "raw_paper": "production renderer/controller ASan/UBSan; passed",
+    "raw_touch_and_terminal_home": "normal + ASan/UBSan passed",
+    "raw_gui": "normal + ASan/UBSan passed",
+    "target": "Xtensa ELF32 ET_DYN validator, bounded imports, exact exports, manifest, source hashes and licenses passed",
+    "default_manifests": "byte-identical",
+    "timecard": "unchanged"
+  },
+  "limitations": [
+    "LeakSanitizer disabled for executor ptrace; ASan/UBSan enabled",
+    "No hardware, product/BIN, install, flash, or sleep qualification",
+    "System81f884b8 is a local dependency checkpoint; publication remains parent-owned"
+  ],
+  "source_sha256": {
+    "Apps/points_in_time.c": "d9c60c70f2321ea61022364f66bfe5eba6acf37bf70527a3c121b4871e485687",
+    "Apps/points_native_time.h": "79ea6c78bb327a1209cbedd41bf7a4ac24b4e63a737070c5031a90c04ad40e9b",
+    "Apps/points_writer.h": "2d84b9d3738314ef17dbb5b71f3a50a18a5f13f1c5b11430992fbd094a363da8",
+    "Apps/points_nova7.inc": "77a5940023a30c85706a7a43fc4bac64efcf8cd2245f00fb770b7c1c747c7de9",
+    "Apps/points_nova7_picker.inc": "d8cdd682e2f20275e2336f06b07e1121546e1f928ff19fa89a9f3fcb522dcf33",
+    "Apps/points_watch_keyboard.h": "fc4bc1df6abb4f2e2751b07762fb6d08e9a45bf36bca2c0b2f4293df5dd602f5",
+    "Apps/points_paper.inc": "0c938043d738e597e4a144b5fb9c3b7f84e17348ca5fa0621d86418ab1a3d12d",
+    "Apps/native/points_utc.json": "69a897f0106894843f1837128343d876cb5ace43a96855aa3cb8a7816a74c236",
+    "scripts/build_points_native_utc.py": "55784105cb3c153e15ac3c7bc4d5f81fef98bf3ddf0a776e564924e5b602156d",
+    "sdk/points-native-utc-sources.json": "093a6d04bd8722c7dd8b9cc6360b59768b64d5523e708a93d449aeaece54a8a4"
+  },
+  "log_sha256": {
+    "native-controller.log": "9a890ef9ce6de6beb6502f71e200a8a268b834a9b502b60f240dd8cb5b4a54f8",
+    "native-adapter.log": "495aa3be28f151aa7999f4e846f34eec27e47f9cd183f6ced89f784e0241f2cd",
+    "python-tests.log": "2dbd1414cc9cc256ba4a979ddb34ba0d00e02116d3176422a094936f553b2f2e",
+    "raw-controller.log": "f9a6f54fc4af03ede65c724a4d5f0718ab425163c4ce26d98a9989cc502edf12",
+    "raw-paper.log": "5fa1b2721c836904c9097c0533caf2961db82449c5681d674e5c612ca72e7180",
+    "raw-picker.log": "6bbdf34e1e830f1f6cafc537354f5045447f5bf2f7436a0bdcb8ea84f422e926",
+    "raw-touch.log": "d007a6b2f64e66674d301133ef500dcb1815edcde03a7ca62fb8785b0067440d",
+    "raw-gui.log": "70ddc3ca58d3c1aab45e261972c33d5bc4042c0504c61e6aacd768ef6298c6b5",
+    "native-target.log": "58520871f9ad754ca9a2045332a407d9b8d026e95895fc9a8c79997e46c19534",
+    "watch-target.log": "98fe7f7e41152d618bc4474d22f10c4bb23e63d6a8e4066119abc1be9b736fd8",
+    "paper-target.log": "98fe7f7e41152d618bc4474d22f10c4bb23e63d6a8e4066119abc1be9b736fd8"
+  },
+  "license_sha256": {
+    "Productivity/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "Runtime/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "System-Apps/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
+    "System-Apps/fonts/LICENSE-FontAwesome.txt": "b2a1cf9b4d876a266020de7ff41ce6f58e814f8efd07d4cdb7695a86e875c17c",
+    "System-Apps/fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/fonts/SOURCES.json": "0acbeddd8f275c6f36cd2274d7beb4c8495b9d975b602a4c1ceb05011d000157",
+    "System-Apps/paper_fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/paper_fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/paper_fonts/SOURCES.json": "1dde2a1a887df1c067a125dfe76f0c185904dc059f66af583120109228b441c1",
+    "System-Apps/quick_fonts/SOURCES.json": "1701c1c3564f03d8038658904245a58bc5acc260aa0458444ea1f312a5292e61",
+    "System-Apps/settings_fonts/LICENSE-Orbitron.txt": "ab609b0e110d622435ff337cdf233288556e011bbf9bd0550be98846c0630819",
+    "System-Apps/settings_fonts/LICENSE-Rajdhani.txt": "f62ef357d3a1c3d27edd35a6e1ba350e8a8d13499797964eeadefbf0b3b15d1f",
+    "System-Apps/settings_fonts/SOURCES.json": "b436517cca24f5ccf79bc122da6ed254c7c560f176a22f88cc7c5d2d0fd7adad",
+    "System-Apps/time/SOURCES.json": "4e7f30ef9414cc625484bd693ff5cbf8a00adc7571f55feae36f9cdf0b2bc5b3",
+    "System-Apps/time/TIMEZONE_PROVENANCE.json": "4dda9d416b6ca815155dbf3ecac6452789564ff1312bba2d28a6d5a9b7eaab1b",
+    "Utilities/LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640"
+  }
+}

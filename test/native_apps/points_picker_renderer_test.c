@@ -28,8 +28,9 @@ static void init(unsigned p) {
     p7_picker_reset();test_ticks=0;
 }
 static void guard(void){for(unsigned y=0;y<240;y++)for(unsigned x=240;x<244;x++)assert(picker_pixels[y*244+x]==0xa5a5);}
-static unsigned measure_digits(unsigned value) {
-    return (rps_text[4*95+'0'+value/10-32].advance_q4+rps_text[4*95+'0'+value%10-32].advance_q4+15)/16;
+static unsigned measure_digits(unsigned value,unsigned column) {
+    unsigned left=(column||value>=10)?rps_text[4*95+'0'+value/10-32].advance_q4:0;
+    return (left+rps_text[4*95+'0'+value%10-32].advance_q4+15)/16;
 }
 static uint16_t blend(uint16_t old,uint32_t rgb,unsigned alpha) {
     unsigned r=(((old>>11)&31)*255/31*(255-alpha)+((rgb>>16)&255)*alpha)/255;
@@ -39,9 +40,9 @@ static uint16_t blend(uint16_t old,uint32_t rgb,unsigned alpha) {
 }
 static void expected_digits(unsigned value,unsigned column,uint16_t expected[36][80]) {
     memset(expected,0,36*80*sizeof(uint16_t));
-    int pen=(int)((80-measure_digits(value))/2)*16;
+    int pen=(int)((80-measure_digits(value,column))/2)*16;
     unsigned digits[2]={value/10,value%10};
-    for(unsigned digit=0;digit<2;digit++) {
+    for(unsigned digit=(column||value>=10)?0:1;digit<2;digit++) {
         const rps_glyph *g=&rps_text[4*95+'0'+digits[digit]-32];unsigned ink=0;
         for(unsigned y=0;y<g->height;y++)for(unsigned x=0;x<g->width;x++) {
             unsigned n=y*g->width+x,a=(g->bits[n/4]>>(6-2*(n%4)))&3;
@@ -102,7 +103,7 @@ static void gesture(unsigned column,int pixels,bool cross) {
 int main(int argc,char **argv) {
     const char *directory=argc>1?argv[1]:NULL;
     init(PAGE_TIME);
-    /* Every hour x every minute in both display modes, including 00,10..19,
+    /* Every hour x every minute in both display modes, including unpadded0..9,10..19,
      * 23,59, midnight/noon and variable-width numeral1. */
     unsigned frames=0;
     for(unsigned format=0;format<2;format++)for(unsigned hour=0;hour<24;hour++)for(unsigned minute=0;minute<60;minute++) {

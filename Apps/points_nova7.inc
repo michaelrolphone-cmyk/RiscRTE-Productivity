@@ -220,7 +220,14 @@ static void draw_nova7(void) {
 static void p7_new_point(void) {
     unsigned slot=nova_first_empty();if(slot>=POINTS_MAX){notice="All 8 point slots are in use";return;}
     twatch_rtc_time_v1 t={0};unsigned h=8,m=0;
+#ifdef ALARM_NATIVE_UTC
+    uint32_t seconds;portable_timezone_civil local;
+    if(points_native_sample(runtime,preferences,&seconds,&local)){t.hour=local.hour;t.minute=local.minute;
+        h=t.hour;m=((unsigned)t.minute+4u)/5u*5u;if(m>=60){m=0;h=(h+1)%24;}}
+    if(!points_live())return;
+#else
     if(rtc&&rtc->read(rtc->context,&t)){h=t.hour;m=((unsigned)t.minute+4u)/5u*5u;if(m>=60){m=0;h=(h+1)%24;}}
+#endif
     selected=slot;draft=(points_item){.kind=POINTS_BREAK,.enabled=1,.mode=1,.weekdays=62,.hour=(uint8_t)h,.minute=(uint8_t)m,.duration_minutes=15};
     page=PAGE_EDIT;nova_edit_scroll=0;nova_delete_confirm=false;notice="Draft only - not saved";
 }

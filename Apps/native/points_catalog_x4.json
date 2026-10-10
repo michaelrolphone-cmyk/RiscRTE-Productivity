@@ -1,0 +1,49 @@
+{
+  "min_firmware_version": "0.1.83",
+  "version": "0.6.11",
+  "display_name": "Points in Time",
+  "file_name": "points_in_time.elf",
+  "icon": "solid:f017",
+  "category": [
+    "Productivity"
+  ],
+  "runtime_profile": "portable-riscrte-v1",
+  "requires": [
+    {
+      "capability": "display.output",
+      "api": 1
+    },
+    {
+      "capability": "input.touch.raw",
+      "api": 1
+    },
+    {
+      "capability": "input.navigation",
+      "api": 1
+    },
+    {
+      "capability": "runtime.realtime",
+      "api": 1
+    },
+    {
+      "capability": "storage.key-value",
+      "api": 1
+    },
+    {
+      "capability": "alarm.service",
+      "api": 2
+    },
+    {
+      "capability": "storage.app-data",
+      "api": 1
+    },
+    {
+      "capability": "board.battery",
+      "api": 1
+    },
+    {
+      "capability": "ui.text-input",
+      "api": 1
+    }
+  ]
+}
