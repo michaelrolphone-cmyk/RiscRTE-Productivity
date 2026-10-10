@@ -1,5 +1,5 @@
 {
-  "Points": "0.6.14",
+  "Points": "0.6.15",
   "Timecard": "0.2.12",
   "source_base": "ceed9a85ef21c7204ca5b89b46df13de001f69c1",
   "scope": "Shared adapter and text-helper closure rebuild for X4 .57; application behavior remains the completed .55 recovery source.",
