@@ -13,8 +13,10 @@ decoders, font caches and CLX1 book index are retained. Library views offer
 title, author and upstream Recent ordering; Continue reading tracks the last
 book separately. Bookmarks, names, location and layout survive relaunch.
 
-Noto Serif and Noto Sans are included at CrossPoint's 12/14/16/18 point sizes,
-with regular, bold, italic and bold italic faces. The original SD discovery
+Noto Serif and Noto Sans are supplied as the original upstream TTF SD assets,
+with regular, bold, italic and bold italic faces. Copy the package's `sd/fonts`
+folder onto the SD card. CrossPoint's streamed loader supplies selectable point
+sizes. A built-in 14-point Noto Serif family remains usable without the assets. The original SD discovery
 and loaders support CrossPoint `.cpfont` v4 families and TTF/OTF/TTC fonts under
 `/.fonts` or `/fonts`, using CrossPoint's naming rules. Font licensing remains
 the responsibility of each font's distributor. Application chrome uses NOVA's
@@ -49,7 +51,10 @@ The build materializes selected pristine upstream sources, applies the recorded
 patch, compiles the engine and app, links shared C++ SDK support, checks all
 relocation write sites and relative pointers, and runs the production ELF
 structural validator. `ebook-reader/build.json` records source and output hashes.
-Native resolver admission still requires the matching firmware candidate;
+`scripts/verify_reader_native.py` runs the existing shared native admission
+harness against the exact firmware ELF and all three new modules. Its receipt
+also records the verification harness hash. Native resolver admission requires
+the matching firmware candidate;
 structural validation alone is not permission to install on old firmware.
 
 ## Shared capabilities, not app workarounds
@@ -91,7 +96,8 @@ it rediscovers fonts and reloads the book on return.
 filesystem provider and Runtime enhancements must be composed together. A
 standalone app update on X4 `.65` does not supply those dependencies. The current
 `.65` 5.3 MB bootstrap-store layout has insufficient room for this reader with
-all existing applications and embedded fonts. No flash layout or existing app
+all existing applications. The full Noto families are SD assets so the app
+itself remains below the existing 2 MB native admission bound. No flash layout or existing app
 selection is changed by this source migration. Use the X4 capacity report before
 choosing a product composition. Hardware qualification and a fitting complete
 firmware cohort are outstanding.

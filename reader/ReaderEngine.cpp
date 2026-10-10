@@ -24,12 +24,13 @@ bool Engine::loadSettings(){bool ok=readRecord(std::string(stateRoot)+"/preferen
  return ok;
 }
 bool Engine::saveSettings(){if(!writeRecord(std::string(stateRoot)+"/preferences",&preferences,sizeof(preferences),settingsGeneration,settingsWritable)){message="Settings save failed";return false;}return true;}
-std::vector<uint8_t> Engine::fontSizes()const{return readerFontPointSizes(&fontRegistry,preferences.settings.family);}
+std::vector<uint8_t> Engine::fontSizes()const{if(!fontRegistry.findFamily(preferences.settings.family))return {14};return readerFontPointSizes(&fontRegistry,preferences.settings.family);}
 bool Engine::selectFont(){
  fontCache.clearCache();sdFonts.unloadAll(renderer);if(vectorFont){renderer.unregisterTtfFont(fontId);renderer.removeFont(fontId);vectorFont.reset();}for(auto& f:vectorFiles)if(!f.close())return false;
- const auto& s=preferences.settings;
- if(strcmp(s.family,"Noto Serif")==0||strcmp(s.family,"Noto Sans")==0){fontId=builtinFontId(strcmp(s.family,"Noto Sans")==0,s.pointSize);return true;}
- const auto* family=fontRegistry.findFamily(s.family);if(!family){message="Selected SD font is unavailable";return false;}
+ auto& s=preferences.settings;
+ const auto* family=fontRegistry.findFamily(s.family);
+ if(!family&&strcmp(s.family,"Noto Serif")==0){s.pointSize=14;fontId=builtinFontId(false,14);return true;}
+ if(!family){message="Selected SD font is unavailable";return false;}
  if(!family->vector){if(!sdFonts.loadFamily(*family,renderer,s.pointSize))return false;fontId=sdFonts.getFontId(family->name);return fontId!=0;}
  vectorFont=std::make_unique<TtfEpdFont>();
  for(const auto& file:family->files){if(file.style>=4)continue;auto& source=vectorFiles[file.style];source=Storage.open(file.path.c_str());if(!source)return false;vectorFont->addStreamSource(file.style,SdCardFontRegistry::halFileRead,&source,source.size());}

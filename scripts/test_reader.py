@@ -33,7 +33,13 @@ if fixture.exists():
 sys.path.insert(0, str(ROOT / 'test/reader'))
 from make_fixture import create
 create(fixture)
+for family in ('NotoSerif', 'NotoSans'):
+    original = a.crosspoint / 'lib/EpdFont/builtinFonts/source' / family
+    target = fixture / 'fonts' / family.replace('Noto', 'Noto ')
+    target.mkdir(parents=True)
+    for source in original.glob('*.ttf'):
+        shutil.copyfile(source, target / source.name)
 if a.font:
-    (fixture / 'fonts').mkdir()
+    (fixture / 'fonts').mkdir(exist_ok=True)
     shutil.copyfile(a.font, fixture / 'fonts/TestFont.ttf')
 subprocess.run([str(binary), str(fixture)], check=True)

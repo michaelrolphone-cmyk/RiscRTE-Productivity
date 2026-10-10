@@ -49,7 +49,7 @@ struct App {
  }
  void row(const std::string& label,const std::string& text,unsigned action){node(RISC_COMPONENT_ROW,label,text,action);}
  void stepper(const char* label,unsigned action,int value,int maximum,const std::string& text=""){
-  auto& n=node(RISC_COMPONENT_STEPPER,label,text,action);n.value=value;n.minimum=0;n.maximum=maximum;n.step=1;
+  auto& n=node(RISC_COMPONENT_STEPPER,label,text,action);n.value=value;n.minimum=0;n.maximum=maximum;n.step=1;if(!maximum)n.flags|=RISC_SCENE_DISABLED;
  }
  void toggle(const char* label,unsigned action,bool value){auto& n=node(RISC_COMPONENT_SWITCH,label,"",action);n.value=value;n.maximum=1;n.step=1;}
  void begin(const char* title){
@@ -75,7 +75,7 @@ struct App {
   }else if(screen==Screen::Bookmarks){
    for(unsigned i=first;i<engine->state.count&&i<first+count;++i)rows.push_back({engine->state.marks[i].name,"Saved location","",i,false});more=first+count<engine->state.count;
   }else if(screen==Screen::Fonts){
-   std::vector<std::string> names={"Noto Serif","Noto Sans"};for(const auto& f:engine->fontRegistry.getFamilies())names.push_back(f.name);
+   std::vector<std::string> names={"Noto Serif"};for(const auto& f:engine->fontRegistry.getFamilies())if(f.name!="Noto Serif")names.push_back(f.name);
    for(unsigned i=first;i<names.size()&&i<first+count;++i)rows.push_back({names[i],names[i]==engine->preferences.settings.family?"Selected":"","",i,false});more=first+count<names.size();
   }else if(screen==Screen::Files){
    auto folder=Storage.open(directory.c_str());if(!folder||!folder.isDirectory())return false;
@@ -190,7 +190,7 @@ struct App {
    if(value==RISC_SCENE_KEY_DONE){if(draft.empty())break;if(!engine->renameBookmark(selected,draft.c_str()))error("Name was not saved");else show(Screen::Bookmark);}
    else if(value==RISC_SCENE_KEY_CANCEL)show(Screen::Bookmark);
    else if(value==RISC_SCENE_KEY_LAYER)keyLayer=(keyLayer+1)%4;
-   else if(value==RISC_SCENE_KEY_BACKSPACE){if(!draft.empty())draft.pop_back();}
+   else if(value==RISC_SCENE_KEY_BACKSPACE){if(!draft.empty()){size_t at=draft.size()-1;while(at&&(static_cast<unsigned char>(draft[at])&0xc0)==0x80)--at;draft.resize(at);}}
    else if(value==RISC_SCENE_KEY_CLEAR)draft.clear();
    else {if(value==RISC_SCENE_KEY_SPACE)value=' ';if(value>=32&&value<=126&&draft.size()<71)draft+=char(value);}dirty=true;break;
   default:break;

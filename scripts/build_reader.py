@@ -39,6 +39,17 @@ def build(a):
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     subprocess.run([str(validator), str(elf)], check=True)
     shutil.copyfile(ROOT / 'Apps/ebook_reader.json', package / 'ebook_reader.json')
+    # Upstream streamed fonts preserve all styles without mapping every size
+    # into the ELF. These assets are copied to the user's SD card separately.
+    for family in ('NotoSerif', 'NotoSans'):
+        original = a.crosspoint / 'lib/EpdFont/builtinFonts/source' / family
+        target = package / 'sd/fonts' / family.replace('Noto', 'Noto ')
+        target.mkdir(parents=True, exist_ok=True)
+        for source in sorted(original.iterdir()):
+            if source.suffix == '.ttf' or source.name == 'OFL.txt':
+                shutil.copyfile(source, target / source.name)
+    if elf.stat().st_size > 2097152:
+        raise ValueError('Reader exceeds the current native app admission limit')
     # Preserve upstream notice files and exact source locations with the binary.
     licenses = package / 'licenses'
     for label, root in [('crosspoint', a.crosspoint), ('freeink', a.crosspoint / 'freeink-sdk'),
@@ -51,6 +62,9 @@ def build(a):
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
     receipt.update({'upstream': lock, 'physical_testing': 'not performed',
                     'native_admission': 'requires matching native candidate verification',
+                    'asset_sha256': {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((package / 'sd').rglob('*')) if p.is_file()},
+                    'source_trees': {name: subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD^{tree}'], text=True).strip() for name, path in [('runtime', a.runtime), ('system', a.system), ('productivity', ROOT)]},
+                    'tracked_source_dirty': {name: bool(subprocess.check_output(['git', '-C', str(path), 'status', '--porcelain', '--untracked-files=no'], text=True)) for name, path in [('runtime', a.runtime), ('system', a.system), ('productivity', ROOT)]},
                     'sources': {name: subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD'], text=True).strip()
                                 for name, path in [('runtime', a.runtime), ('system', a.system), ('productivity', ROOT)]},
                     'input_sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest()

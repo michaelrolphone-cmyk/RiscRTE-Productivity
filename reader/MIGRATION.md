@@ -25,6 +25,11 @@ NCX href resolution to use the NCX document directory, matching EPUB navigation
 semantics, with a dedicated synthetic test. `sdk/cxx` in Runtime is the reusable PIC STL
 and constructor/destructor solution. Its source and licenses are recorded there.
 
+Full Noto families are shipped as original upstream TTF files under the
+package's `sd/fonts` tree; their four styles load through CrossPoint's streaming
+font loader. A 14-point four-style fallback stays in the ELF. This keeps the
+reader under the existing 2 MB update-admission bound without changing it.
+
 ## Updating upstream
 
 1. Create a branch from the last working reader commit. Keep the previous build
