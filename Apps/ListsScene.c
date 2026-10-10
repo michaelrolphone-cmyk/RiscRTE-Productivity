@@ -23,6 +23,7 @@ static risc_scene_node_v1 *node(lists_ui *u,unsigned kind,const char *label,cons
 static risc_component_detail_v1 *detail(lists_ui *u,risc_scene_node_v1 *n){return &u->document.details[n->id-1];}
 static void header(lists_ui *u,const char *title,const char *sub,bool back){copy(u->document.routes[0].title,RISC_SCENE_LABEL,title);copy(u->document.subtitle,RISC_SCENE_TEXT,sub);u->document.routes[0].back_action=back?LA_BACK:0;}
 static risc_scene_node_v1 *button(lists_ui *u,const char *label,unsigned action,unsigned flags){risc_scene_node_v1 *n=node(u,RISC_SCENE_ACTION,label,"",action,0);n->flags=flags;return n;}
+static void chip(lists_ui *u,const char *label,unsigned action,unsigned ref){node(u,RISC_COMPONENT_CHIP,label,"",action,ref);}
 static void bounds(risc_scene_node_v1 *n,int value,int maximum){n->value=value;n->minimum=0;n->maximum=maximum;n->step=1;}
 static risc_scene_node_v1 *stepper(lists_ui *u,const char *label,const char *value,unsigned action,int selected,int maximum){risc_scene_node_v1 *n=node(u,RISC_COMPONENT_STEPPER,label,value,action,0);bounds(n,selected,maximum);return n;}
 static void segments(lists_ui *u,const char *choices,unsigned action,unsigned selected,unsigned count){risc_scene_node_v1 *n=node(u,RISC_COMPONENT_SEGMENTS,"","",action,0);bounds(n,(int)selected,(int)count-1);copy(detail(u,n)->choices,sizeof(detail(u,n)->choices),choices);}
@@ -56,11 +57,11 @@ void lists_ui_declare(lists_ui *u){
     case LISTS_VIEW:{header(u,view_name(u),"",true);risc_scene_node_v1 *n;
         if(l){n=node(u,RISC_COMPONENT_HEADER_ACTION,"OPTIONS","",LA_OPTIONS,0);detail(u,n)->symbol=RISC_SYMBOL_MORE;}
         n=node(u,RISC_COMPONENT_HEADER_ACTION,"ADD TASK","",LA_NEW_TASK,0);detail(u,n)->symbol=RISC_SYMBOL_PLUS;
-        unsigned done,total;counts(u,u->view,&done,&total);snprintf(d->subtitle,sizeof(d->subtitle),"%u OF %u DONE",done,total);progress(u,"",u->view);segments(u,"OPEN|ALL",LA_FILTER,u->filter,2);
+        unsigned done,total;counts(u,u->view,&done,&total);progress(u,"",u->view);segments(u,"OPEN|ALL",LA_FILTER,u->filter,2);
         unsigned order[LISTS_MAX_TASKS],count=0;
         for(unsigned i=0;i<u->data.task_count;i++)if(in_view(u,&u->data.tasks[i],u->view)&&(!u->data.tasks[i].done||u->filter||(l&&l->show_completed))){unsigned at=count++;while(at&&task_before(&u->data.tasks[i],&u->data.tasks[order[at-1]])){order[at]=order[at-1];--at;}order[at]=i;}
         for(unsigned i=0;i<count;i++){lists_task *item=&u->data.tasks[order[i]];char date[40],sub[72];due_text(u,item,date,sizeof(date));lists_list *owner=lists_find_list(&u->data,item->list_id);snprintf(sub,sizeof(sub),"%s%s%s%s%s",l?"":owner->name,l?"":" / ",date,item->repeat?" / ":"",item->repeat?repeats[item->repeat]:"");n=node(u,RISC_COMPONENT_CHECK_ROW,item->name,sub,LA_DONE,item->id);bounds(n,item->done,1);risc_component_detail_v1 *a=detail(u,n);a->secondary_action=LA_TASK;
-            if(lists_overdue(item,u->today,u->minute)){copy(a->badge,sizeof(a->badge),"OVERDUE");a->tone=RISC_TONE_WARNING;}else if(item->priority==2&&!item->done){copy(a->badge,sizeof(a->badge),"HIGH");a->tone=RISC_TONE_WARNING;}}
+            if(lists_overdue(item,u->today,u->minute)){copy(a->badge,sizeof(a->badge),"OVERDUE");a->tone=RISC_TONE_WARNING;}else if(item->priority==2&&!item->done){copy(a->badge,sizeof(a->badge),"HIGH");a->tone=RISC_TONE_ACCENT;}}
         if(!count)node(u,RISC_COMPONENT_EMPTY,total?"ALL DONE":"NOTHING HERE YET",total?"Switch to ALL to see completed tasks.":"Tap + to add the first task.",0,0);
         n=node(u,RISC_COMPONENT_ROW,"ADD TASK","",LA_NEW_TASK,0);detail(u,n)->symbol=RISC_SYMBOL_PLUS;break;}
     case LISTS_TASK:{header(u,t->name,"TASK",true);risc_scene_node_v1 *n=node(u,RISC_COMPONENT_CHECK_ROW,"DONE","",LA_DONE,t->id);bounds(n,t->done,1);
@@ -75,15 +76,15 @@ void lists_ui_declare(lists_ui *u){
         stepper(u,"REPEAT",repeats[t->repeat],LA_REPEAT,t->repeat,2);
         node(u,RISC_SCENE_TEXT_NODE,"REMINDERS","Shown while Lists is open; missed reminders appear on return.",0,0);
         n=node(u,RISC_COMPONENT_ROW,"DELETE TASK","",LA_DELETE_TASK,0);detail(u,n)->symbol=RISC_SYMBOL_DELETE;detail(u,n)->tone=RISC_TONE_DANGER;break;}
-    case LISTS_ADD_TASK:{header(u,"ADD TASK",view_name(u),true);unsigned set=suggestion_set(u);for(unsigned i=0;i<4;i++)button(u,suggestions[set][i],LA_SUGGEST_TASK,0),u->refs[d->node_count-1]=i;button(u,"CUSTOM...",LA_CUSTOM_TASK,RISC_SCENE_PRIMARY);break;}
+    case LISTS_ADD_TASK:{header(u,"ADD TASK",view_name(u),true);unsigned set=suggestion_set(u);for(unsigned i=0;i<4;i++)chip(u,suggestions[set][i],LA_SUGGEST_TASK,i);chip(u,"CUSTOM...",LA_CUSTOM_TASK,0);node(u,RISC_SCENE_TEXT_NODE,"","Pick a suggestion or type your own. Set a date and reminder afterwards.",0,0);break;}
     case LISTS_ADD_LIST:{header(u,"NEW LIST","PICK A SHAPE, THEN A NAME",true);risc_scene_node_v1 *n=node(u,RISC_COMPONENT_MARKERS,"SHAPE","",LA_MARKER,0);bounds(n,(int)u->marker,5);
-        for(unsigned i=0;i<sizeof(names)/sizeof(names[0]);i++){bool found=false;for(unsigned j=0;j<u->data.list_count;j++)if(!strcmp(names[i],u->data.lists[j].name))found=true;if(!found){button(u,names[i],LA_SUGGEST_LIST,0);u->refs[d->node_count-1]=i;}}
-        button(u,"CUSTOM...",LA_CUSTOM_LIST,RISC_SCENE_PRIMARY);break;}
+        for(unsigned i=0;i<sizeof(names)/sizeof(names[0]);i++){bool found=false;for(unsigned j=0;j<u->data.list_count;j++)if(!strcmp(names[i],u->data.lists[j].name))found=true;if(!found)chip(u,names[i],LA_SUGGEST_LIST,i);}
+        chip(u,"CUSTOM...",LA_CUSTOM_LIST,0);break;}
     case LISTS_OPTIONS:{if(!l){u->page=LISTS_HOME;lists_ui_declare(u);return;}header(u,l->name,"LIST OPTIONS",true);node(u,RISC_COMPONENT_ROW,"RENAME","",LA_RENAME_LIST,0);
         risc_scene_node_v1 *n=node(u,RISC_COMPONENT_SWITCH,"SHOW COMPLETED","",LA_SHOW_DONE,0);bounds(n,l->show_completed,1);button(u,"CLEAR COMPLETED",LA_CLEAR_DONE,0);button(u,"DELETE LIST",LA_DELETE_LIST,RISC_SCENE_DESTRUCTIVE);break;}
     case LISTS_NAME_EDIT:{header(u,"NAME",u->edit_kind==LA_CUSTOM_LIST||u->edit_kind==LA_RENAME_LIST?"LIST NAME":"TASK NAME",true);risc_scene_node_v1 *n=node(u,RISC_SCENE_KEYBOARD_NODE,"NAME",u->draft,LA_KEY,0);bounds(n,(int)u->key_layer,3);n->target=LISTS_NAME-1;break;}
     case LISTS_TIME:{header(u,"SET TIME",t->name,true);risc_scene_node_v1 *n=node(u,RISC_COMPONENT_TIME_PICKER,"TIME","",LA_TIME_VALUE,0);bounds(n,(int)u->time_value,1439);button(u,"SET TIME",LA_SET_TIME,RISC_SCENE_PRIMARY);button(u,"NO TIME",LA_NO_TIME,0);break;}
-    case LISTS_CONFIRM:{header(u,"ARE YOU SURE?","",true);d->flags=RISC_COMPONENTS_CONFIRM;d->cancel_action=LA_KEEP;const char *title=u->confirm_kind==LA_DELETE_TASK?"DELETE TASK?":u->confirm_kind==LA_DELETE_LIST?"DELETE LIST?":"CLEAR COMPLETED?";
+    case LISTS_CONFIRM:{header(u,"CONFIRM","",true);d->flags=RISC_COMPONENTS_CONFIRM;d->cancel_action=LA_KEEP;const char *title=u->confirm_kind==LA_DELETE_TASK?"DELETE TASK?":u->confirm_kind==LA_DELETE_LIST?"DELETE LIST?":"CLEAR COMPLETED?";
         node(u,RISC_SCENE_TEXT_NODE,title,u->confirm_kind==LA_DELETE_LIST?"The list and all its tasks will be removed.":"This removes the selected saved items.",0,0);button(u,"KEEP",LA_KEEP,0);button(u,"DELETE",LA_CONFIRM,RISC_SCENE_DESTRUCTIVE);break;}
     case LISTS_ALERT:{lists_task *a=lists_find_task(&u->data,u->alert);if(!a){u->page=u->parent;lists_ui_declare(u);return;}header(u,"REMINDER","",true);d->flags=RISC_COMPONENTS_ALERT;d->cancel_action=LA_DISMISS;char date[40];due_text(u,a,date,sizeof(date));node(u,RISC_SCENE_TEXT_NODE,a->name,date,0,0);button(u,"DONE",LA_ALERT_DONE,RISC_SCENE_PRIMARY);button(u,"+10 MIN",LA_SNOOZE,0);button(u,"DISMISS",LA_DISMISS,0);break;}
     default:u->page=LISTS_HOME;lists_ui_declare(u);break;

@@ -2,11 +2,26 @@
 import argparse,importlib.util,os,subprocess,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
+def verify_tabs(path,scale,selected):
+ # Mockup contract: a continuous outer rail; only the inset selected segment
+ # is filled. An unselected tab must not have its own button outline.
+ header,dimensions,maximum,pixels=path.read_bytes().split(b'\n',3)
+ width,height=map(int,dimensions.split());assert header==b'P6' and maximum==b'255'
+ top=(56 if scale==2 else 78)+46+8
+ bg=b'\xff'*3 if scale==2 else b'\0'*3
+ def pixel(x,y):
+  at=3*(y*scale*width+x*scale);return pixels[at:at+3]
+ assert pixel(120,top)!=bg, 'Tabs need one continuous outer rail'
+ assert pixel(119,top+13)==bg, 'Tab selection needs an inset gap'
+ for tab,x in enumerate([68,172]):
+  assert (pixel(x,top+4)!=bg)==(tab==selected), 'Only the selected tab is filled'
+ assert pixel(220 if selected==0 else 19,top+13)==bg, 'Inactive tab is not a separate outlined button'
+
 def verify_completed(path,scale):
  # Reference empty state: 44 logical px circle around the completion check.
  header,dimensions,maximum,pixels=path.read_bytes().split(b'\n',3)
  width,height=map(int,dimensions.split());assert header==b'P6' and maximum==b'255'
- cx=120*scale;cy=(64+34+(48 if scale==2 else 44)+36)*scale
+ cx=120*scale;cy=((56 if scale==2 else 78)+46+38+44)*scale
  bg=b'\xff'*3 if scale==2 else b'\0'*3
  def pixel(x,y):
   assert 0<=x<width and 0<=y<height
@@ -34,5 +49,7 @@ def run(runtime,system,output=None):
    for profile,scale in [('watch',1),('paper',2)]:
     subprocess.run([str(tmp/'render'),profile,str(output)],check=True)
     verify_completed(output/(profile+'-completed.ppm'),scale)
+    verify_tabs(output/(profile+'-list.ppm'),scale,0)
+    verify_tabs(output/(profile+'-list-all.ppm'),scale,1)
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--runtime',type=Path,required=True);p.add_argument('--system-apps',type=Path,required=True);p.add_argument('--frames',type=Path);a=p.parse_args();run(a.runtime.resolve(),a.system_apps.resolve(),a.frames)

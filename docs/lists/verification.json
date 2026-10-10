@@ -14,9 +14,34 @@
     {
       "file": "Lists (To-Do) \u2014 NOVA-7 watch + e-ink.html",
       "sha256": "4b05043f2924b752bb04313f59c92b81c0b36880119e7559be126ba64201fbcf"
+    },
+    {
+      "file": "Lists (To-Do) \u2014 NOVA-7 watch + e-ink(1).html",
+      "sha256": "4b05043f2924b752bb04313f59c92b81c0b36880119e7559be126ba64201fbcf"
     }
   ],
   "packages": [
+    {
+      "id": "scene-host",
+      "version": "0.2.0",
+      "file": "driver.elf",
+      "size_bytes": 282172,
+      "sha256": "147fe01c7e36cac30864dbc1f8a0e5fa5ab51b00df3bbe17e4d878156f9dbcd0",
+      "imports": [
+        "memchr",
+        "memcmp",
+        "memcpy",
+        "memset",
+        "risc_runtime_get_api",
+        "snprintf",
+        "strcmp",
+        "strlen"
+      ],
+      "exports": [
+        "t5_driver_get"
+      ],
+      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
+    },
     {
       "id": "scene-profile-compact-color",
       "version": "0.1.0",
@@ -36,27 +61,6 @@
       "size_bytes": 2284,
       "sha256": "81793b9d445b495b6e324f03e445d4922abb48101b62ba35482046a3abafd341",
       "imports": [],
-      "exports": [
-        "t5_driver_get"
-      ],
-      "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0"
-    },
-    {
-      "id": "scene-host",
-      "version": "0.2.0",
-      "file": "driver.elf",
-      "size_bytes": 258136,
-      "sha256": "5dbeb8feb6e2b736ac60218e75b44eebcf129db0a3815042d1f9e8c910605814",
-      "imports": [
-        "memchr",
-        "memcmp",
-        "memcpy",
-        "memset",
-        "risc_runtime_get_api",
-        "snprintf",
-        "strcmp",
-        "strlen"
-      ],
       "exports": [
         "t5_driver_get"
       ],
@@ -102,7 +106,7 @@
       "version": "0.1.0",
       "file": "lists.elf",
       "size_bytes": 33192,
-      "sha256": "8e6e192ab46b78805b8d25324a1c48fc8c48bb12916d5b3937da5bcd3d2d62ea",
+      "sha256": "716458214fe30123c186d1972a6950332820f5922397a7a506b3802edffbb582",
       "imports": [
         "memchr",
         "memcmp",
@@ -134,10 +138,12 @@
       "watch",
       "paper"
     ],
-    "rendered_screens_per_profile": 9,
+    "rendered_screens_per_profile": 12,
     "undefined_behavior_sanitizer": "new host suites passed",
     "completed_circle_pixel_checks": "passed on Watch and X4",
-    "profile_baselines": 59
+    "profile_baselines": 59,
+    "segmented_tab_pixel_checks": "both selections passed on Watch and X4",
+    "mockup_control_interactions": "tabs during pending refresh, dialog cancel and inert interior, chip and marker targets passed"
   },
   "compositions": {
     "watch": {
@@ -188,10 +194,11 @@
     "Bind and build the product cohort/image",
     "Physical-device testing"
   ],
-  "system_components_commit": "a88eaf5d3b2c3af99b135f35b22ea5ae61add6e1",
+  "system_components_commit": "ad32ecd8ae06775770f66918402c060860b36805",
   "screenshots": {
-    "watch.png": "5951b824fc2823d0766f4a5e4627e47329fc5e3181e5d96d349f9bd0cf56870a",
-    "x4.png": "8a952b95171b910822fafac244e726079af590b17f9bb384c166325aad22a7fe",
-    "completed.png": "920d2bf4a97ef2c6ced22f37eff1b50926ba6012bfd1d1101b8ff38c32b5fa0b"
+    "completed.png": "52238525f8c9ccd1523b104d11b08279072f23e7b5c2b8b5e3fa37706f52fd18",
+    "tabs.png": "3be5ab22c8fd07415fbcbafb0a02468dd287bfa626fcd5e404627fc182cf3600",
+    "watch.png": "df3ac2f9b78b47ff6c4c47060399ab003fa5fe5ec79719a92592eef652fe4d28",
+    "x4.png": "280a25e3422eb9d4ccfc24722c79d272b7848f70df59b3cec363a15b9bf2cc8b"
   }
 }
