@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Clean Timecard0.2.11 recovery build using verified installed source dependencies."""
+"""Timecard0.2.12 shared-adapter successor build using verified installed source dependencies."""
 import argparse,json,hashlib,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -19,9 +19,9 @@ sys.path.insert(0,str(a.utilities.resolve()/'scripts'));import resident_client_b
 resident.RUNTIME=resident.git(a.runtime,'rev-parse','HEAD')
 options=argparse.Namespace(system_apps=a.system,system_revision=resident.git(a.system,'rev-parse','HEAD'),runtime=a.runtime,output=a.output,display_sdk=a.display_sdk,development_system=False)
 c=resident.prepare(options,p,a.utilities.resolve())
-record=resident.build(c,ROOT,'timecard','0.2.11',r['build_defines'],[ROOT/'Apps/timecard_portable.c'],r['required_grants'],r['features'])
+record=resident.build(c,ROOT,'timecard','0.2.12',r['build_defines'],[ROOT/'Apps/timecard_portable.c'],r['required_grants'],r['features'])
 assert record['build_defines']==r['build_defines'] and record['required_grants']==r['required_grants'] and record['requires']==r['requires']
 record['recovery_custody']=dict(baseline_source=r['source_revision'],verified_application_sources=checked,baseline_custody_sha256=sha(a.baseline_custody),clean_build=True,prior_product_binary_inputs=[])
 record['selected_build_helper_sha256']=sha(Path(__file__))
 resident.write(c['out']/'timecard/x4-native-app.json',record)
-print('Timecard0.2.11 source dependencies byte-verified; fresh target/profile/loader PASS')
+print('Timecard0.2.12 source dependencies byte-verified; fresh target/profile/loader PASS')
