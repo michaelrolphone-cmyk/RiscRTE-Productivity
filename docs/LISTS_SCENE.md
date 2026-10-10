@@ -80,7 +80,7 @@ reminder detection while leaving ordinary undated lists usable.
 Use a Runtime SDK that includes app-data, the resident-shell contract and platform
 realtime. CI uses public Runtime commit
 `a9587bec00015ad56c302192a8359b6d70cde01a` and System commit
-`ad32ecd8ae06775770f66918402c060860b36805`. The `Lists shared scene build`
+`319d19da30327bcac252b8a88ac6cc68adf18344`. The `Lists shared scene build`
 workflow tests both renders and publishes the app/providers as build artifacts.
 
 ```sh

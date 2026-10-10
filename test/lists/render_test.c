@@ -5,6 +5,7 @@
 #include "host_test.c"
 #undef main
 #include "../../Apps/ListsScene.h"
+#include "SceneKeyboardV1.h"
 static lists_ui ui;
 static const risc_scene_components_api_v1 *components;
 static void update_ui(void){lists_ui_declare(&ui);assert(components->update(NULL,session,&ui.document)==0);}
@@ -45,6 +46,7 @@ int main(int argc,char **argv){
  touch_tap(90*scale,first_y);assert(tick(&e)==RISC_SCENE_OK&&e.action==LA_TASK);assert(!lists_ui_event(&ui,&e)&&ui.page==LISTS_TASK);update_ui();frame(argv[2],"task");
  ui.page=LISTS_TIME;ui.time_value=905;update_ui();frame(argv[2],"time");
  ui.page=LISTS_NAME_EDIT;ui.edit_kind=LA_RENAME_TASK;strcpy(ui.draft,"WEEKLY REPORT");update_ui();frame(argv[2],"keyboard");
+ if(scale==1){touch_tap(30,24);assert(tick(&e)==RISC_SCENE_OK&&e.action==LA_KEY&&e.value==RISC_SCENE_KEY_CANCEL);}
  ui.page=LISTS_CONFIRM;ui.confirm_kind=LA_DELETE_TASK;update_ui();frame(argv[2],"confirm");
  risc_scene_navigation_v1 focus={.struct_size=sizeof(focus)};uint32_t flags;assert(!api->snapshot(NULL,session,&focus,&flags));assert(focus.focus[0]&&ui.document.nodes[focus.focus[0]-1].action==LA_KEEP);
  unsigned middle=scale==2?200:120;

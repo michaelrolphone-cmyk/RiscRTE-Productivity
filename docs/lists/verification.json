@@ -25,8 +25,8 @@
       "id": "scene-host",
       "version": "0.2.0",
       "file": "driver.elf",
-      "size_bytes": 282172,
-      "sha256": "147fe01c7e36cac30864dbc1f8a0e5fa5ab51b00df3bbe17e4d878156f9dbcd0",
+      "size_bytes": 282312,
+      "sha256": "8caf3302866cd689e0b6b7c9a3bb9092edc7211d0545134d823f23fe14cc302a",
       "imports": [
         "memchr",
         "memcmp",
@@ -143,7 +143,8 @@
     "completed_circle_pixel_checks": "passed on Watch and X4",
     "profile_baselines": 59,
     "segmented_tab_pixel_checks": "both selections passed on Watch and X4",
-    "mockup_control_interactions": "tabs during pending refresh, dialog cancel and inert interior, chip and marker targets passed"
+    "mockup_control_interactions": "tabs during pending refresh, dialog cancel and inert interior, chip and marker targets passed",
+    "watch_keyboard_touch_cancel": "passed"
   },
   "compositions": {
     "watch": {
@@ -194,11 +195,11 @@
     "Bind and build the product cohort/image",
     "Physical-device testing"
   ],
-  "system_components_commit": "ad32ecd8ae06775770f66918402c060860b36805",
+  "system_components_commit": "319d19da30327bcac252b8a88ac6cc68adf18344",
   "screenshots": {
     "completed.png": "52238525f8c9ccd1523b104d11b08279072f23e7b5c2b8b5e3fa37706f52fd18",
     "tabs.png": "3be5ab22c8fd07415fbcbafb0a02468dd287bfa626fcd5e404627fc182cf3600",
-    "watch.png": "df3ac2f9b78b47ff6c4c47060399ab003fa5fe5ec79719a92592eef652fe4d28",
+    "watch.png": "4021cfa81046edeb02df21012cb73d6611a4d5685536d5452a9c107e48fe2320",
     "x4.png": "280a25e3422eb9d4ccfc24722c79d272b7848f70df59b3cec363a15b9bf2cc8b"
   }
 }
