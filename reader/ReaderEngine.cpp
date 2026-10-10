@@ -99,12 +99,12 @@ bool Engine::setLayout(const Settings& settings){
 }
 bool Engine::toggleBookmark(){if(!page||seeking)return false;Position current=position();BookState previous=state;
  for(unsigned i=0;i<state.count;i++)if(state.marks[i].position.spine==current.spine&&state.marks[i].position.offset==current.offset)return removeBookmark(i);
- if(state.count==64){message="Bookmark list is full";return false;}auto& mark=state.marks[state.count++];mark.position=current;snprintf(mark.name,sizeof(mark.name),"Chapter %d · page %d",spine+1,pageNumber+1);
+ if(state.count==64){message="Bookmark list is full";return false;}auto& mark=state.marks[state.count++];mark.position=current;snprintf(mark.name,sizeof(mark.name),"Chapter %d - page %d",spine+1,pageNumber+1);
  if(!saveBook()){state=previous;message="Bookmark was not saved";return false;}return true;
 }
 bool Engine::removeBookmark(unsigned n){if(n>=state.count)return false;BookState previous=state;for(unsigned i=n+1;i<state.count;i++)state.marks[i-1]=state.marks[i];--state.count;if(!saveBook()){state=previous;return false;}return true;}
 bool Engine::renameBookmark(unsigned n,const char* name){if(n>=state.count||!name||strlen(name)>=80)return false;BookState previous=state;snprintf(state.marks[n].name,80,"%s",name);if(!saveBook()){state=previous;return false;}return true;}
 bool Engine::render(){if(!page||seeking)return false;renderer.clearScreen();auto prewarm=fontCache.createPrewarmScope();int m=preferences.settings.margin;
  page->render(renderer,fontId,m,m);prewarm.endScanAndPrewarm();page->render(renderer,fontId,m,m);return !failed();}
-std::string Engine::footer()const{if(!section)return "";char s[96];float fraction=section->pageCount?float(pageNumber)/section->pageCount:0;snprintf(s,sizeof(s),"%u%%  ·  CH %d  ·  %d / %s%u",unsigned(book->calculateProgress(spine,fraction)*100),spine+1,pageNumber+1,section->isBuilding()?"~":"",section->estimatedTotalPages());return s;}
+std::string Engine::footer()const{if(!section)return "";char s[96];float fraction=section->pageCount?float(pageNumber)/section->pageCount:0;snprintf(s,sizeof(s),"%u%%  |  CH %d  |  %d / %s%u",unsigned(book->calculateProgress(spine,fraction)*100),spine+1,pageNumber+1,section->isBuilding()?"~":"",section->estimatedTotalPages());return s;}
 }
