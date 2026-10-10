@@ -11,7 +11,6 @@ def main():
     for name in ('utilities','runtime','presentation-system'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--scene',choices=['editor-navigation','text-input','text-retention','text-abandoned','text-alarm','text-frame','text-runtime-1','text-runtime-2','text-runtime-3','text-runtime-4','text-runtime-5','text-runtime-6','types-scroll'],help='Run one focused actual-renderer scenario in both sanitizer modes')
     p.add_argument('--expect-fast-paper',action='store_true')
-    p.add_argument('--raster-snapshot',action='store_true',help='Exercise the production asynchronous recorder and replay path')
     p.add_argument('--watch-system',type=Path);p.add_argument('--x4-system',type=Path)
     p.add_argument('--output-dir',type=Path,default=ROOT/'build/points-catalog')
     a=p.parse_args()
@@ -31,7 +30,6 @@ def main():
             flags=['-fsanitize=address,undefined','-fno-sanitize-recover=all','-fno-omit-frame-pointer','-fno-pie','-no-pie'] if sanitize else []
             for name,files,defines in [('controller',[ROOT/'test/native_apps/points_catalog_controller_test.c'],[]),('app-renderer',sources,defines_for(target)),('app-background',sources,[*defines_for(target),'-DPC_FAKE_BACKGROUND'])]:
                 if a.scene and name!='app-renderer':continue
-                if a.raster_snapshot and name.startswith('app-'):defines=[*defines,'-DPORTABLE_RASTER_SNAPSHOT']
                 if a.expect_fast_paper and target=='x4':defines=[*defines,'-DTEST_EXPECT_FAST_PAPER']
                 binary=out/f'{name}-{int(sanitize)}'
                 subprocess.run([cc,'-std=c11','-O1','-g','-Wall','-Wextra','-Werror',*flags,*defines,*inc,*map(str,files),'-o',str(binary)],check=True)

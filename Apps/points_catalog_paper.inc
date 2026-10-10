@@ -1,21 +1,7 @@
 /* 480x800 e-paper Points design. Coordinates are baseline-aligned to the
  * supplied NOVA-7 reference; the controller and file writer are shared. */
 #include "../lib/PointsCatalog/fonts/text.inc"
-#include "PortableRaster.h"
-static bool pcp_clip_content,pcp_replaying;
-static int pcp_first,pcp_last=800;
-enum {PCP_ROUND,PCP_DISK,PCP_STROKE,PCP_FADE};
-typedef struct {int v[6];unsigned kind;bool black,clip;} pcp_shape_snapshot;
-static void pcp_shape_replay(const void *,int,int);
-static bool pcp_record_shape(unsigned kind,int x,int y,int w,int h,int r,bool black,int top,int bottom) {
-    pcp_shape_snapshot s={{x,y,w,h,r,0},kind,black,pcp_clip_content};
-    return portable_raster_record_draw(pcp_shape_replay,&s,sizeof(s),top,bottom);
-}
-static void pcp_rows(int origin,int *first,int *last) {
-    if(!pcp_replaying)return;
-    if(*first<pcp_first-origin)*first=pcp_first-origin;
-    if(*last>pcp_last-origin)*last=pcp_last-origin;
-}
+static bool pcp_clip_content;
 static portable_touch_scroll pcp_types_scroll;
 static int pcp_types_completed,pcp_types_pending,pcp_types_hit=-1;
 static bool pcp_types_submitted,pcp_types_hit_edit;
@@ -27,7 +13,7 @@ static void pc_custom_action(unsigned row);
 static void pc_select_type(unsigned at,bool edit);
 static void pc_activate(unsigned index,bool right);
 static void pcp_fill(int x,int y,int w,int h,bool black) {
-    if(!pcp_replaying&&!pc_live())return;
+    if(!pc_live())return;
     if(x<0){w+=x;x=0;}if(y<0){h+=y;y=0;}
     if(pcp_clip_content&&y<118){h-=118-y;y=118;}
     if(x+w>480)w=480-x;
@@ -35,11 +21,9 @@ static void pcp_fill(int x,int y,int w,int h,bool black) {
     if(w>0&&h>0)app->fill_rect(x,y,w,h,black);
 }
 static void pcp_round(int x,int y,int w,int h,int r,bool black) {
-    if(pcp_record_shape(PCP_ROUND,x,y,w,h,r,black,y,y+h))return;
     if(r>w/2)r=w/2;
     if(r>h/2)r=h/2;
-    int first=0,last=h;pcp_rows(y,&first,&last);
-    for(int row=first;row<last;row++) {
+    for(int row=0;row<h;row++) {
         int dy=row<r?2*r-2*row-1:row>=h-r?2*(row-h+r)+1:0,inset=0;
         if(dy)while(inset<r){int dx=2*r-2*inset-1;if(dx*dx+dy*dy<=4*r*r)break;inset++;}
         pcp_fill(x+inset,y+row,w-2*inset,1,black);
@@ -50,12 +34,9 @@ static void pcp_box(int x,int y,int w,int h,int r,bool selected,int stroke) {
     if(!selected)pcp_round(x+inside,y+inside,w-2*inside,h-2*inside,r-inside>0?r-inside:0,false);
 }
 static void pcp_disk(int x,int y,int radius,bool black) {
-    if(pcp_record_shape(PCP_DISK,x,y,radius,0,0,black,y-radius,y+radius+1))return;
-    int first=-radius,last=radius+1;pcp_rows(y,&first,&last);
-    for(int row=first;row<last;row++){int span=0;while((span+1)*(span+1)+row*row<=radius*radius)span++;pcp_fill(x-span,y+row,2*span+1,1,black);}
+    for(int row=-radius;row<=radius;row++){int span=0;while((span+1)*(span+1)+row*row<=radius*radius)span++;pcp_fill(x-span,y+row,2*span+1,1,black);}
 }
 static void pcp_stroke(int x1,int y1,int x2,int y2,int width,bool black) {
-    if(pcp_record_shape(PCP_STROKE,x1,y1,x2,y2,width,black,(y1<y2?y1:y2)-width/2,(y1>y2?y1:y2)+width/2+1))return;
     int dx=abs(x2-x1),dy=-abs(y2-y1),sx=x1<x2?1:-1,sy=y1<y2?1:-1,error=dx+dy;
     for(;;){pcp_disk(x1,y1,width/2,black);if(x1==x2&&y1==y2)break;int twice=2*error;if(twice>=dy){error+=dy;x1+=sx;}if(twice<=dx){error+=dx;y1+=sy;}}
 }
@@ -95,21 +76,7 @@ static bool pcp_bit(const pc_glyph *g,int x,int y) {
 }
 /* Exact physical-size text; width fitting affects horizontal glyphs only,
  * matching the reference's textLength rule. align: left0, center1, right2. */
-typedef struct {const pc_font *font;int16_t x,baseline,tracking,align,limit;bool black,outline,clip,literal;char text[97];} pcp_text_snapshot;
-_Static_assert(sizeof(pcp_text_snapshot)<=129,"Raster text payload must fit its copied command");
-static void pcp_text_replay(const void *,int,int);
 static void pcp_text(const pc_font *f,int x,int baseline,const char *s,int tracking,int align,int limit,bool black,bool outline) {
-    if(!pcp_replaying) {
-        pcp_text_snapshot snapshot={.font=f,.x=x,.baseline=baseline,.tracking=tracking,.align=align,.limit=limit,
-            .black=black,.outline=outline,.clip=pcp_clip_content,.literal=pcp_case_sensitive};
-        int top=baseline,bottom=baseline;
-        for(unsigned i=0;i<96&&s[i];i++) {
-            snapshot.text[i]=s[i];const pc_glyph *g=&f->glyphs[pcp_char((unsigned char)s[i])-32];
-            if(baseline+g->top-2<top)top=baseline+g->top-2;
-            if(baseline+g->top+g->height+2>bottom)bottom=baseline+g->top+g->height+2;
-        }
-        if(portable_raster_record_draw(pcp_text_replay,&snapshot,sizeof(snapshot),top,bottom))return;
-    }
     if(!pc_live())return;
     int total=pcp_measure(f,s,tracking);if(total<=0)return;
     int width=(total+32)/64;if(limit&&width>limit)width=limit;
@@ -118,8 +85,7 @@ static void pcp_text(const pc_font *f,int x,int baseline,const char *s,int track
         unsigned ch=pcp_char((unsigned char)s[i]);const pc_glyph *g=&f->glyphs[ch-32];
         if(prev)pen+=pcp_kern(f,prev,ch)+tracking*64;
         int border=outline?2:0;
-        int first=-border,last=g->height+border;pcp_rows(baseline+g->top,&first,&last);
-        for(int row=first;row<last;row++) {
+        for(int row=-border;row<g->height+border;row++) {
             for(int col=-border;col<g->width+border;) {
                 bool ink=pcp_bit(g,col,row);
                 if(outline){
@@ -144,11 +110,9 @@ static void pcp_text(const pc_font *f,int x,int baseline,const char *s,int track
     }
 }
 static void pcp_fade(int h) {
-    if(pcp_record_shape(PCP_FADE,h,0,0,0,0,false,800-h,800))return;
     bool old=pcp_clip_content;pcp_clip_content=false;
     int start=800-h;
-    int first=start,last=800;pcp_rows(0,&first,&last);
-    for(int y=first;y<last;y++) {
+    for(int y=start;y<800;y++) {
         unsigned band=(unsigned)(y-start)*4u/(unsigned)h;
         if(band>=3){pcp_fill(0,y,480,1,false);continue;}
         if(band==0){if(y%2==0)for(int x=0;x<480;x+=2)pcp_fill(x,y,1,1,false);}
@@ -157,26 +121,6 @@ static void pcp_fade(int h) {
         else for(int x=0;x<480;x+=2)pcp_fill(x,y,1,1,false);
     }
     pcp_clip_content=old;
-}
-/* Payloads are copied when recording: text, clip and case decisions cannot
- * follow later editor changes. Only immutable font tables are referenced. */
-static void pcp_shape_replay(const void *payload,int first,int last) {
-    pcp_shape_snapshot s;memcpy(&s,payload,sizeof(s));
-    bool clip=pcp_clip_content;pcp_clip_content=s.clip;pcp_replaying=true;pcp_first=first;pcp_last=last;
-    switch(s.kind) {
-        case PCP_ROUND:pcp_round(s.v[0],s.v[1],s.v[2],s.v[3],s.v[4],s.black);break;
-        case PCP_DISK:pcp_disk(s.v[0],s.v[1],s.v[2],s.black);break;
-        case PCP_STROKE:pcp_stroke(s.v[0],s.v[1],s.v[2],s.v[3],s.v[4],s.black);break;
-        case PCP_FADE:pcp_fade(s.v[0]);break;
-    }
-    pcp_replaying=false;pcp_clip_content=clip;
-}
-static void pcp_text_replay(const void *payload,int first,int last) {
-    pcp_text_snapshot s;memcpy(&s,payload,sizeof(s));
-    bool clip=pcp_clip_content,literal=pcp_case_sensitive;
-    pcp_clip_content=s.clip;pcp_case_sensitive=s.literal;pcp_replaying=true;pcp_first=first;pcp_last=last;
-    pcp_text(s.font,s.x,s.baseline,s.text,s.tracking,s.align,s.limit,s.black,s.outline);
-    pcp_replaying=false;pcp_clip_content=clip;pcp_case_sensitive=literal;
 }
 static void pcp_back_button(void) {
     pcp_disk(56,46,28,true);pcp_disk(56,46,24,false);pcp_stroke(58,37,50,46,4,true);pcp_stroke(50,46,58,55,4,true);
@@ -344,7 +288,7 @@ static void pcp_days_tap(int x,int y,int dy) {
 }
 static void pcp_types_input(const springboard_contact *c) {
     pcp_types_configure();
-    if(pcp_types_submitted&&paper_frame_idle()){pcp_types_completed=pcp_types_pending;pcp_types_submitted=false;}
+    if(pcp_types_submitted&&paper_frame_ready()){pcp_types_completed=pcp_types_pending;pcp_types_submitted=false;}
     portable_touch_sample sample={.valid=c->valid,.down=c->down,.began=c->began,.released=c->released,.cancelled=c->cancelled,.tap_eligible=c->tap_eligible,.x=(uint16_t)c->x,.y=(uint16_t)c->y};
     if(c->began){portable_touch_scroll visible=pcp_types_scroll;visible.position_q8=pcp_types_completed*256;pcp_types_hit=portable_scroll_row(&visible,c->x,c->y);pcp_types_hit_edit=c->x>=400;}
     unsigned action=portable_scroll_touch(&pcp_types_scroll,&sample,app->millis());

@@ -1,0 +1,46 @@
+name: Lists shared scene build
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lists:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: a88eaf5d3b2c3af99b135f35b22ea5ae61add6e1
+          path: .deps/system-apps
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: a9587bec00015ad56c302192a8359b6d70cde01a
+          path: .deps/runtime
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Model, persistence, lifecycle, and actual Watch/X4 rendering
+        run: >-
+          python scripts/test_lists_scene.py --runtime .deps/runtime
+          --system-apps .deps/system-apps --frames dist/frames
+      - name: Install pinned target compiler
+        run: |
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+      - name: Build reproducible app and both provider profiles
+        run: |
+          python .deps/system-apps/scripts/build_scene_services.py --runtime .deps/runtime --output dist/scene
+          python .deps/system-apps/scripts/build_civil_clock.py --runtime .deps/runtime --output dist/civil
+          python scripts/build_lists_scene.py --runtime .deps/runtime --system-apps .deps/system-apps --output dist/lists
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lists-watch-and-x4-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
