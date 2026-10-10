@@ -9,7 +9,7 @@
   "category": [
     "Productivity"
   ],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "min_firmware_version": "0.1.83",
   "runtime_profile": "portable-riscrte-v1",
   "requires": [
