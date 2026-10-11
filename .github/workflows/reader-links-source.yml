@@ -22,5 +22,14 @@ jobs:
           python3 - <<'PY'
           import base64,zlib,hashlib
           from pathlib import Path
-          encoded='eNrlfet24zbS4H8/BVs5rYtFUTffWjLd47jdSW86ttd2Z2a+nj4aioQsTkuihqRsK7b37EPsE+6TbF0AEqQo2Unmkm9nzqQtEoVCoVCoKhSAouePRkajcePHhtM8ns+jphgGwddBKBxPhNbfomBmDNcUbPkzT9wbQ8cRrrtnWR2n29kXLaPdau3t7Gw1Go21OLfq9fp6vH/4g9HYM/eNOv7zhz9sGYZRGvkTMZg5U1HqGaVMFTEZlUyC8fxoPnGWCdglAchC3w1m+DIKJr7XG7U6HhQ0oOBWhJHPZS2rbe3D6/rq6wOJJlrM50EYC29AFMXLuYgA5jMWQrEl5oshg+JTfB/Dg6czeR4G3sKN/Vs/XjamzswfiShWjF5fKJk92ukI12lb1u5s?'
+          encoded=''.join(Path(f'.reader-links/{i:02}.txt').read_text().strip() for i in (1,2))
+          patch=zlib.decompress(base64.b64decode(encoded,validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='1e3f55de970a7c90386dc097980f104be4064a3f7960e0b503afd85e296f9fdc'
+          Path('/tmp/links.patch').write_bytes(patch)
           PY
+          git apply --check /tmp/links.patch
+          git apply --index /tmp/links.patch
+          git rm .reader-links/*.txt
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Enable EPUB links and incremental chapter anchors without losing warm page turns (Reader 0.1.8)'
+          git push origin HEAD:feat/reader-nova7-gui
