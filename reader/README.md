@@ -45,7 +45,16 @@ python3 scripts/test_reader.py --crosspoint third_party/crosspoint \
   --runtime ../RiscRTE --system ../RiscRTE-System-Apps \
   --png ../PNGdec --jpeg ../JPEGDEC --output build/reader-tests \
   --font /path/to/a/test-font.ttf
+python3 scripts/test_reader_fatfs.py --drivers ../RiscRTE-Drivers \
+  --engine-output build/reader-tests --output build/reader-fatfs
+python3 scripts/test_reader_startup.py --runtime ../RiscRTE \
+  --system ../RiscRTE-System-Apps --engine-output build/reader-tests \
+  --output build/reader-startup
 ```
+
+The FatFs test runs the production storage implementation on a RAM card and
+checks incremental cache readback, access permissions, cache reopen and reflow.
+See [CACHE.md](CACHE.md) for the 0.1.3 port-contract correction and its reproducer.
 
 The build materializes selected pristine upstream sources, applies the recorded
 patch, compiles the engine and app, links shared C++ SDK support, checks all

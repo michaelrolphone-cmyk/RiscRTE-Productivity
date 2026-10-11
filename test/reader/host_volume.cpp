@@ -9,7 +9,7 @@
 #include <unistd.h>
 namespace fs=std::filesystem;
 static fs::path root;
-struct File {FILE* fp;uint32_t error=0;};struct Dir {std::vector<fs::directory_entry> list;size_t offset=0;uint32_t error=0;};
+struct File {FILE* fp;uint32_t flags;uint32_t error=0;};struct Dir {std::vector<fs::directory_entry> list;size_t offset=0;uint32_t error=0;};
 static std::map<uint32_t,File> files;static std::map<uint32_t,Dir> dirs;static uint32_t serial=1;static bool held=false,failWrites=false;
 void hostFailWrites(bool fail){failWrites=fail;}
 static fs::path path(const char* p){return root/fs::path(p).relative_path();}
@@ -18,11 +18,11 @@ static bool stat(void*,const char* p,uint64_t* size,bool* dir){std::error_code e
 static uint32_t dirOpen(void*,const char* p){std::error_code ec;Dir d;for(auto& e:fs::directory_iterator(path(p),ec))d.list.push_back(e);if(ec)return 0;auto h=serial++;dirs[h]=std::move(d);return h;}
 static bool dirNext(void*,uint32_t h,risc_storage_dirent_v1* e){auto& d=dirs.at(h);if(d.offset==d.list.size())return false;auto& f=d.list[d.offset++];std::string n=f.path().filename().string();snprintf(e->name,sizeof(e->name),"%s",n.c_str());e->is_directory=f.is_directory();e->size=e->is_directory?0:f.file_size();return true;}
 static bool dirClose(void*,uint32_t h){return dirs.erase(h)==1;}static void dirCloseVoid(void* c,uint32_t h){dirClose(c,h);}static bool dirRewind(void*,uint32_t h){dirs.at(h).offset=0;return true;}
-static uint32_t fileOpen(void*,const char* p,uint32_t flags){const auto f=path(p);if((flags&RISC_STORAGE_OPEN_EXCLUSIVE)&&fs::exists(f))return 0;const char* mode=(flags&RISC_STORAGE_OPEN_WRITE)?(flags&RISC_STORAGE_OPEN_TRUNCATE?"w+b":"r+b"):"rb";FILE* fp=fopen(f.c_str(),mode);if(!fp&&(flags&RISC_STORAGE_OPEN_CREATE))fp=fopen(f.c_str(),"w+b");if(!fp)return 0;auto h=serial++;files[h]={fp};return h;}
+static uint32_t fileOpen(void*,const char* p,uint32_t flags){const auto f=path(p);if((flags&RISC_STORAGE_OPEN_EXCLUSIVE)&&fs::exists(f))return 0;const char* mode=(flags&RISC_STORAGE_OPEN_WRITE)?(flags&RISC_STORAGE_OPEN_TRUNCATE?"w+b":"r+b"):"rb";FILE* fp=fopen(f.c_str(),mode);if(!fp&&(flags&RISC_STORAGE_OPEN_CREATE))fp=fopen(f.c_str(),"w+b");if(!fp)return 0;auto h=serial++;files[h]={fp,flags};return h;}
 static uint32_t readOpen(void* c,const char* p,uint64_t* size){auto h=fileOpen(c,p,1);if(h){fseek(files[h].fp,0,SEEK_END);*size=ftell(files[h].fp);rewind(files[h].fp);}return h;}
 static uint32_t writeOpen(void* c,const char* p){return fileOpen(c,p,2|4|16);}
-static size_t read(void*,uint32_t h,void* b,size_t n){if(n>4096)return 0;auto& f=files.at(h);size_t got=fread(b,1,std::min(n,size_t(173)),f.fp);if(ferror(f.fp))f.error=1;return got;}
-static size_t write(void*,uint32_t h,const void* b,size_t n){if(n>4096)return 0;auto& f=files.at(h);if(failWrites){f.error=1;return 0;}size_t got=fwrite(b,1,std::min(n,size_t(211)),f.fp);if(got==0)f.error=1;return got;}
+static size_t read(void*,uint32_t h,void* b,size_t n){if(n>4096)return 0;auto& f=files.at(h);if(f.error||!(f.flags&RISC_STORAGE_OPEN_READ)){f.error=1;return 0;}size_t got=fread(b,1,std::min(n,size_t(173)),f.fp);if(ferror(f.fp))f.error=1;return got;}
+static size_t write(void*,uint32_t h,const void* b,size_t n){if(n>4096)return 0;auto& f=files.at(h);if(f.error||failWrites||!(f.flags&RISC_STORAGE_OPEN_WRITE)){f.error=1;return 0;}size_t got=fwrite(b,1,std::min(n,size_t(211)),f.fp);if(got==0)f.error=1;return got;}
 static bool fileClose(void*,uint32_t h,bool){auto i=files.find(h);if(i==files.end())return false;int rc=fclose(i->second.fp);files.erase(i);return rc==0;}
 static bool remove(void*,const char* p){std::error_code ec;return fs::remove(path(p),ec)&&!ec;}
 static bool lastError(void*,char* p,size_t n){snprintf(p,n,"I/O failure");return false;}

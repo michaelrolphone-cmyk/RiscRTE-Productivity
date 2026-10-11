@@ -60,7 +60,9 @@ bool HalStorage::replaceFile(const char* a,const char* b){return ready()&&writab
 bool HalStorage::recoverFile(const char* p){return ready()&&writable(p)&&ok(fs->recover_replace(vol->base.context,p));}
 bool HalStorage::removeDir(const char* p){auto d=open(p);if(!d||!d.isDirectory())return false;while(auto e=d.openNextFile()){auto path=e.path_;bool dir=e.isDirectory();if(!e.close()||!(dir?removeDir(path.c_str()):remove(path.c_str())))return false;}return !reader::failed()&&d.close()&&remove(p);}
 bool HalStorage::openFileForRead(const char*,const char* p,HalFile& f){f=open(p);return bool(f)&&!f.isDirectory();}
-bool HalStorage::openFileForWrite(const char*,const char* p,HalFile& f){f=open(p,O_WRONLY|O_CREAT|O_TRUNC);return bool(f);}
+// CrossPoint's helper is read/write: Section reads completed pages through the
+// same handle while incremental pagination continues writing the cache.
+bool HalStorage::openFileForWrite(const char*,const char* p,HalFile& f){f=open(p,O_RDWR|O_CREAT|O_TRUNC);return bool(f);}
 bool HalStorage::readFileToString(const char*,const std::string& p,size_t cap,std::string& out){auto f=open(p.c_str());if(!f||f.isDirectory()||f.size()>cap)return false;out.resize(f.size());return f.read(out.data(),out.size())==int(out.size())&&f.close();}
 
 extern "C" void readerXmlRandom(void* bytes,size_t n){if(!randomSource||n>RISC_RANDOM_MAX_BYTES||!reader::alive()||randomSource->fill(randomSource->context,bytes,n)!=RISC_RANDOM_OK)reader::retain();}
