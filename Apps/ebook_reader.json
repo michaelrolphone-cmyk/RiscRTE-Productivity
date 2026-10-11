@@ -1,0 +1,37 @@
+{
+  "type": "application",
+  "architecture": "xtensa-esp32s3",
+  "entry": "app_main",
+  "id": "ebook-reader",
+  "file_name": "ebook_reader.elf",
+  "display_name": "Reader",
+  "icon": "solid:f02d",
+  "version": "0.1.5",
+  "supported_file_types": [
+    ".epub",
+    ".txt",
+    ".md"
+  ],
+  "requires": [
+    {
+      "capability": "ui.scene",
+      "api": 1
+    },
+    {
+      "capability": "storage.volume",
+      "api": 1
+    },
+    {
+      "capability": "memory.heap",
+      "api": 1
+    },
+    {
+      "capability": "random.bytes",
+      "api": 1
+    },
+    {
+      "capability": "file.open",
+      "api": 1
+    }
+  ]
+}

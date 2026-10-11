@@ -51,5 +51,18 @@
         "Apps/points_paper.inc"
       ]
     }
+  ],
+  "e_ink_apps": [
+    {
+      "id": "ebook-reader",
+      "version": "0.1.0",
+      "classification": "e-ink",
+      "target": "x4",
+      "source_path": "reader/ReaderApp.cpp",
+      "manifest_path": "Apps/ebook_reader.json",
+      "build_script": "scripts/build_reader.py",
+      "migration_record": "reader/MIGRATION.md",
+      "upstream_lock": "reader/upstream.json"
+    }
   ]
 }
