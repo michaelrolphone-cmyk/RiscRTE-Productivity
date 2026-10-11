@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          ref: dea97a70cdcc657c5d2b2730ca2b62715949a10a
           path: System
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -62,11 +62,13 @@ jobs:
           python Productivity/scripts/test_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/engine 2>&1 | tee evidence/engine.log
           python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/startup 2>&1 | tee evidence/startup.log
           python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui 2>&1 | tee evidence/gui.log
+          python Productivity/scripts/test_reader_links.py --runtime Runtime --system System --engine-output build/engine --output build/links 2>&1 | tee evidence/links.log
           python Productivity/scripts/test_reader_fatfs.py --drivers Drivers --engine-output build/engine --output build/fatfs 2>&1 | tee evidence/fatfs.log
           python Productivity/scripts/test_reader_file_checkpoint.py --runtime Runtime --system System --output build/checkpoint 2>&1 | tee evidence/checkpoint.log
           python Productivity/scripts/test_reader_performance.py --runtime Runtime --system System --engine-output build/engine --output build/performance --verify 2>&1 | tee evidence/performance.log
-          mkdir evidence/frames
+          mkdir -p evidence/frames evidence/link-frames
           cp build/gui/frames/*.pbm evidence/frames/
+          cp build/links/frames/*.pbm evidence/link-frames/
       - name: Compile and structurally validate ESP32-S3 Reader
         run: |
           set -euo pipefail
@@ -75,7 +77,7 @@ jobs:
           python Productivity/scripts/build_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/target 2>&1 | tee evidence/target.log
       - uses: actions/upload-artifact@v4
         with:
-          name: reader-nova7-017
+          name: reader-nova7-018
           path: |
             build/target/ebook-reader/ebook_reader.elf
             build/target/ebook-reader/ebook_reader.json
