@@ -22,12 +22,18 @@ jobs:
           repository: michaelrolphone-cmyk/RiscRTE
           ref: 1d9bcb204a0b12ac6483511f32ba56da47699404
           path: .deps/runtime
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 13f5fd4bed27d77d566fa7c34b89b62445b86798
+          path: .deps/broadcast-system
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Original model and portable validation, interaction and real-renderer tests
         run: |
-          python scripts/test_timecard_portable.py --system-apps .deps/system-apps --runtime-appdata .deps/runtime
+          python scripts/test_timecard_portable.py --broadcast-system .deps/broadcast-system --system-apps .deps/system-apps --runtime-appdata .deps/runtime
           bash scripts/test_timecard_app_data.sh .deps/runtime
           python scripts/test_timecard_paper.py --system-apps .deps/system-apps
       - name: Preserve migration and original app inventory

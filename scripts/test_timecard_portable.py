@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--system-apps', required=True, type=Path)
+    p.add_argument('--broadcast-system', type=Path, help='Exact telemetry adapter for the separate broadcast custody fixture')
     p.add_argument('--runtime-appdata', type=Path, help='Also test the explicit app-data prototype bridge against this SDK')
     args = p.parse_args()
     system = args.system_apps.resolve()
@@ -67,8 +68,11 @@ def main():
                              ('appdata-profile', ROOT/'test/native_apps/timecard_appdata_profile_test.c'),
                              ('appdata-broadcast', ROOT/'test/native_apps/timecard_broadcast_storage_test.c')]:
             binary = out/f'{name}-{int(sanitized)}'
+            selected_includes = includes
+            if name == 'appdata-broadcast' and args.broadcast_system:
+                selected_includes = [args.broadcast_system.resolve()/'lib/PortableApps/include', *includes]
             subprocess.run([os.environ.get('CC', 'cc'), *flags, '-DPORTABLE_NOVA_UI', '-DPORTABLE_APP_OWNS_TOUCH_CHROME',
-                            '-I'+str(api_include), *['-I'+str(path) for path in includes], str(source), '-o', str(binary)], check=True, timeout=120)
+                            '-I'+str(api_include), *['-I'+str(path) for path in selected_includes], str(source), '-o', str(binary)], check=True, timeout=120)
             subprocess.run([str(binary)], check=True, timeout=120, env=env)
     for name in ('timecard_clock_failure_source_test.py', 'timecard_store_failure_source_test.py'):
         subprocess.run(['python3', str(ROOT/'test/native_apps'/name)], check=True, timeout=30)
