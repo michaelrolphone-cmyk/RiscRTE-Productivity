@@ -19,6 +19,12 @@ static void visible(reader::Engine& e){
  unsigned n=0;while(e.waiting()){assert(++n<10000);assert(e.step());}
  assert(e.render());unsigned ink=0;for(size_t i=0;i<e.bitmapSize();++i)ink+=e.bitmap()[i]!=255;assert(ink>100);
 }
+static void warmCheckpoint(reader::Engine& e){
+ const auto pos=e.position();std::vector<uint8_t> pixels(e.bitmap(),e.bitmap()+e.bitmapSize());
+ assert(e.park());reader_fatfs_check_closed();assert(e.park());reader_fatfs_check_closed();
+ assert(e.unpark()&&e.render());assert(e.position().spine==pos.spine&&e.position().offset==pos.offset);
+ assert(pixels.size()==e.bitmapSize()&&!memcmp(pixels.data(),e.bitmap(),pixels.size()));
+}
 int main(int argc,char**argv){
  assert(argc==2);const auto* base=reader_fatfs_create();const auto* v=risc_storage_volume_extension(base);
  seed(argv[1],v);reader::bind(&runtime,base,&heap,&randomApi);
@@ -37,14 +43,14 @@ int main(int argc,char**argv){
  assert(Storage.remove(probe.c_str()));
  for(const char* path:{"/Books/sample.epub","/Books/sample-ncx.epub","/Books/sample.txt","/Books/sample.md"}){
   reader::Position saved;
-  {reader::Engine e;assert(e.init(480,632));assert(e.open(path));visible(e);assert(e.busy());
+  {reader::Engine e;assert(e.init(480,632));assert(e.open(path));visible(e);assert(e.busy());warmCheckpoint(e);
    assert(e.turn(1));visible(e);saved=e.position();assert(saved.offset>0);assert(e.toggleBookmark());assert(e.renameBookmark(0,"Keep this page"));
    assert(e.close());}
   reader_fatfs_check_closed();
   // Reopen a suspended partial cache, then finish and reopen the committed cache.
   {reader::Engine e;assert(e.init(480,632));assert(e.open(path));visible(e);assert(e.state.count==1);assert(!strcmp(e.state.marks[0].name,"Keep this page"));
    assert(e.position().offset==saved.offset);unsigned n=0;while(e.busy()){assert(++n<10000);assert(e.step());}visible(e);
-   assert(e.close());assert(e.open(path));visible(e);assert(!e.busy());
+   assert(e.close());assert(e.open(path));visible(e);assert(!e.busy());warmCheckpoint(e);
    auto layout=e.preferences.settings;layout.margin=layout.margin==15?25:15;assert(e.setLayout(layout));visible(e);assert(e.busy());assert(e.state.count==1);assert(e.close());}
   reader_fatfs_check_closed();
   // The rejected read in 0.1.2 also rejected later header writes, leaving the
@@ -53,7 +59,7 @@ int main(int argc,char**argv){
    assert(cache);assert(cache.write(uint8_t(0))==1);assert(cache.close());}
   {reader::Engine e;assert(e.init(480,632));assert(e.open(path));visible(e);assert(e.state.count==1);
    assert(!strcmp(e.state.marks[0].name,"Keep this page"));assert(e.close());}
-  reader_fatfs_check_closed();printf("Reader production FatFs: %s fresh/partial/complete/incomplete cache, page turn, bookmark and layout PASS\n",path);
+  reader_fatfs_check_closed();printf("Reader production FatFs: %s fresh/partial/complete/incomplete cache, page turn, warm partial/complete checkpoint, bookmark and layout PASS\n",path);
  }
  reader_fatfs_destroy();puts("Production FatFs read/write permissions and cache readback PASS");
 }

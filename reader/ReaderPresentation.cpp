@@ -45,12 +45,14 @@ unsigned Engine::progress()const{
  return std::min(999u,unsigned(std::max(0.0f,value)*1000));
 }
 bool Engine::saveSummary(){
- if(!book)return true;
+ if(!book)return true;if(!summaryWritable)return false;
  snprintf(summary.title,sizeof(summary.title),"%s",book->getTitle().c_str());snprintf(summary.author,sizeof(summary.author),"%s",book->getAuthor().c_str());
  summary.identity=identity(book->getPath());summary.chapter=unsigned(spine)+1;
  summary.chapters=book->getSpineItemsCount();summary.bookmarks=state.count;
  summary.progress=progress();summary.remaining=remainingMinutes();
- return writeRecord(summaryBase(book->getPath()),&summary,sizeof(summary),summaryGeneration,summaryWritable);
+ if(summaryGeneration&&!memcmp(&summary,&durableSummary,sizeof(summary)))return true;
+ if(!writeRecord(summaryBase(book->getPath()),&summary,sizeof(summary),summaryGeneration,summaryWritable))return false;
+ durableSummary=summary;return true;
 }
 bool Engine::beginReading(bool restart){
  if(!book||ui.session==UINT64_MAX)return false;
@@ -146,7 +148,7 @@ bool Engine::scrollBy(int delta){
  else if(target>=height){if(atEnd())return false;if(!turn(1))return false;while(waiting())if(!step())return false;target-=height;}
  if(target>0){if(!prepareFollowingPage())return false;if(!followingPage)target=0;}
  scrollOffset=std::max(0,std::min(height-1,target));
- if(spine==oldSpine&&pageNumber==oldPage&&scrollOffset==oldScroll)return false;return savePosition();
+ if(spine==oldSpine&&pageNumber==oldPage&&scrollOffset==oldScroll)return false;return !failed();
 }
 bool Engine::renderPreview(unsigned width,unsigned height){
  if(!width||width%8||width>display.getDisplayWidth()||height>display.getDisplayHeight())return false;

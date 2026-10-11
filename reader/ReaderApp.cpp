@@ -53,7 +53,9 @@ struct App {
  std::vector<Row> rows;
  std::string directory="/",notice,draft;
  bool initialized=false,more=false,done=false,dirty=true,waiting=false,inService=false,libraryUnavailable=false;
- bool scenePaused=false,restoringReading=false,engineSuspended=false;
+ bool scenePaused=false,restoringReading=false,engineSuspended=false,engineParked=false;
+ bool positionPending=false,turnTiming=false;
+ uint32_t turnStarted=0,restoreMs=0,advanceMs=0,renderMs=0,publishedAt=0;
  std::string suspendedPath;
  risc_scene_event_v1 pending{};
  bool hasPending=false;
@@ -109,10 +111,13 @@ struct App {
  bool publish(){
   if(screen==Screen::Reading&&!waiting){
    if(metadataOnly){metadataOnly=false;return presentPage(false,true);}
+   uint32_t renderStart=millis();
    if(!engine->render()){error("Page could not be rendered");return publish();}
+   renderMs=millis()-renderStart;
    pageDocument={};pageDocument.struct_size=sizeof(pageDocument);pageDocument.previous_action=Previous;pageDocument.next_action=Next;pageDocument.menu_action=ToggleChrome;pageDocument.back_action=Menu;
    copy(pageDocument.title,sizeof(pageDocument.title),engine->title());copy(pageDocument.footer,sizeof(pageDocument.footer),readingFooter());
-   retainedBookmark=engine->isBookmarked();return presentPage(true);
+   retainedBookmark=engine->isBookmarked();bool ok=presentPage(true);
+   if(ok){positionPending=true;publishedAt=millis();}return ok;
   }
   if(!declare())return false;
   int rc;
@@ -233,6 +238,7 @@ struct App {
  }
  bool restoreEngine(){
   if(!engineSuspended)return true;
+  if(engineParked){if(!engine->unpark())return false;engineParked=false;engineSuspended=false;suspendedPath.clear();return true;}
   // The scene owns the visible page. Reopen storage only for an actual book
   // interaction, not for each periodic power check while the page is idle.
   delete engine;engine=new Engine;engineSuspended=false;
@@ -247,7 +253,16 @@ struct App {
   std::string reopen=engineSuspended?suspendedPath:engine->path();
   const bool restorePage=screen==Screen::Reading&&!waiting&&pageDocument.struct_size==sizeof(pageDocument);
   const bool preserveScene=restorePage&&checkpointScene;
-  if(!(preserveScene?pauseScene():closeScene())||(!engineSuspended&&!engine->suspend()))return false;
+  const bool warmPolicy=preserveScene&&reason==RISC_RESIDENT_CHECKPOINT_POLICY;
+  if(!(preserveScene?pauseScene():closeScene()))return false;
+  if(warmPolicy){
+   if(!engineSuspended){if(!engine->park())return false;engineParked=true;positionPending=false;}
+  }else{
+   // Shared UI may alter files/settings; keep the original cold resume there.
+   if(engineParked){if(!engine->unpark())return false;engineParked=false;engineSuspended=false;}
+   if(!engineSuspended&&!engine->suspend())return false;
+   positionPending=false;
+  }
   uint32_t reply=0;
   int rc=risc_scene_resident_dispatch_reply_v1(&resident,reason,&reply);if(rc==RISC_RESIDENT_RETAINED||!alive()){retain();return false;}if(rc!=RISC_RESIDENT_OK&&rc!=RISC_RESIDENT_BUSY)return false;
   hasPending=false;
@@ -331,7 +346,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
     {
      if(a->initialized){a->engine->openLibrary();a->show(Screen::Library);}else a->error("SD card unavailable");
      {
-      LOG_INF("startup","scene ready page=%ux%u sd=%s",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
+      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.7",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
       const auto* files=static_cast<const t5_file_open_api_v1*>(a->grants[4].api);char source[512]{};
       if(a->initialized&&files&&files->struct_size>=sizeof(*files)&&files->source_path_get&&files->source_path_get(source,sizeof(source))){if(!strncmp(source,"/sd/",4))a->openBook(source+3);else a->error("Unsupported book location");}
       unsigned ticks=0;
@@ -349,9 +364,23 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
         if(e.kind==RISC_SCENE_SUSPEND_EVENT)break;
         if(e.kind==RISC_SCENE_CONTROLS_EVENT){if(a->resident.enabled&&!a->shell(RISC_RESIDENT_CHECKPOINT_CONTROLS))break;}
         else if(e.action==ToggleChrome&&a->screen==Screen::Reading){a->action(e.action,e.value);}
-        else if(a->restoreEngine()){a->engine->message.clear();a->action(e.action,e.value);}
+        else {
+         bool pageTurn=e.action==Next||e.action==Previous||e.action==Scroll||e.action==Scrub;
+         uint32_t start=millis();
+         if(a->restoreEngine()){
+          if(pageTurn){a->turnStarted=start;a->restoreMs=millis()-start;a->turnTiming=true;}
+          a->engine->message.clear();uint32_t advanced=millis();a->action(e.action,e.value);
+          if(pageTurn){a->advanceMs=millis()-advanced;if(!a->dirty)a->turnTiming=false;}
+         }
+        }
        }
        if(++ticks>=20){ticks=0;risc_scene_navigation_v1 nav{};nav.struct_size=sizeof(nav);uint32_t flags=0;rc=a->scene->snapshot(a->scene->context,a->session,&nav,&flags);if(!a->checked(rc)||rc)break;
+        if(a->positionPending&&!a->waiting&&!(flags&(RISC_SCENE_PRESENTING|RISC_SCENE_INPUT_BUSY))){
+         if(a->turnTiming){LOG_INF("turn","restore_ms=%u advance_ms=%u render_ms=%u display_wait_ms=%u total_ms=%u",a->restoreMs,a->advanceMs,a->renderMs,millis()-a->publishedAt,millis()-a->turnStarted);a->turnTiming=false;}
+         // Persist after the requested page is visible, not on its tap-to-image
+         // critical path. Explicit close/suspend still commits immediately.
+         a->positionPending=false;if(!a->engine->savePosition())a->error("Reading position could not be saved");
+        }
         int status=risc_scene_resident_poll_work_v1(&a->resident,flags,a->waiting?RISC_RESIDENT_POLL_INHIBIT_IDLE|RISC_RESIDENT_POLL_INHIBIT_POLICY:0);if(status==RISC_RESIDENT_RETAINED){retain();return;}if(status==RISC_RESIDENT_EXIT)break;
         if(a->resident.policy&&!a->waiting&&!(flags&(RISC_SCENE_PRESENTING|RISC_SCENE_INPUT_BUSY))&&!a->shell(RISC_RESIDENT_CHECKPOINT_POLICY))break;
        }

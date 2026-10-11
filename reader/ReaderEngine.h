@@ -47,7 +47,9 @@ class Engine {
  uint32_t targetOffset=0;bool seeking=false;
  std::string anchor;
  uint32_t stateGeneration=0,settingsGeneration=0;
- bool stateWritable=true,settingsWritable=true;
+ bool stateWritable=true,settingsWritable=true,parked=false;
+ BookSummary durableSummary;
+ std::unique_ptr<BookState> durableState;
  uint32_t uiGeneration=0,summaryGeneration=0;bool uiWritable=true,summaryWritable=true;
  int scrollOffset=0,seekFraction=-1;
  std::unique_ptr<Section> followingSection;
@@ -73,7 +75,7 @@ public:
  bool open(const std::string& path,bool recent=true);bool close();bool suspend();
  bool step();bool turn(int direction);bool jump(Position);bool jumpToc(unsigned);
  bool setLayout(const Settings&);bool toggleBookmark();bool removeBookmark(unsigned);bool renameBookmark(unsigned,const char*);
- bool render();bool savePosition();
+ bool render();bool savePosition();bool park();bool unpark();
  Position position()const;
  bool waiting()const{return section&&(!page||seeking);}
  bool isOpen()const{return bool(book);}bool busy()const{return section&&(section->isBuilding()||seeking);}

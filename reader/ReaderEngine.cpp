@@ -8,7 +8,7 @@ namespace reader {
 static bool validSettings(const Settings& s){return memchr(s.family,0,sizeof(s.family))&&s.pointSize>=8&&s.pointSize<=40&&s.margin<=40&&s.lineSpacing<=3&&s.alignment<=4&&s.orientation<=3&&s.indent<=8&&s.wordSpacing>=50&&s.wordSpacing<=200&&s.characterSpacing<=4&&s.paragraphSpacing<=1&&s.hyphenation<=1&&s.embeddedStyle<=1&&s.images<=1;}
 
 Engine::Engine():renderer(display),fontCache(renderer.getFontMap(),renderer.getSdCardFonts(),renderer.getTtfFonts()){}
-Engine::~Engine(){close();sdFonts.unloadAll(renderer);renderer.unregisterTtfFont(fontId);vectorFont.reset();freeink::MemoryManager::instance().reset();}
+Engine::~Engine(){if(!unpark())return;close();sdFonts.unloadAll(renderer);renderer.unregisterTtfFont(fontId);vectorFont.reset();freeink::MemoryManager::instance().reset();}
 bool Engine::init(unsigned w,unsigned h){
  if(!w||!h||w>1024||h>1024||w%8)return false;
  pixels.resize(w*h/8);if(!display.bind(pixels.data(),w,h))return false;
@@ -58,9 +58,11 @@ bool Engine::open(const std::string& path,bool recent){
  if(!readRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable)){message="Saved reading position is damaged";book.reset();return false;}
  if(state.count>64||state.position.spine>=unsigned(book->getSpineItemsCount())){message="Saved position is invalid";stateWritable=false;book.reset();return false;}
  for(unsigned i=0;i<state.count;i++)if(!memchr(state.marks[i].name,0,sizeof(state.marks[i].name))||state.marks[i].position.spine>=unsigned(book->getSpineItemsCount())){message="Saved bookmarks are damaged";book.reset();return false;}
+ durableState=std::make_unique<BookState>(state);
  summary=BookSummary();summaryGeneration=0;summaryWritable=true;
  if(!readBookSummary(path,summary)){message="Saved library status is damaged";book.reset();return false;}
  if(!readRecord(book->getCachePath()+"/nova-status",&summary,sizeof(summary),summaryGeneration,summaryWritable)){message="Saved library status is damaged";book.reset();return false;}
+ durableSummary=summary;
  if(recent)snprintf(preferences.recentPath,sizeof(preferences.recentPath),"%s",path.c_str());
  renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-preferences.settings.orientation)&3));
  targetOffset=state.position.offset;seeking=true;
@@ -99,16 +101,29 @@ Position Engine::position()const{
  }
  return {uint32_t(spine),offset};
 }
-bool Engine::saveBook(){if(!book)return true;return writeRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable);}
-bool Engine::savePosition(){if(!book||!page||seeking)return true;state.position=position();if(!saveBook()||!saveSummary()){message="Reading position was not saved";return false;}return true;}
-bool Engine::close(){bool saved=savePosition();section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();anchor.clear();seeking=false;return saved&&!failed();}
-bool Engine::suspend(){if(!savePosition())return false;section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();library.close();sdFonts.unloadAll(renderer);if(vectorFont){renderer.unregisterTtfFont(fontId);renderer.removeFont(fontId);vectorFont.reset();}for(auto& f:vectorFiles)if(!f.close())return false;return alive();}
+bool Engine::saveBook(){
+ if(!book)return true;if(!stateWritable)return false;
+ if(stateGeneration&&durableState&&!memcmp(&state,durableState.get(),sizeof(state)))return true;
+ if(!durableState)durableState=std::make_unique<BookState>();
+ if(!writeRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable))return false;
+ *durableState=state;return true;
+}
+bool Engine::savePosition(){
+ if(!book||!page||seeking)return true;
+ const Position p=position(),old=state.position;
+ state.position=p;if(!saveBook()){state.position=old;message="Reading position was not saved";return false;}
+ if(!saveSummary()){message="Reading position was not saved";return false;}return true;
+}
+bool Engine::park(){if(parked)return true;if(!savePosition()||!HalFile::parkAll())return false;parked=true;return true;}
+bool Engine::unpark(){if(!parked)return true;if(!HalFile::unparkAll())return false;parked=false;return true;}
+bool Engine::close(){if(!unpark())return false;bool saved=savePosition();section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();anchor.clear();seeking=false;return saved&&!failed();}
+bool Engine::suspend(){if(!unpark()||!savePosition())return false;section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();library.close();sdFonts.unloadAll(renderer);if(vectorFont){renderer.unregisterTtfFont(fontId);renderer.removeFont(fontId);vectorFont.reset();}for(auto& f:vectorFiles)if(!f.close())return false;return alive();}
 bool Engine::turn(int direction){
  if(!section||seeking)return false;
  followingPage.reset();followingSection.reset();scrollOffset=0;
- if(direction>0){if(pageNumber+1>=section->pageCount&&section->isBuilding()){if(!section->buildSomeMore(1)||failed())return false;}if(pageNumber+1<section->pageCount)++pageNumber;else if(spine+1<book->getSpineItemsCount()){if(!savePosition())return false;targetOffset=0;return loadSection(spine+1);}else return false;}
+ if(direction>0){if(pageNumber+1>=section->pageCount&&section->isBuilding()){if(!section->buildSomeMore(1)||failed())return false;}if(pageNumber+1<section->pageCount)++pageNumber;else if(spine+1<book->getSpineItemsCount()){targetOffset=0;return loadSection(spine+1);}else return false;}
  else if(pageNumber>0)--pageNumber;else if(spine>0){targetOffset=UINT32_MAX;seeking=true;return loadSection(spine-1);}else return false;
- page=section->loadPage(pageNumber);return bool(page)&&savePosition();
+ page=section->loadPage(pageNumber);return bool(page)&&!failed();
 }
 bool Engine::jump(Position target){if(!book||target.spine>=unsigned(book->getSpineItemsCount()))return false;targetOffset=target.offset;seeking=true;seekFraction=-1;anchor.clear();return loadSection(target.spine);}
 bool Engine::jumpToc(unsigned n){if(!book||n>=unsigned(book->getTocItemsCount()))return false;auto entry=book->getTocItem(n);if(entry.spineIndex<0)return false;targetOffset=0;seekFraction=-1;anchor=entry.anchor;seeking=true;return loadSection(entry.spineIndex);}
@@ -132,7 +147,17 @@ bool Engine::renameBookmark(unsigned n,const char* name){if(n>=state.count||!nam
 bool Engine::render(){
  if(!page||seeking)return false;
  if(ui.scroll&&scrollOffset&&!prepareFollowingPage())return false;
- renderer.clearScreen();auto prewarm=fontCache.createPrewarmScope();int m=preferences.settings.margin;
+ renderer.clearScreen();int m=preferences.settings.margin;
+ // The upstream scan scope clears all glyph caches on entry AND destruction.
+ // Vector fonts already have bounded on-demand glyph/kerning caches: retain
+ // those across pages instead of rasterizing every letter again each turn.
+ if(vectorFont){
+  int dy=ui.scroll?scrollOffset:0;
+  page->render(renderer,fontId,m,m-dy);
+  if(dy&&followingPage)followingPage->render(renderer,fontId,m,renderer.getScreenHeight()-dy+m);
+  return !failed();
+ }
+ auto prewarm=fontCache.createPrewarmScope();
  int dy=ui.scroll?scrollOffset:0,followingY=renderer.getScreenHeight()-dy+m;
  page->render(renderer,fontId,m,m-dy);
  if(dy&&followingPage)followingPage->render(renderer,fontId,m,followingY);

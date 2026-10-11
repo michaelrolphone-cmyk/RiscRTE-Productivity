@@ -1,4 +1,4 @@
-# NOVA-7 e-ink Reader, 0.1.6
+# NOVA-7 e-ink Reader, 0.1.7
 
 ## Design and native implementation
 
@@ -51,7 +51,7 @@ resolved by the upstream engine, not estimated fixed lines of text.
 
 ## Integration
 
-Pair Reader **0.1.6** with scene-host **0.3.5**. The app checks the optional
+Pair Reader **0.1.7** with scene-host **0.3.5**. The app checks the optional
 reading interface and shows UPDATE FIRMWARE on older providers. X4 0.1.75 has
 scene 0.3.4 internally, so copying only the app to that firmware is insufficient.
 The Reader SD identity remains `Apps/ebook-reader/ebook_reader.elf`. Keep the
@@ -77,3 +77,5 @@ Physical display contrast, ghosting, timing and device interaction still need
 hardware testing; host framebuffer captures do not claim those results.
 
 Reference SHA256: `7fb94be2f133507dd0544078d2d500f66b6dd4048905ec52b7a9e15f912abb20`.
+
+Page-turn regression correction and measured host-call counts: `TURN_PERFORMANCE.md`.
