@@ -1,0 +1,14 @@
+{
+  "schema": "riscrte.reader.deployment.v1",
+  "software_class": "e-ink",
+  "target": "x4",
+  "presentation": "portrait-monochrome",
+  "state_root": "/System/State/Applications/ebook-reader",
+  "required_extensions": {
+    "ui.scene@1": "RiscScenePageV1",
+    "storage.volume@1": "RiscStorageVolumeFsV1"
+  },
+  "native_capabilities": ["memory.heap@1", "random.bytes@1"],
+  "themes": false,
+  "physical_verification": "pending"
+}

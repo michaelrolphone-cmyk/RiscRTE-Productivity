@@ -5,6 +5,7 @@
 #endif
 #include "T5AppApi.h"
 #include "SpringboardPresentation.h"
+#include "PaperPresentation.h"
 #include "RiscRuntimeV1.h"
 #include "PortableRtcClock.h"
 #include "PortableTime.h"
@@ -19,16 +20,29 @@
 #endif
 #include <stddef.h>
 #include <stdio.h>
+#ifdef ALARM_NATIVE_UTC
+#include "points_native_time.h"
+#ifndef ALARM_SERVICE_TAGGED_V2
+#error Native Points requires explicitly negotiated alarm.service API2
+#endif
+#else
+#define points_live() true
+#define points_service_result(rc) ((void)(rc),true)
+#endif
 
 enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE, PAGE_CUSTOM, PAGE_CUSTOM_KEYBOARD };
 static const t5_app_api_v1 *app;
 static const risc_runtime_api_v1 *runtime;
 static const risc_key_value_v1 *storage,*preferences;
+#ifndef ALARM_NATIVE_UTC
 static const twatch_rtc_api_v1 *rtc;
+#endif
 static const alarm_service_v1 *service;
 static risc_runtime_capability_v1 grants[4];
 static unsigned acquired,page,list_page,selected,time_format;
 static const springboard_presentation *nova;
+static const paper_presentation *paper;
+static void pe_draw(void);
 static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos,custom_key_page,custom_key_choice;
 static int nova_drag_x,nova_drag_y;
 static bool nova_drag_active,nova_delete_confirm;
@@ -43,6 +57,31 @@ static const char *const modes[]={"System default","Vibrate","Sound","Sound and 
 static const char *const days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char *const nova_kinds[]={"","Work","Work End","LUNCH","BREAK","WIND DOWN","CUSTOM 1","CUSTOM 2"};
 static const char *const nova_modes[]={"SYSTEM","VIBRATE","SOUND","VIBRATE + SOUND"};
+static bool points_visual_only(void) {
+#ifdef ALARM_NATIVE_UTC
+    const alarm_service_descriptor_v2 *descriptor=alarm_service_descriptor(service);
+    return descriptor && descriptor->output_modes==ALARM_MODE_VISUAL;
+#elif defined(ALARM_SERVICE_SLEEP_RESUME_SUPPORTED)
+    /* Current Watch API1 appends the sleep callback at the offset occupied by
+     * the retired untagged output descriptor. Never reinterpret that pointer. */
+    return false;
+#else
+    return service && alarm_service_output_modes(service)==ALARM_MODE_VISUAL;
+#endif
+}
+static const char *point_mode_name(unsigned mode,bool compact) {
+    if(points_visual_only())return "VISUAL ONLY";
+    return compact?nova_modes[mode]:modes[mode];
+}
+static void open_mode_page(void) {
+    if(points_visual_only()){notice="Visual only - saved mode kept";return;}
+    page=PAGE_MODE;
+}
+static void select_mode(unsigned mode) {
+    if(!points_visual_only())draft.mode=(uint8_t)mode;
+    else notice="Visual only - saved mode kept";
+    page=PAGE_EDIT;
+}
 #define NOVA_CYAN 0x19e3ffu
 #define NOVA_WHITE 0xffffffu
 #define NOVA_MUTED 0x6b8288u
@@ -58,6 +97,7 @@ static const char custom_chars[]=" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
  * original monochrome UI. A strong adapter definition overrides this weak
  * null implementation in the target ELF. */
 __attribute__((weak)) const springboard_presentation *springboard_presentation_get(void) { return NULL; }
+__attribute__((weak)) const paper_presentation *paper_presentation_get(void) { return NULL; }
 static bool duration_kind(unsigned kind) { return points_duration_kind(kind); }
 static unsigned custom_index(unsigned kind){return kind>=POINTS_CUSTOM_1&&kind<=POINTS_CUSTOM_2?kind-POINTS_CUSTOM_1:POINTS_CUSTOM_COUNT;}
 static const char *nova_kind_name(unsigned kind) {
@@ -76,43 +116,111 @@ static void custom_cycle(int direction){
     custom_draft.custom[i].name[POINTS_CUSTOM_NAME_MAX]=0;
 }
 static bool read_clock(uint32_t *seconds) {
+#ifdef ALARM_NATIVE_UTC
+    bool ok=points_native_sample(runtime,preferences,seconds,NULL);
+    memset(&points_preview,0,sizeof(points_preview));
+    if(ok&&writer.loaded)(void)points_utc_project(&points_zone_rule,&writer.saved,*seconds,&points_preview);
+    return ok;
+#else
     twatch_rtc_time_v1 t;
     return rtc && rtc->read(rtc->context,&t) && t.weekday<=6 &&
         alarm_calendar_seconds(t.year,t.month,t.day,t.hour,t.minute,t.second,seconds);
+#endif
 }
+#ifdef ALARM_NATIVE_UTC
+/* Optional adapter toolbar contract: already-local civil values, no RTC grant. */
+__attribute__((visibility("hidden"))) bool portable_app_native_local_time(twatch_rtc_time_v1 *out) {
+    uint32_t seconds;portable_timezone_civil local;
+    if(!out||!ready||!points_native_sample(runtime,preferences,&seconds,&local))return false;
+    *out=(twatch_rtc_time_v1){(uint16_t)local.year,local.month,local.day,local.weekday,local.hour,local.minute,local.second};
+    return true;
+}
+static const char *points_time_zone(void) {return clock_valid&&points_zone[0]?points_zone:"Time/zone unavailable";}
+#else
+#define points_time_zone portable_time_zone
+#endif
 static void refresh_status(void) {
+    if(!points_live())return;
     service_state=(alarm_status_v1){.struct_size=sizeof(service_state)};
+#ifdef ALARM_NATIVE_UTC
+    int32_t rc=service?service->status(service->context,&service_state):ALARM_INVALID;
+    if(!points_service_result(rc)||!points_service_result(service_state.error))return;
+    service_valid=rc==ALARM_OK&&service_state.api_version==1&&service_state.struct_size>=sizeof(service_state)&&
+        service_state.state<=ALARM_STATE_CUE;
+#else
     service_valid=service && service->status(service->context,&service_state)==ALARM_OK;
+#endif
 }
 static void close_dependencies(void) {
+    if(!points_live())return;
+#ifdef ALARM_NATIVE_UTC
+    if(runtime)while(acquired){
+        risc_runtime_capability_v1 released=grants[acquired-1];
+        bool ok=runtime->release(&released);
+        if(!points_live())return;
+        if(!ok||released.api||released.slot||released.generation){points_retain();return;}
+        grants[--acquired]=released;
+    }
+    storage=preferences=NULL;service=NULL;runtime=NULL;ready=false;
+#else
     if(runtime)while(acquired)runtime->release(&grants[--acquired]);
     storage=preferences=NULL;rtc=NULL;service=NULL;runtime=NULL;ready=false;
+#endif
 }
 static bool open_dependencies(void) {
+    if(!points_live())return false;
     runtime=risc_runtime_get_api(1);acquired=0;
     if(!runtime || runtime->api_version!=1 || runtime->struct_size<RISC_RUNTIME_CAPABILITIES_V1_SIZE ||
        !runtime->acquire || !runtime->release || !runtime->yield_ms)return false;
+#ifdef ALARM_NATIVE_UTC
+    const char *caps[]={"storage.key-value",ALARM_SERVICE_CAPABILITY,"storage.key-value"};
+    const unsigned apis[]={1,ALARM_SERVICE_API_V2,1};const uint64_t instances[]={5,0,1};
+#else
     const char *caps[]={"storage.key-value","rtc.clock",ALARM_SERVICE_CAPABILITY,"storage.key-value"};
     const unsigned apis[]={1,2,1,1};const uint64_t instances[]={5,0,0,1};
-    for(unsigned i=0;i<4;i++) {
+#endif
+    for(unsigned i=0;i<sizeof(apis)/sizeof(apis[0]);i++) {
         grants[i]=(risc_runtime_capability_v1){.struct_size=sizeof(grants[i])};
+#ifdef ALARM_NATIVE_UTC
+        bool ok=runtime->acquire(caps[i],apis[i],instances[i],&grants[i]);
+        if(!points_live())return false;
+        if(!ok){points_retain();return false;}
+        if(!grants[i].api||!grants[i].slot||!grants[i].generation){points_retain();return false;}
+#else
         if(!runtime->acquire(caps[i],apis[i],instances[i],&grants[i]))return false;
+#endif
         acquired++;
     }
+#ifdef ALARM_NATIVE_UTC
+    points_storage_source=grants[0].api;service=grants[1].api;points_preferences_source=grants[2].api;
+    if(!points_writer_storage_valid(points_storage_source)||!portable_time_format_api_valid(points_preferences_source))return false;
+    points_storage_guarded=(risc_key_value_v1){1,sizeof(points_storage_guarded),(void*)points_storage_source,points_guarded_get,points_guarded_put};
+    points_preferences_guarded=(risc_key_value_v1){1,sizeof(points_preferences_guarded),(void*)points_preferences_source,points_guarded_get,NULL};
+    storage=&points_storage_guarded;preferences=&points_preferences_guarded;
+#else
     storage=grants[0].api;rtc=grants[1].api;service=grants[2].api;preferences=grants[3].api;
+#endif
     return points_writer_storage_valid(storage) && portable_time_format_api_valid(preferences) &&
+#ifndef ALARM_NATIVE_UTC
         rtc && rtc->api_version==2 && rtc->struct_size>=sizeof(*rtc) && rtc->read &&
+#endif
+#ifdef ALARM_NATIVE_UTC
+        alarm_service_descriptor(service) &&
+#else
         service && service->api_version==1 && service->struct_size>=sizeof(*service) && service->status &&
+#endif
         service->step && service->refresh && service->acknowledge && service->stop_only;
 }
 static void load_catalog(void) {
-    (void)points_writer_load(&writer,storage);
-    (void)portable_time_format_load(preferences,&time_format);
-    uint32_t now;clock_valid=read_clock(&now);refresh_status();
+    if(!points_live())return;
+    (void)points_writer_load(&writer,storage);if(!points_live())return;
+    (void)portable_time_format_load(preferences,&time_format);if(!points_live())return;
+    uint32_t now;clock_valid=read_clock(&now);if(!points_live())return;
+    refresh_status();
     notice=writer.loaded?"Tap a point to edit":"Storage invalid: retry";
 }
 static void format_time(const points_item *p,char *out,size_t cap) {
-    if(time_format==PORTABLE_TIME_FORMAT_24)snprintf(out,cap,"%02u:%02u",p->hour,p->minute);
+    if(time_format==PORTABLE_TIME_FORMAT_24)snprintf(out,cap,"%u:%02u",p->hour,p->minute);
     else snprintf(out,cap,"%u:%02u %s",p->hour%12?p->hour%12:12,p->minute,p->hour<12?"AM":"PM");
 }
 static void format_days(unsigned mask,char *out,size_t cap) {
@@ -128,9 +236,25 @@ static const char *status_message(void) {
     if(!ready)return "Dependencies unavailable";
     if(writer.uncertain||writer.meta_uncertain)return "Save unconfirmed: retry";
     if(!writer.loaded)return "Storage invalid: retry";
-    if(!clock_valid)return "RTC invalid: retry";
+    if(!clock_valid)return
+#ifdef ALARM_NATIVE_UTC
+        points_clock_status==PORTABLE_REALTIME_UNSET?"Time unset: use Settings":"Time/zone invalid: retry";
+#else
+        "RTC invalid: retry";
+#endif
     if(!service_valid)return "Service unavailable: retry";
-    if(service_state.state==ALARM_STATE_BLOCKED)return service_state.error==ALARM_RTC?"RTC changed: retry":"Service error: retry";
+    if(service_state.state==ALARM_STATE_BLOCKED)return service_state.error==ALARM_RTC?
+#ifdef ALARM_NATIVE_UTC
+        "Native time: retry":
+#else
+        "RTC changed: retry":
+#endif
+        "Service error: retry";
+#ifdef ALARM_NATIVE_UTC
+    if(points_preview.flags&POINTS_FLAG_GAP)return "DST gap: start skipped";
+    if(points_preview.flags&POINTS_FLAG_FOLD)return "DST fold: start skipped";
+    if(points_preview.flags&POINTS_FLAG_RANGE)return "Time range limit";
+#endif
     if(service_state.state==ALARM_STATE_DISMISSING)return "Dismiss saving";
     if(service_state.state==ALARM_STATE_LOADING)return "Service loading";
     return notice?notice:"Service ready";
@@ -176,18 +300,18 @@ static __attribute__((unused)) void draw_legacy(void) {
         snprintf(text,sizeof(text),"Type: %s",kinds[draft.kind]);label(8,42,224,text);line(63);
         format_time(&draft,value,sizeof(value));snprintf(text,sizeof(text),"Time: %s",value);label(8,72,224,text);line(93);
         format_days(draft.weekdays,value,sizeof(value));snprintf(text,sizeof(text),"Days: %s",value);label(8,102,224,text);line(123);
-        snprintf(text,sizeof(text),"Alert: %s",modes[draft.mode]);label(8,132,224,text);line(153);
+        snprintf(text,sizeof(text),"Alert: %s",point_mode_name(draft.mode,false));label(8,132,224,text);line(153);
         if(duration_kind(draft.kind))snprintf(text,sizeof(text),"Duration: %u min",draft.duration_minutes);
         else snprintf(text,sizeof(text),"Duration: not used");
         label(8,162,224,text);line(183);button(8,188,106,draft.enabled?"On":"Off");button(124,188,108,"Save...");
     } else if(page==PAGE_TYPE) {
         for(unsigned i=1;i<=5;i++){snprintf(text,sizeof(text),"%s%s",draft.kind==i?"X ":"",kinds[i]);button(8,39+(int)(i-1)*32,224,text);}
     } else if(page==PAGE_MODE) {
-        for(unsigned i=0;i<4;i++){snprintf(text,sizeof(text),"%s%s",draft.mode==i?"X ":"",modes[i]);button(8,47+(int)i*37,224,text);}
+        for(unsigned i=0;i<4;i++){snprintf(text,sizeof(text),"%s%s",draft.mode==i?"X ":"",point_mode_name(i,false));button(8,47+(int)i*37,224,text);}
     } else if(page==PAGE_TIME) {
         label(8,42,224,"24-hour editor (HH:MM)");button(24,70,80,"Hour up");button(136,70,80,"Min up");
-        snprintf(text,sizeof(text),"%02u : %02u",draft.hour,draft.minute);label(24,114,192,text);
-        button(24,142,80,"Hour down");button(136,142,80,"Min down");label(8,174,224,portable_time_zone());button(8,185,224,"Done");
+        snprintf(text,sizeof(text),"%u : %02u",draft.hour,draft.minute);label(24,114,192,text);
+        button(24,142,80,"Hour down");button(136,142,80,"Min down");label(8,174,224,points_time_zone());button(8,185,224,"Done");
     } else if(page==PAGE_DAYS) {
         for(unsigned i=0;i<7;i++){snprintf(text,sizeof(text),"%s%s",draft.weekdays&(1u<<i)?"ON ":"OFF ",days[i]);button(8+(int)(i%3)*76,43+(int)(i/3)*45,72,text);}
         button(84,133,72,"All");button(160,133,72,"M-F");button(8,184,106,"Clear");button(124,184,108,"Done");
@@ -293,7 +417,7 @@ static void nova_draw_edit(void) {
         else if(row==2){nova_duration(v,draft.duration_minutes);snprintf(line,sizeof(line),"DURATION  %s",duration_kind(draft.kind)?v:"NOT USED");if(!duration_kind(draft.kind))col=NOVA_DIM;}
         else if(row==3){snprintf(line,sizeof(line),"NOTIFY AT END  %s",draft.notify_end?"ON":"OFF");if(!timed)col=NOVA_DIM;}
         else if(row==4){snprintf(line,sizeof(line),"3 MIN WARNING  %s",draft.warn3?"ON":"OFF");if(!timed||draft.duration_minutes<3)col=NOVA_DIM;}
-        else if(row==5)snprintf(line,sizeof(line),"NOTIFY  %s",nova_modes[draft.mode]);
+        else if(row==5)snprintf(line,sizeof(line),"NOTIFY  %s",point_mode_name(draft.mode,true));
         else if(row==6){nova_short_days(draft.weekdays,v);snprintf(line,sizeof(line),"DAYS  %s",v);}
         else if(row==7)snprintf(line,sizeof(line),"ENABLED  %s",draft.enabled?"ON":"OFF");
         else if(row==8){snprintf(line,sizeof(line),"SAVE CHANGES");col=NOVA_CYAN;}
@@ -325,14 +449,14 @@ static void nova_draw_custom(void) {
 }
 static void nova_draw_mode(void) {
     nova_header("NOTIFY","HOW TO ALERT YOU");
-    for(unsigned i=0;i<4;i++){int y=82+(int)i*36;uint32_t col=i==draft.mode?NOVA_CYAN:NOVA_WHITE;nova_dot(25,y+2,i==draft.mode?5:2,col,220);nova_cap(y,nova_modes[i],false,col);}
+    for(unsigned i=0;i<4;i++){int y=82+(int)i*36;uint32_t col=i==draft.mode?NOVA_CYAN:NOVA_WHITE;nova_dot(25,y+2,i==draft.mode?5:2,col,220);nova_cap(y,point_mode_name(i,true),false,col);}
 }
 static void nova_draw_time(void) {
     nova_header("TIME","DRAG OR TAP A COLUMN");
     for(int j=-2;j<=2;j++) {
         int h=(int)draft.hour+j;while(h<0)h+=24;h%=24;
         int m=(int)draft.minute+j*5;while(m<0)m+=60;m%=60;
-        char line[24];snprintf(line,sizeof(line),"%02d       %02d",h,m);
+        char line[24];snprintf(line,sizeof(line),"%d       %02d",h,m);
         nova_cap(72+(j+2)*32,line,j==0,j==0?NOVA_CYAN:(j==1||j==-1?NOVA_MUTED:NOVA_DIM));
     }
     nova_cap(138,":",true,NOVA_CYAN);
@@ -386,6 +510,8 @@ static void save_action(void);
 static void retry_action(void);
 #include "points_nova7.inc"
 static void draw(void) {
+    if(!points_live())return;
+    if(paper){pe_draw();return;}
 #ifdef PORTABLE_NOVA_UI
     draw_nova7();
 #else
@@ -398,6 +524,35 @@ static void edit_slot(unsigned slot) {
     if(!draft.kind)draft=(points_item){.kind=POINTS_WORK_START};
     page=PAGE_EDIT;notice="Draft only - not saved";
 }
+#ifdef ALARM_NATIVE_UTC
+static void save_action(void) {
+    if(!points_live())return;
+    int32_t rc;
+    if(writer.meta_uncertain){rc=points_writer_retry_meta(&writer,storage);
+        if(points_live()&&rc==ALARM_OK&&writer.uncertain)rc=points_writer_retry(&writer,storage);
+    }
+    else if(writer.uncertain)rc=points_writer_retry(&writer,storage);
+    else {
+        if(!writer.loaded){notice="Storage invalid: retry";return;}
+        if(writer.saved.revision==UINT32_MAX){notice="Revision limit reached";return;}
+        if(draft.enabled && !draft.weekdays){notice="Choose at least one day";
+#ifdef PORTABLE_NOVA_UI
+            page=PAGE_EDIT;
+#else
+            page=PAGE_DAYS;
+#endif
+            return;}
+        if(!service_valid || service_state.state==ALARM_STATE_BLOCKED){notice="Service blocked: retry";return;}
+        uint32_t now;clock_valid=read_clock(&now);if(!points_live())return;if(!clock_valid){notice="Time/zone invalid: retry";return;}
+        if(now>ALARM_RTC_MAX-ALARM_RECOVERY_SECONDS){notice="Native time range limit";return;}
+        points_config desired=writer.saved;desired.revision++;desired.created=now;desired.points[selected]=draft;
+        rc=points_writer_save(&writer,storage,&desired);
+    }
+    if(!points_live())return;
+    if(rc!=ALARM_OK){notice=writer.uncertain?"Save unconfirmed: retry":"Point or revision invalid";return;}
+    page=PAGE_LIST;notice="Catalog saved";(void)points_service_result(service->refresh(service->context));
+}
+#else
 static void save_action(void) {
     int32_t rc;
     if(writer.meta_uncertain){rc=points_writer_retry_meta(&writer,storage);
@@ -423,16 +578,18 @@ static void save_action(void) {
     if(rc!=ALARM_OK){notice=writer.uncertain?"Save unconfirmed: retry":"Point or revision invalid";return;}
     page=PAGE_LIST;notice="Catalog saved";(void)service->refresh(service->context);
 }
+#endif
 static void retry_action(void) {
+    if(!points_live())return;
     if(!ready) {
-        close_dependencies();ready=open_dependencies();
+        close_dependencies();if(!points_live())return;ready=open_dependencies();
         if(ready)load_catalog();
         return;
     }
     if(writer.meta_uncertain){if(writer.uncertain)save_action();else (void)points_writer_retry_meta(&writer,storage);return;}
     if(writer.uncertain){save_action();return;}
     if(page==PAGE_LIST || !writer.loaded)load_catalog();
-    uint32_t now;clock_valid=read_clock(&now);(void)service->refresh(service->context);refresh_status();notice="Refreshed";
+    uint32_t now;clock_valid=read_clock(&now);if(!points_live())return;(void)points_service_result(service->refresh(service->context));refresh_status();notice="Refreshed";
 }
 static __attribute__((unused)) void on_tap_legacy(int x,int y) {
     if(!ready) {
@@ -441,7 +598,7 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
     }
 #ifndef PORTABLE_ALARM_CLIENT
     if(service_valid && service_state.occurrence.generation) {
-        if(hit(x,y,8,176,224,34))(void)service->acknowledge(service->context,&service_state.occurrence);
+        if(hit(x,y,8,176,224,34))(void)points_service_result(service->acknowledge(service->context,&service_state.occurrence));
         return;
     }
 #endif
@@ -457,7 +614,7 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
     } else if(page==PAGE_EDIT) {
         if(hit(x,y,8,35,224,149)) {
             unsigned row=(unsigned)(y-35)/30;
-            page=row==0?PAGE_TYPE:row==1?PAGE_TIME:row==2?PAGE_DAYS:row==3?PAGE_MODE:duration_kind(draft.kind)?PAGE_DURATION:PAGE_EDIT;
+            page=row==0?PAGE_TYPE:row==1?PAGE_TIME:row==2?PAGE_DAYS:row==3?(points_visual_only()?PAGE_EDIT:PAGE_MODE):duration_kind(draft.kind)?PAGE_DURATION:PAGE_EDIT;
         } else if(hit(x,y,8,188,106,28))draft.enabled^=1;
         else if(hit(x,y,124,188,108,28))page=PAGE_SAVE;
     } else if(page==PAGE_TYPE) {
@@ -465,7 +622,7 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
             draft.kind=(uint8_t)i;if(!duration_kind(i))draft.duration_minutes=0;page=PAGE_EDIT;break;
         }
     } else if(page==PAGE_MODE) {
-        for(unsigned i=0;i<4;i++)if(hit(x,y,8,47+(int)i*37,224,28)){draft.mode=(uint8_t)i;page=PAGE_EDIT;break;}
+        for(unsigned i=0;i<4;i++)if(hit(x,y,8,47+(int)i*37,224,28)){select_mode(i);break;}
     } else if(page==PAGE_TIME) {
         if(hit(x,y,24,70,80,28))draft.hour=(uint8_t)((draft.hour+1)%24);
         else if(hit(x,y,136,70,80,28))draft.minute=(uint8_t)((draft.minute+1)%60);
@@ -498,14 +655,21 @@ static __attribute__((unused)) void on_tap_legacy(int x,int y) {
 static void nova_new_point(void) {
     unsigned slot=nova_first_empty();if(slot>=POINTS_MAX){notice="All 8 point slots are in use";return;}
     twatch_rtc_time_v1 t={0};unsigned h=8,m=0;
+#ifdef ALARM_NATIVE_UTC
+    uint32_t seconds;portable_timezone_civil local;
+    if(points_native_sample(runtime,preferences,&seconds,&local)){t.hour=local.hour;t.minute=local.minute;
+        h=t.hour;m=((unsigned)t.minute+4u)/5u*5u;if(m>=60){m=0;h=(h+1)%24;}}
+    if(!points_live())return;
+#else
     if(rtc&&rtc->read(rtc->context,&t)){h=t.hour;m=((unsigned)t.minute+4u)/5u*5u;if(m>=60){m=0;h=(h+1)%24;}}
+#endif
     selected=slot;draft=(points_item){.kind=POINTS_BREAK,.enabled=1,.mode=1,.weekdays=62,.hour=(uint8_t)h,.minute=(uint8_t)m,.duration_minutes=15};
     page=PAGE_EDIT;nova_edit_scroll=0;nova_delete_confirm=false;notice="Draft only - not saved";
 }
 static __attribute__((unused)) void nova_tap(int x,int y) {
     if(!ready){if(y>=135)retry_action();return;}
 #ifndef PORTABLE_ALARM_CLIENT
-    if(service_valid&&service_state.occurrence.generation){if(y>=130)(void)service->acknowledge(service->context,&service_state.occurrence);return;}
+    if(service_valid&&service_state.occurrence.generation){if(y>=130)(void)points_service_result(service->acknowledge(service->context,&service_state.occurrence));return;}
 #endif
     if(writer.uncertain||writer.meta_uncertain||!writer.loaded){if(y>=130)retry_action();return;}
     if(page!=PAGE_LIST&&page!=PAGE_SAVE)notice="Draft only - not saved";
@@ -523,7 +687,7 @@ static __attribute__((unused)) void nova_tap(int x,int y) {
         else if(row==2){if(duration_kind(draft.kind))page=PAGE_DURATION;else notice="Duration not used for this type";}
         else if(row==3){if(timed)draft.notify_end^=1;else notice="Set a duration first";}
         else if(row==4){if(timed&&draft.duration_minutes>=3)draft.warn3^=1;else notice="Set duration to at least 3 min";}
-        else if(row==5)page=PAGE_MODE;
+        else if(row==5)open_mode_page();
         else if(row==6)page=PAGE_DAYS;
         else if(row==7){draft.enabled^=1;nova_delete_confirm=false;}
         else if(row==8){page=PAGE_SAVE;nova_delete_confirm=false;}
@@ -536,7 +700,7 @@ static __attribute__((unused)) void nova_tap(int x,int y) {
                 custom_pos=0;page=PAGE_CUSTOM;}
         }}
     } else if(page==PAGE_MODE) {
-        if(y>=64&&y<220){unsigned row=(unsigned)(y-64)/36u;if(row<4){draft.mode=(uint8_t)row;page=PAGE_EDIT;}}
+        if(y>=64&&y<220){unsigned row=(unsigned)(y-64)/36u;if(row<4){select_mode(row);}}
     } else if(page==PAGE_TIME) {
         if(y>=56&&y<216){int row=(y-56)/32,j=row-2;if(j){if(x<120){int h=(int)draft.hour+j;while(h<0)h+=24;draft.hour=(uint8_t)(h%24);}else{int m=(int)draft.minute+j*5;while(m<0)m+=60;draft.minute=(uint8_t)(m%60);}}}
     } else if(page==PAGE_DURATION) {
@@ -598,7 +762,11 @@ static __attribute__((unused)) void on_tap(int x,int y) {
 #endif
 }
 
+static bool on_back(void);
+#include "points_paper.inc"
+
 static bool on_back(void) {
+    if(!points_live())return false;
     if(writer.uncertain||writer.meta_uncertain){notice="Retry save before leaving";return false;}
     if(service_valid && service_state.occurrence.generation){notice="Dismiss before leaving";return false;}
     if(page==PAGE_LIST) {
@@ -624,21 +792,36 @@ static bool on_back(void) {
     return false;
 }
 void app_main(void) {
+#ifdef ALARM_NATIVE_UTC
+    if(points_retained)return;
+    points_clock=(portable_realtime_client){0};points_zone[0]=0;points_zone_index=0;
+    points_clock_status=PORTABLE_REALTIME_UNSET;points_zone_status=PORTABLE_TIMEZONE_UNAVAILABLE;
+#endif
     app=t5_app_get_api(1);writer=(points_writer){0};draft=(points_item){0};page=PAGE_LIST;list_page=selected=0;
-    nova=NULL;nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
+#ifdef PORTABLE_PRODUCTIVITY_SCROLL
+    pe_scroll=(productivity_scroll){0};memset(&pe_scroll_state,0,sizeof(pe_scroll_state));
+#endif
+    nova=NULL;paper=NULL;pe_first=pe_edit_first=pe_choice_first=pe_focus=pe_key_page=0;pe_focus_visible=pe_exit=pe_down=false;pe_clean=true;memset(pe_key_text,0,sizeof(pe_key_text));
+    nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
     time_format=PORTABLE_TIME_FORMAT_12;service_state=(alarm_status_v1){0};service_valid=clock_valid=ready=false;notice="";
     if(!app || app->abi_version!=1 || app->struct_size<offsetof(t5_app_api_v1,draw_label)+sizeof(app->draw_label) ||
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
-       !app->fill_rect || !app->present || app->screen_width()!=240 || app->screen_height()!=240)return;
+       !app->fill_rect || !app->present)return;
+    paper=paper_presentation_get();
+    if(paper&&(paper->struct_size<sizeof(*paper)||!paper->begin||!paper->text||!paper->measure||!paper->circle||!paper->contact))paper=NULL;
+    if(!paper&&(app->screen_width()!=240||app->screen_height()!=240))return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
 #ifdef PORTABLE_NOVA_UI
     p7_picker_reset();p7_contact_active=p7_contact_moved=false;
 #endif
-    nova=springboard_presentation_get();
+    nova=paper?NULL:springboard_presentation_get();
     if(nova&&(!nova->begin||!nova->caption||!nova->contact))nova=NULL;
-    ready=open_dependencies();if(ready)load_catalog();draw();uint32_t last_draw=app->millis();
+    ready=open_dependencies();if(!points_live())return;if(ready)load_catalog();if(!points_live())return;draw();if(!points_live())return;uint32_t last_draw=app->millis();
+#ifdef ALARM_NATIVE_UTC
+    uint32_t last_time_sample=last_draw;
+#endif
     for(;;) {
-        t5_app_input_t input={0};bool poll_ok=app->poll(&input,20);
+        t5_app_input_t input={0};bool poll_ok=app->poll(&input,20);if(!points_live())return;
         if(!poll_ok) {
 #ifdef PORTABLE_ALARM_CLIENT
             /* Adapter owns settled/error barriers and bounded output cleanup. */
@@ -658,13 +841,33 @@ void app_main(void) {
 #endif
             break;
         }
+        /* Accepted global Home consumes Back before reporting its handoff.
+         * Legacy Watch header taps also set exit_requested, but carry Back:
+         * keep those app-owned so nested navigation and save guards still run. */
+        if(input.exit_requested && !(input.buttons&T5_APP_BUTTON_BACK))break;
 #ifndef PORTABLE_ALARM_CLIENT
-        if(ready)(void)service->step(service->context);
+        if(ready)(void)points_service_result(service->step(service->context));
+        if(!points_live())return;
 #endif
+        alarm_status_v1 previous_status=service_state;bool previous_valid=service_valid;
         if(ready)refresh_status();
-        bool back=input.exit_requested || (input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
-        if(back){if(on_back())break;draw();last_draw=app->millis();continue;}
+        if(!points_live())return;
+#ifdef ALARM_NATIVE_UTC
+        bool old_clock_valid=clock_valid;unsigned old_zone_index=points_zone_index;
+        if(ready&&(uint32_t)(app->millis()-last_time_sample)>=500){
+            last_time_sample=app->millis();uint32_t now;clock_valid=read_clock(&now);
+        }
+        if(!points_live())return;
+#endif
+        bool status_changed=previous_valid!=service_valid||previous_status.state!=service_state.state||previous_status.error!=service_state.error||previous_status.occurrence.generation!=service_state.occurrence.generation;
+#ifdef ALARM_NATIVE_UTC
+        status_changed|=old_clock_valid!=clock_valid||old_zone_index!=points_zone_index;
+#endif
+        bool back=(input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
+        if(back){if(on_back())break;if(paper)pe_reset_page();draw();if(!points_live())return;last_draw=app->millis();continue;}
         bool interacted=false;
+        if(paper){interacted=pe_input(&input);if(pe_exit)break;}
+        else {
 #ifdef PORTABLE_NOVA_UI
         if(!p7_picker_active()&&!p7_contact_active)interacted|=nova7_buttons(input.buttons);
         if(nova&&nova->contact) {
@@ -681,9 +884,12 @@ void app_main(void) {
             if(contact.released&&contact.tap_eligible){nova_tap(contact.x,contact.y);interacted=true;}
         } else if(input.tapped){on_tap(input.touch_x,input.touch_y);interacted=true;}
 #endif
-        if(interacted || (uint32_t)(app->millis()-last_draw)>=500) {
+        }
+        if(!points_live())return;
+        if(interacted || (paper?status_changed:(uint32_t)(app->millis()-last_draw)>=500)) {
             if(ready){uint32_t now;clock_valid=read_clock(&now);}
-            draw();last_draw=app->millis();
+            if(!points_live())return;
+            draw();if(!points_live())return;last_draw=app->millis();
         }
     }
     close_dependencies();

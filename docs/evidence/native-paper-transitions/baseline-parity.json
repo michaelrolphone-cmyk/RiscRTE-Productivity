@@ -1,0 +1,266 @@
+[
+  {
+    "profile": "points-native-static",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "3a3b2ce20081267eef2e3605db50e2c9a48770e83f580890bb26aa501041ced6",
+        "bytes": 256524,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_points_native_utc.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--adapter-system",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc",
+          "--runtime",
+          "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-native-static/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "3a3b2ce20081267eef2e3605db50e2c9a48770e83f580890bb26aa501041ced6",
+        "bytes": 256524,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_points_native_utc.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--adapter-system",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc",
+          "--runtime",
+          "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-native-static/after"
+        ]
+      }
+    ]
+  },
+  {
+    "profile": "timecard-native-static",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "61919fbeab89895c18227a8516fcb4b01d623b26357ef21f47004c63a6eb3020",
+        "bytes": 246996,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_timecard_native_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--adapter-system",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc",
+          "--runtime",
+          "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-native-static/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "61919fbeab89895c18227a8516fcb4b01d623b26357ef21f47004c63a6eb3020",
+        "bytes": 246996,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_timecard_native_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--adapter-system",
+          "/workspace/scratch/c744abbbbd60/x4-plain-app-logs-63",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-utc",
+          "--runtime",
+          "/workspace/scratch/c744abbbbd60/x4-alarm-app-runtime-public",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-native-static/after"
+        ]
+      }
+    ]
+  },
+  {
+    "profile": "points-watch",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "94b929cf3f87dcfb1c862b7c5d36e597207370bb1d22d4b0ecb61e0b5bb00d77",
+        "bytes": 167268,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_points_in_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-raw",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-watch/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "94b929cf3f87dcfb1c862b7c5d36e597207370bb1d22d4b0ecb61e0b5bb00d77",
+        "bytes": 167268,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_points_in_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-raw",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-watch/after"
+        ]
+      }
+    ]
+  },
+  {
+    "profile": "points-raw-paper",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "1ec96abecd795e9bbc8e2048f1de0d34a705efb22e7605f811d2e4408d5e55ce",
+        "bytes": 202892,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_points_in_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-raw",
+          "--display-rotation",
+          "90",
+          "--navigation",
+          "--partial-damage",
+          "--quick-actions",
+          "--home-app",
+          "default.elf",
+          "--return-app",
+          "springboard.elf",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-raw-paper/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "1ec96abecd795e9bbc8e2048f1de0d34a705efb22e7605f811d2e4408d5e55ce",
+        "bytes": 202892,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_points_in_time.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--utilities",
+          "/workspace/scratch/c744abbbbd60/x4-points-utilities-raw",
+          "--display-rotation",
+          "90",
+          "--navigation",
+          "--partial-damage",
+          "--quick-actions",
+          "--home-app",
+          "default.elf",
+          "--return-app",
+          "springboard.elf",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/points-raw-paper/after"
+        ]
+      }
+    ]
+  },
+  {
+    "profile": "timecard-watch",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "693b19285dba19c528e323dd826c2fd1f8718839f632c52d030de545f171d45b",
+        "bytes": 188364,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_timecard_portable.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--app-data-client",
+          "--alarm-client",
+          "--navigation",
+          "--quick-actions",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-watch/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "693b19285dba19c528e323dd826c2fd1f8718839f632c52d030de545f171d45b",
+        "bytes": 188364,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_timecard_portable.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--app-data-client",
+          "--alarm-client",
+          "--navigation",
+          "--quick-actions",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-watch/after"
+        ]
+      }
+    ]
+  },
+  {
+    "profile": "timecard-raw-paper",
+    "matched": true,
+    "variants": [
+      {
+        "label": "before",
+        "sha256": "abdb1cfe7446fe401f05a6909be2f59e852cdd89fa092225ce9537950b6fed6f",
+        "bytes": 197432,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-plain-logs-productivity/scripts/build_timecard_portable.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--app-data-client",
+          "--alarm-client",
+          "--navigation",
+          "--quick-actions",
+          "--paper",
+          "--display-rotation",
+          "90",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-raw-paper/before"
+        ]
+      },
+      {
+        "label": "after",
+        "sha256": "abdb1cfe7446fe401f05a6909be2f59e852cdd89fa092225ce9537950b6fed6f",
+        "bytes": 197432,
+        "command": [
+          "python3",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/scripts/build_timecard_portable.py",
+          "--system-apps",
+          "/workspace/scratch/c744abbbbd60/x4-points-system-raw",
+          "--app-data-client",
+          "--alarm-client",
+          "--navigation",
+          "--quick-actions",
+          "--paper",
+          "--display-rotation",
+          "90",
+          "--output-dir",
+          "/workspace/scratch/c744abbbbd60/x4-productivity-paper-sheet-motion/dist/baseline-comparison/timecard-raw-paper/after"
+        ]
+      }
+    ]
+  }
+]

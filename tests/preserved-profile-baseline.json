@@ -1,0 +1,16 @@
+{
+  "description": "Byte baselines from the public recovered source checkpoint; independent of checkout history. Replaces the unavailable local-only 829cee872880874473aa3c3bdaee875477034c60 reference.",
+  "source_commit": "f92741176b137d331cce9746462b1ff043337aac",
+  "sha256": {
+    "sdk/points-native-utc-sources.json": "4928c8f53122a4822b8400478e339d5520e978c8e3ae62cb7bbfcf642930c240",
+    "sdk/timecard-native-time-sources.json": "d208aa391bfada89cbab0272067132bdb607c293b273b6eb8656fcb43dd84476",
+    "Apps/native/points_utc.json": "58ff4a3ab5cac30d5fb873b0394127a4c58661bf2f305db3839c9f9d4679a815",
+    "Apps/native/timecard_native_time.json": "3995bcb83e21ae08188736383ecd7892ab776e96d0c38ae425341e09618c45d5",
+    "Apps/native/timecard.json": "45f0c0b8a926324439471f8af2277d184c7645d2038e8dcd97078b5e2c6185b7",
+    "Apps/points_in_time.json": "09a2731e02570a802c81c2a8f2248297dec5d7155b09810ffaa241af769df9e8",
+    "Apps/timecard.json": "20dd3433258a3f74f14d5063506052625aa6d8b0a396101233fd76c30412bf5b",
+    "productivity-manifest.json": "345713ea0cb7c13b7bb6fe05f953736c0c9cae69036e9a0487a39898f6b76f55",
+    "scripts/build_points_in_time.py": "9648649e6653e0c677cb566e905c72b95110243ef76a0e36364b339ea671664e",
+    "scripts/build_timecard_portable.py": "e93c94bdcf349b10cce0d2f030b633669b5831822e4e3971f7f3fe9a6cde2361"
+  }
+}

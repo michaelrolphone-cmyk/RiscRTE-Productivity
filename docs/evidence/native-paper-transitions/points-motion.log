@@ -1,0 +1,47 @@
+Native Points/adapter scenario0 passed; samples13 frames2 retained0
+Native Points/adapter scenario1 passed; samples13 frames1 retained0
+Native Points/adapter scenario2 passed; samples13 frames1 retained0
+Native Points/adapter scenario3 passed; samples12 frames1 retained1
+Native Points/adapter scenario4 passed; samples12 frames1 retained1
+Native Points/adapter scenario5 passed; samples12 frames1 retained1
+Native Points/adapter scenario6 passed; samples11 frames1 retained1
+Native Points/adapter scenario7 passed; samples12 frames2 retained0
+Native Points/adapter scenario8 passed; samples13 frames1 retained0
+Sheet scenario100: opens2 closes2 frames60 distinct60 partial54 exact-restore
+Native Points/adapter scenario100 passed; samples16 frames62 retained0
+Sheet scenario101: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario101 passed; samples15 frames43 retained0
+Native Points/adapter scenario102 passed; samples13 frames13 retained0
+Sheet scenario103: opens2 closes2 frames52 distinct52 partial48 exact-restore
+Native Points/adapter scenario103 passed; samples15 frames54 retained0
+Sheet scenario104: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario104 passed; samples15 frames43 retained0
+Sheet scenario105: opens2 closes2 frames52 distinct52 partial48 exact-restore
+Native Points/adapter scenario105 passed; samples15 frames54 retained0
+Sheet scenario106: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario106 passed; samples15 frames43 retained0
+Sheet provider failure retains all controller custody without later calls
+Native Points/adapter scenario0 passed; samples13 frames2 retained0
+Native Points/adapter scenario1 passed; samples13 frames1 retained0
+Native Points/adapter scenario2 passed; samples13 frames1 retained0
+Native Points/adapter scenario3 passed; samples12 frames1 retained1
+Native Points/adapter scenario4 passed; samples12 frames1 retained1
+Native Points/adapter scenario5 passed; samples12 frames1 retained1
+Native Points/adapter scenario6 passed; samples11 frames1 retained1
+Native Points/adapter scenario7 passed; samples12 frames2 retained0
+Native Points/adapter scenario8 passed; samples13 frames1 retained0
+Sheet scenario100: opens2 closes2 frames60 distinct60 partial54 exact-restore
+Native Points/adapter scenario100 passed; samples16 frames62 retained0
+Sheet scenario101: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario101 passed; samples15 frames43 retained0
+Native Points/adapter scenario102 passed; samples13 frames13 retained0
+Sheet scenario103: opens2 closes2 frames52 distinct52 partial48 exact-restore
+Native Points/adapter scenario103 passed; samples15 frames54 retained0
+Sheet scenario104: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario104 passed; samples15 frames43 retained0
+Sheet scenario105: opens2 closes2 frames52 distinct52 partial48 exact-restore
+Native Points/adapter scenario105 passed; samples15 frames54 retained0
+Sheet scenario106: opens2 closes2 frames41 distinct41 partial37 exact-restore
+Native Points/adapter scenario106 passed; samples15 frames43 retained0
+Sheet provider failure retains all controller custody without later calls
+Actual native Points/controller/helper/toolbar composition with Quick enabled passed normal + ASan/UBSan

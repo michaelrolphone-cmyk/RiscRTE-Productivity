@@ -1,0 +1,7 @@
+{
+  "schema": "nova7.lists.deployment.v1",
+  "target": "watch",
+  "presentation": "compact-color",
+  "app_data_namespace": 62,
+  "provider_capacity": 28
+}

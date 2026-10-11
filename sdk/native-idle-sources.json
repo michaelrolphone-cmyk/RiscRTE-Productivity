@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "adapter_sha": "7b175418e3063d9f4c571acf06c366144831b2af",
+  "adapter_public": false,
+  "versions": {
+    "points_in_time": "0.6.7",
+    "timecard": "0.2.9"
+  },
+  "define": "-DPORTABLE_PAPER_TRANSITIONS",
+  "source_sha256": {
+    "lib/PortableApps/src/adapter.c": "7eb85586c781197f794d0b675faadd31690d284c7637e6c889bf3518ae57931d",
+    "lib/PortableApps/src/quick_actions.c": "77b5ee25f443ccc0666ed63a706bb773eaead11db0ef8af5cf68f48cefc76f12",
+    "lib/PortableApps/src/quick_adapter.inc": "3848e3df0209ea79358dea2fc337cda696238b63429d6f2211f90da23b4282a7",
+    "lib/PortableApps/src/quick_paper.inc": "0dc780ff380a9199023f36042b6f5123972eac8a1feddc14f4db289ddd17ed10",
+    "lib/PortableApps/include/PortableQuickActions.h": "390dd43b9423c22b649480c00d7029b757bc594581f82216a6123e8af71dae91",
+    "lib/PortableApps/src/quick_session.c": "a3bde53186d4bcc84e4bb24404a839f2f4797102086b4bb617a016ae1a81ef71",
+    "lib/PortableApps/include/PortableQuickSession.h": "8ad2d781d59cb890f36f0d01a00a3ed97f4ca4ba7838381fa2a94ab9a9dc12c0",
+    "lib/PortableApps/include/PortableQuickPreferences.h": "b3f72b03bee30e9acec34d1aab5d0c7e86bc3315d8ecc99b6bb99cf09ea08eee",
+    "lib/PortableApps/include/PortableBroadcastAppData.h": "a487909bb9e201ecc69e6455ea5c8dd80e78b03db0fc39a2f738b5a8c45c712e",
+    "lib/PortableApps/include/PortableBroadcastClient.h": "51ed76a5fac542fb2d5ae039797806fd8b1d31f69a072340c0ce91e628cbff2d",
+    "lib/PortableApps/include/TelemetryBroadcastV1.h": "986a52b5a3ddd361189d204e33624ce6275d953bca6a94a6e6dd5c136a89e2d5",
+    "lib/PortableApps/src/broadcast_adapter.inc": "5ae10c1fe8885f5f7b6f006d1be528d3d3d141cdbacddcf97251d64b1b5de96d",
+    "lib/PortableApps/include/PortablePaperScroll.h": "6575d6618628f5e195b06d9034acea20be9a5d84cee1210c1c248546c27d4347",
+    "lib/PortableApps/include/PortableTouch.h": "d9cb76da76343be0ae7c23d517d106f2d3654173da53e42c8f702605a2f2b331",
+    "lib/PortableApps/include/PortableTouchScroll.h": "d19aba992818d60477ef0fea7882b73dd6c9c1bd1db76d4d0faf9acc2e64aebd",
+    "lib/PortableApps/src/nova.inc": "30adc4703ccfe9e9202244babbc6d097c285c93f792e062b954fe7bc76723b46",
+    "Apps/PaperFrame.h": "3155ebec9e635cf027a943af693f863533706f164ccad4be8a632c86811ca402",
+    "scripts/portable_idle_build.py": "a25912763ea9a4e75348b29efca4b06a9675f4c3d1524d706397ec4a5899784f",
+    "scripts/portable_quick_build.py": "f58a549c49b721ec6feb14df48b2cb9d8a35781b2c98f743b3af7cda731157ae"
+  },
+  "hardware_verified": false,
+  "reservation": "Explicit automatic Light and low-battery profile; existing flag-off versions remain unchanged."
+}

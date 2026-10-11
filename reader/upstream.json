@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/crosspoint-reader/crosspoint-reader.git",
+  "commit": "3607ea7bb95d65b4cf3edf1aa89b2b0970985793",
+  "sdk_commit": "425d200a8ea447326b4b9696e4e47dc84ad9d7f6",
+  "submodule": "third_party/crosspoint",
+  "patches": [
+    "reader/patches/0001-riscrte-port.patch"
+  ],
+  "dependencies": {
+    "png": {
+      "repository": "https://github.com/bitbank2/PNGdec.git",
+      "commit": "9a9c585fd39d148c5517597b02ce490e0fdb1bb4"
+    },
+    "jpeg": {
+      "repository": "https://github.com/bitbank2/JPEGDEC.git",
+      "commit": "86282979224c8a32fd51e091ed5a35b0c699a52b"
+    }
+  }
+}

@@ -1,0 +1,3 @@
+Native UTC Points: DST, elapsed duration, UTC keys/PTU1, paper edit/held/cancel/keyboard controls, exact save retry, timezone changes, native UNSET/2038 and terminal custody passed
+Native UTC Points: DST, elapsed duration, UTC keys/PTU1, paper edit/held/cancel/keyboard controls, exact save retry, timezone changes, native UNSET/2038 and terminal custody passed
+Native UTC Points production controller and schedule: normal + ASan/UBSan passed
