@@ -25,17 +25,56 @@ void ReaderHeapInfo::restart()const{reader::retain();}
 void readerLog(const char* tag,const char* fmt,...){if(!rt||!rt->diagnostic||!reader::alive())return;char buf[256];int n=snprintf(buf,sizeof(buf),"Reader/%s: ",tag);if(n<0||n>=255)return;va_list ap;va_start(ap,fmt);vsnprintf(buf+n,sizeof(buf)-n,fmt,ap);va_end(ap);rt->diagnostic(buf);}
 static bool ok(bool v){if(!reader::alive())return false;if(!v)ioError=true;return v;}
 static bool writable(const char* p){size_t n=strlen(reader::stateRoot);return p&&strncmp(p,reader::stateRoot,n)==0&&(p[n]=='/'||p[n]==0)&&!strstr(p,"/../");}
-HalFile::HalFile(HalFile&& o)noexcept:handle_(o.handle_),directory_(o.directory_),path_(std::move(o.path_)){o.handle_=0;}
-HalFile& HalFile::operator=(HalFile&& o)noexcept{if(this!=&o){if(!close())return *this;handle_=o.handle_;directory_=o.directory_;path_=std::move(o.path_);o.handle_=0;}return *this;}
-bool HalFile::close(){if(!handle_)return true;if(!reader::alive())return false;bool result=directory_?vol->dir_close_checked(vol->base.context,handle_):vol->base.file_close(vol->base.context,handle_,true);if(!ok(result)){reader::retain();return false;}handle_=0;return true;}
+HalFile::HalFile(HalFile&& o)noexcept{take(o);}
+HalFile& HalFile::operator=(HalFile&& o)noexcept{if(this!=&o&&close())take(o);return *this;}
+bool HalFile::close(){
+ if(handle_){if(!reader::alive())return false;bool result=directory_?vol->dir_close_checked(vol->base.context,handle_):vol->base.file_close(vol->base.context,handle_,true);if(!ok(result)){reader::retain();return false;}handle_=0;}
+ parked_=false;unlink();cache_.reset();cacheSize_=0;return true;
+}
 size_t HalFile::getName(char* b,size_t n){if(!n)return 0;const auto p=path_.find_last_of('/');const char* name=path_.c_str()+(p==std::string::npos?0:p+1);size_t len=strlen(name);if(len>=n){ioError=true;b[0]=0;return 0;}memcpy(b,name,len+1);return len;}
-uint64_t HalFile::fileSize64(){uint64_t size=0,pos=0;if(!directory_&&isOpen())ok(vol->file_info(vol->base.context,handle_,&size,&pos));return size;}
-size_t HalFile::position()const{uint64_t size=0,pos=0;if(isOpen())ok(directory_?fs->dir_tell(vol->base.context,handle_,&pos):vol->file_info(vol->base.context,handle_,&size,&pos));return pos;}
-bool HalFile::seek64(uint64_t p){return isOpen()&&ok(directory_?fs->dir_seek(vol->base.context,handle_,p):vol->file_seek(vol->base.context,handle_,p));}
+uint64_t HalFile::fileSize64(){if(readOnly_&&isOpen())return length_;uint64_t size=0,pos=0;if(!directory_&&isOpen())ok(vol->file_info(vol->base.context,handle_,&size,&pos));return size;}
+size_t HalFile::position()const{if(readOnly_&&isOpen())return cursor_;uint64_t size=0,pos=0;if(isOpen())ok(directory_?fs->dir_tell(vol->base.context,handle_,&pos):vol->file_info(vol->base.context,handle_,&size,&pos));return pos;}
+bool HalFile::seek64(uint64_t p){if(readOnly_&&isOpen()){if(p>length_)return false;cursor_=p;return true;}return isOpen()&&ok(directory_?fs->dir_seek(vol->base.context,handle_,p):vol->file_seek(vol->base.context,handle_,p));}
 uint32_t HalFile::modificationTime(){risc_storage_metadata_v1 meta{};meta.struct_size=sizeof(meta);if(!isOpen())return 0;int rc=fs->metadata(vol->base.context,path_.c_str(),&meta);if(!ok(rc==RISC_STORAGE_FS_OK))return 0;return meta.flags&RISC_STORAGE_MODIFIED_VALID?uint32_t(meta.modified_seconds):0;}
 bool HalFile::seekCur(int64_t d){auto p=position();return (d>=0||uint64_t(-d)<=p)&&seek64(p+d);}
-int HalFile::available()const{uint64_t size=0,pos=0;if(!isOpen()||directory_||!ok(vol->file_info(vol->base.context,handle_,&size,&pos)))return 0;return int(std::min<uint64_t>(size-pos,INT_MAX));}
-int HalFile::read(void* b,size_t n){if(!isOpen()||directory_)return -1;size_t done=0;while(done<n&&reader::alive()){size_t take=std::min(n-done,size_t(RISC_STORAGE_VOLUME_IO_MAX));size_t got=vol->base.file_read(vol->base.context,handle_,(uint8_t*)b+done,take);if(!reader::alive())return -1;if(got>take||vol->handle_error(vol->base.context,handle_,false)){ioError=true;return -1;}if(!got)break;done+=got;reader::service();}return int(done);}
+int HalFile::available()const{if(readOnly_&&isOpen())return int(std::min<uint64_t>(cursor_<length_?length_-cursor_:0,INT_MAX));uint64_t size=0,pos=0;if(!isOpen()||directory_||!ok(vol->file_info(vol->base.context,handle_,&size,&pos)))return 0;return int(std::min<uint64_t>(pos<size?size-pos:0,INT_MAX));}
+int HalFile::readDirect(void* b,size_t n){
+ size_t done=0;while(done<n&&reader::alive()){
+  size_t take=std::min(n-done,size_t(RISC_STORAGE_VOLUME_IO_MAX));
+  size_t got=vol->base.file_read(vol->base.context,handle_,(uint8_t*)b+done,take);
+  if(!reader::alive())return -1;
+  if(got>take||vol->handle_error(vol->base.context,handle_,false)){ioError=true;return -1;}
+  if(!got)break;done+=got;reader::service();
+ }
+ return int(done);
+}
+int HalFile::read(void* b,size_t n){
+ if(!isOpen()||directory_||(!b&&n))return -1;
+ if(!readOnly_)return readDirect(b,n);
+ if(!n)return 0;
+ if(vol->handle_error(vol->base.context,handle_,false)){ioError=true;return -1;}
+ if(!reader::alive())return -1;
+ // A small heap window coalesces POD/glyph reads. No large HalFile stack frame,
+ // and no extra capability call/yield for each byte served from this window.
+ if(!cache_&&n<readAhead&&length_>=512)cache_.reset(new(std::nothrow) uint8_t[windowSize_]);
+ size_t done=0;
+ while(done<n&&cursor_<length_&&reader::alive()){
+  if(cacheSize_&&cursor_>=cacheStart_&&cursor_<cacheStart_+cacheSize_){
+   size_t take=std::min(n-done,size_t(cacheStart_+cacheSize_-cursor_));
+   memcpy((uint8_t*)b+done,cache_.get()+size_t(cursor_-cacheStart_),take);cursor_+=take;done+=take;continue;
+  }
+  uint64_t start=cache_?(cursor_/windowSize_)*windowSize_:cursor_;
+  if(physical_!=start&&!ok(vol->file_seek(vol->base.context,handle_,start)))return -1;
+  physical_=start;
+  size_t take=size_t(std::min<uint64_t>(length_-start,cache_?windowSize_:n-done));
+  int got=readDirect(cache_?cache_.get():(uint8_t*)b+done,take);
+  if(got<0)return -1;if(!got){ioError=true;return -1;}
+  physical_+=unsigned(got);
+  if(cache_){cacheStart_=start;cacheSize_=unsigned(got);}
+  else{cursor_+=unsigned(got);done+=unsigned(got);}
+ }
+ return int(done);
+}
 size_t HalFile::write(const uint8_t* b,size_t n){if(!isOpen()||directory_)return 0;size_t done=0;while(done<n&&reader::alive()){size_t take=std::min(n-done,size_t(RISC_STORAGE_VOLUME_IO_MAX));size_t got=vol->base.file_write(vol->base.context,handle_,b+done,take);if(!reader::alive())return 0;if(got==0||got>take||vol->handle_error(vol->base.context,handle_,false)){ioError=true;break;}done+=got;reader::service();}return done;}
 void HalFile::flush(){if(isOpen()&&!directory_)ok(vol->file_sync(vol->base.context,handle_));}
 bool HalFile::rename(const char* p){std::string old=path_;return close()&&Storage.rename(old.c_str(),p);}
@@ -50,7 +89,16 @@ HalFile HalStorage::open(const char* path,oflag_t flags){
  risc_storage_metadata_v1 meta{};meta.struct_size=sizeof(meta);int status=fs->metadata(vol->base.context,path,&meta);
  if(!reader::alive())return f;if(status!=RISC_STORAGE_FS_OK&&status!=RISC_STORAGE_FS_NOT_FOUND){ioError=true;return f;}
  f.directory_=status==RISC_STORAGE_FS_OK&&(meta.flags&RISC_STORAGE_DIRECTORY);f.path_=path;
- f.handle_=f.directory_?vol->base.dir_open(vol->base.context,path):vol->file_open(vol->base.context,path,flags);reader::alive();return f;
+ f.handle_=f.directory_?vol->base.dir_open(vol->base.context,path):vol->file_open(vol->base.context,path,flags);
+ if(!reader::alive())return f;
+ if(f.handle_){f.flags_=flags;f.readOnly_=!f.directory_&&!(flags&O_WRONLY);f.link();
+  if(f.readOnly_&&!ok(vol->file_info(vol->base.context,f.handle_,&f.length_,&f.cursor_))){f.close();return {};}
+  f.physical_=f.cursor_;
+  // FreeType makes random small table/glyph reads. One sector avoids the
+  // 4 KiB over-read amplification useful only for sequential page caches.
+  size_t len=f.path_.size();if(len>=4&&(!strcmp(f.path_.c_str()+len-4,".ttf")||!strcmp(f.path_.c_str()+len-4,".otf")))f.windowSize_=512;
+ }
+ return f;
 }
 bool HalStorage::exists(const char* p){if(!ready())return false;risc_storage_metadata_v1 m{};m.struct_size=sizeof(m);int rc=fs->metadata(vol->base.context,p,&m);if(!reader::alive())return false;if(rc!=RISC_STORAGE_FS_OK&&rc!=RISC_STORAGE_FS_NOT_FOUND)ioError=true;return rc==RISC_STORAGE_FS_OK;}
 bool HalStorage::mkdir(const char* p,bool parents){if(!ready()||!writable(p))return false;std::string path=p;if(parents){for(size_t i=1;i<path.size();++i)if(path[i]=='/'){auto part=path.substr(0,i);if(!exists(part.c_str())&&!ok(vol->mkdir(vol->base.context,part.c_str())))return false;}}return exists(p)||ok(vol->mkdir(vol->base.context,p));}

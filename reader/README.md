@@ -112,3 +112,8 @@ choosing a product composition. Hardware qualification and a fitting complete
 firmware cohort are outstanding.
 
 See [MIGRATION.md](MIGRATION.md) for source ownership and the upstream update path.
+
+## NOVA-7 GUI upgrade
+
+Reader 0.1.6 and scene-host 0.3.5 implement the supplied e-ink design. See
+[NOVA7.md](NOVA7.md) for behavior, durable state, compatibility and validation.

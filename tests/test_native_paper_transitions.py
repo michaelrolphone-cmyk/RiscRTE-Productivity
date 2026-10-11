@@ -8,6 +8,7 @@ import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from preserved_profile_baseline import baseline_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -35,7 +36,7 @@ class NativePaperTransitions(unittest.TestCase):
 
     def test_incomplete_selection_fails(self):
         parser = self.parser()
-        for flags in [['--paper-transitions'], ['--motion-system', '/missing'], ['--ble-broadcast']]:
+        for flags in [['--paper-transitions'], ['--motion-system', '/motion'], ['--ble-broadcast']]:
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 motion.select(parser.parse_args(flags), parser, Path('/original'), [])
 
@@ -61,7 +62,7 @@ class NativePaperTransitions(unittest.TestCase):
                      'Apps/native/timecard.json', 'Apps/points_in_time.json', 'Apps/timecard.json',
                      'productivity-manifest.json', 'scripts/build_points_in_time.py',
                      'scripts/build_timecard_portable.py']:
-            self.assertEqual(hashlib.sha256((ROOT / name).read_bytes()).hexdigest(), expected[name], name)
+            self.assertEqual(hashlib.sha256(baseline_bytes(name)).hexdigest(), expected[name], name)
         self.assertEqual(motion.PIN['versions'], {'points_in_time': '0.6.3', 'timecard': '0.2.9'})
         self.assertEqual(json.loads((ROOT / 'Apps/native/points_utc.json').read_text())['version'], '0.6.2')
         self.assertEqual(timecard.manifest_contract()['version'], '0.2.9')

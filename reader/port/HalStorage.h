@@ -8,10 +8,22 @@ constexpr oflag_t O_RDONLY=RISC_STORAGE_OPEN_READ,O_WRONLY=RISC_STORAGE_OPEN_WRI
  O_RDWR=O_RDONLY|O_WRONLY,O_CREAT=RISC_STORAGE_OPEN_CREATE,O_TRUNC=RISC_STORAGE_OPEN_TRUNCATE,
  O_EXCL=RISC_STORAGE_OPEN_EXCLUSIVE,O_APPEND=RISC_STORAGE_OPEN_APPEND;
 class HalFile : public Print {
- uint32_t handle_=0;bool directory_=false;std::string path_;
+ uint32_t handle_=0,flags_=0;bool directory_=false;std::string path_;
+ // Only capability handles are parked; parser/font/page objects remain in RAM.
+ HalFile *previous_=nullptr,*next_=nullptr;static HalFile* first_;
+ bool listed_=false,parked_=false,readOnly_=false;
+ uint64_t length_=0,cursor_=0,physical_=0,parkPosition_=0,parkSize_=0;
+ uint64_t parkModified_=0;bool parkModifiedValid_=false;
+ std::unique_ptr<uint8_t[]> cache_;uint64_t cacheStart_=0;size_t cacheSize_=0,windowSize_=4096;
+ void link();void unlink();void take(HalFile&);
+ bool park();bool unpark();int readDirect(void*,size_t);
+ static constexpr size_t readAhead=4096;
  friend class HalStorage;
  public:
  HalFile()=default;~HalFile(){close();}
+ // Used only for a policy handoff with the scene already paused. Shared UI
+ // continues to use the full suspend/reopen path, invalidating cached content.
+ static bool parkAll();static bool unparkAll();
  HalFile(HalFile&& other) noexcept;
  HalFile& operator=(HalFile&& other) noexcept;
  HalFile(const HalFile&)=delete;HalFile& operator=(const HalFile&)=delete;
