@@ -7,6 +7,7 @@
 #undef main
 #include "RiscScenePageV1.h"
 static unsigned exit_after_frame;
+static uint64_t exit_at;
 static unsigned clean_frames;
 static bool reader_submit(void *c,uint64_t f,const risc_display_rect_v1*d,size_t n,const risc_display_present_options_v1*o,uint64_t*t){
  assert(o->intent==RISC_DISPLAY_PRESENT_CLEAN||o->intent==RISC_DISPLAY_PRESENT_LOW_LATENCY);
@@ -15,6 +16,8 @@ static bool reader_submit(void *c,uint64_t f,const risc_display_rect_v1*d,size_t
 }
 static risc_display_output_api_v1 reader_display;
 unsigned reader_test_scene_clean_count(void){return clean_frames;}
+unsigned reader_test_scene_frame_count(void){return submits;}
+void reader_test_scene_exit_in(unsigned delay){exit_at=ms+delay;}
 void reader_test_scene_allow_exit(void){exit_after_frame=submits+1;}
 uint64_t reader_test_scene_now(void){return ms;}
 void reader_test_scene_checkpoint(void){assert(!subscribed&&!presenting&&!held);}
@@ -35,6 +38,7 @@ void reader_test_scene_tick(unsigned amount) {
     ms+=amount;
     if(ms>=200000){fprintf(stderr,"scene timeout submits=%u polls=%u presenting=%d subscribed=%d nav=%u calls=%u\n",submits,polls,presenting,subscribed,nav_pressed,calls);abort();}
     if(exit_after_frame && submits>=exit_after_frame && ms>1000)nav_pressed=RISC_NAV_HOME;
+    if(exit_at&&ms>=exit_at)nav_pressed=RISC_NAV_HOME;
 }
 void reader_test_scene_finish(void) {
     assert(submits>=1 && !subscribed && !presenting && !held);

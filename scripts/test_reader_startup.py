@@ -30,6 +30,10 @@ from make_fixture import create
 cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
 cases += [('-', 'catalog'),('-', 'bad-catalog')]
 cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [('/Books/sample.epub','resident-redraw')]
+cases += [('/Books/sample.epub','resident-later')]
+cases += [('/Books/sample.epub','controls')]
+cases += [('/Books/sample.epub','resident-turns')]
 cases += [(source,'turns') for source in ('/Books/sample.epub','/Books/sample.txt')]
 for source,scenario in cases:
     if fixture.exists():shutil.rmtree(fixture)
