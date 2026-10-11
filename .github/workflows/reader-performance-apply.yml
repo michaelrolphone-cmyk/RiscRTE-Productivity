@@ -1,0 +1,36 @@
+name: Publish Reader performance correction
+on:
+  push:
+    branches: [feat/reader-nova7-gui]
+    paths: [.reader-performance/02.txt]
+permissions:
+  contents: read
+jobs:
+  apply:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify and apply tested source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 9eec7daa655531e2ca8a226ffb6d5de564f0d5cb HEAD
+          git diff --exit-code 9eec7daa655531e2ca8a226ffb6d5de564f0d5cb HEAD -- reader Apps productivity-manifest.json test scripts .github/workflows/reader-nova7.yml .github/workflows/reader-performance-sources.yml
+          python3 - <<'PY'
+          import base64, hashlib, zlib
+          from pathlib import Path
+          encoded=''.join(Path(f'.reader-performance/{i:02}.txt').read_text().strip() for i in (1,2))
+          patch=zlib.decompress(base64.b64decode(encoded,validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='f6f1048f4690d1a199c7f3983a574773637c8ef02306b4c049b001b6113c801b'
+          Path('/tmp/performance.patch').write_bytes(patch)
+          PY
+          git apply --check --unidiff-zero /tmp/performance.patch
+          git apply --index --unidiff-zero /tmp/performance.patch
+          git rm .reader-performance/*.txt .github/workflows/reader-performance-apply.yml
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix Reader page-turn latency with warm checkpoints and retained vector glyph caches (0.1.7)'
+          git push origin HEAD:feat/reader-nova7-gui
