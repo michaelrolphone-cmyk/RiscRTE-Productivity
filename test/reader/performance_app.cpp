@@ -39,7 +39,7 @@ int main(int argc,char** argv){
  sourcePath="/Books/sample.epub";hostBind(argv[1]);
  if(!partialBuild){reader::Engine warm;assert(warm.init(480,680)&&warm.open(sourcePath));while(warm.busy())assert(warm.step());assert(warm.close());}
  realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
- sceneCopy=*realReading;sceneCopy.present_reading=performancePage;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.next=performanceNext;sceneApi=&sceneCopy;
+ sceneCopy=*realReading;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(sceneCopy);sceneCopy.present_reading=performancePage;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.next=performanceNext;sceneApi=&sceneCopy;
  runtime.acquire=acquireApp;runtime.release=releaseApp;runtime.yield_ms=reader_test_scene_tick;runtime.resident_shell=performanceResident;
  pthread_attr_t attr;assert(!pthread_attr_init(&attr));assert(!pthread_attr_setstacksize(&attr,32768));pthread_t thread;
  assert(!pthread_create(&thread,&attr,runApp,nullptr));assert(!pthread_attr_destroy(&attr));assert(!pthread_join(thread,nullptr));

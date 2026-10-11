@@ -84,7 +84,7 @@ bool Engine::step(){
    if(section->isBuilding())return alive();
    pageNumber=std::min(int(section->pageCount)-1,int(uint64_t(section->pageCount)*unsigned(seekFraction)/1000));
    if(pageNumber<0)pageNumber=0;seeking=false;seekFraction=-1;
-  }else if(!anchor.empty()){auto found=section->getPageForAnchor(anchor);if(found){pageNumber=*found;seeking=false;anchor.clear();}else if(!section->isBuilding()){message="Chapter anchor not found";anchor.clear();seeking=false;}}
+  }else if(!anchor.empty()){auto found=section->findAnchor(anchor);if(found&&*found<section->pageCount){pageNumber=*found;seeking=false;anchor.clear();}else if(!section->isBuilding()){message="Chapter anchor not found";anchor.clear();seeking=false;return false;}}
   else if(!section->isBuilding()||section->buildReachedVisibleTextOffset(targetOffset)){auto found=section->getPageForVisibleTextOffset(targetOffset);pageNumber=found?*found:0;seeking=false;}
  }
  if(!seeking&&pageNumber<section->pageCount){page=section->loadPage(pageNumber);if(!page||failed()){message="Page cache is unreadable";return false;}if(resolvingAnchor&&ui.scroll&&targetOffset!=UINT32_MAX)alignScrollAnchor(targetOffset);}

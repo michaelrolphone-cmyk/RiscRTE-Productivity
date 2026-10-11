@@ -144,7 +144,7 @@ int main(int argc,char **argv){
  if(catalogTest){reader::Engine e;assert(e.init(480,632));assert(e.scanLibrary());assert(e.library.bookCount()==4);}
  if(laterTest){reader::Engine e;assert(e.init(480,632)&&e.open(sourcePath));while(e.waiting())assert(e.step());for(unsigned i=0;i<8;i++){assert(e.turn(1));while(e.waiting())assert(e.step());}assert(e.savePosition());}
  realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
- sceneCopy=*realReading;if(legacyScene)sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(risc_scene_checkpoint_api_v1);sceneCopy.present_reading=presentReading;sceneCopy.checkpoint.resume=resumeScene;sceneApi=&sceneCopy;
+ sceneCopy=*realReading;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(sceneCopy);if(legacyScene)sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(risc_scene_checkpoint_api_v1);sceneCopy.present_reading=presentReading;sceneCopy.checkpoint.resume=resumeScene;sceneApi=&sceneCopy;
  runtime.acquire=acquireApp;runtime.release=releaseApp;runtime.yield_ms=reader_test_scene_tick;runtime.diagnostic=appLog;
  sceneCopy.checkpoint.presentation.page.components.open=openComponents;sceneCopy.checkpoint.presentation.page.components.update=updateComponents;
  if(residentTest)runtime.resident_shell=residentClient;

@@ -83,7 +83,7 @@ int main(int argc,char**argv){
  assert(argc==3);hostBind(argv[1]);captureRoot=argv[2];std::filesystem::create_directories(captureRoot);
  {reader::Engine e;assert(e.init(480,680)&&e.scanLibrary()&&e.open("/Books/sample.epub")&&e.beginReading());while(e.busy())assert(e.step());assert(e.turn(1));assert(e.toggleBookmark());assert(e.savePosition());}
  realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
- sceneCopy=*realReading;sceneCopy.present_reading=guiPage;sceneCopy.present_preview=guiPreview;
+ sceneCopy=*realReading;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(sceneCopy);sceneCopy.present_reading=guiPage;sceneCopy.present_preview=guiPreview;
  sceneCopy.checkpoint.presentation.page.components.update=guiComponents;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.next=guiNext;sceneApi=&sceneCopy;
  runtime.acquire=acquireApp;runtime.release=releaseApp;runtime.yield_ms=reader_test_scene_tick;runtime.diagnostic=guiLog;
  pthread_attr_t attr;assert(!pthread_attr_init(&attr));assert(!pthread_attr_setstacksize(&attr,32768));pthread_t thread;assert(!pthread_create(&thread,&attr,runApp,nullptr));assert(!pthread_attr_destroy(&attr));assert(!pthread_join(thread,nullptr));

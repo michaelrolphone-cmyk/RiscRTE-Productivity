@@ -19,6 +19,7 @@ struct Settings {
  uint8_t hyphenation=1,embeddedStyle=1,images=1,orientation=0;
 };
 struct Position {uint32_t spine=0,offset=0;};
+struct DocumentLink {uint16_t x=0,y=0,width=0,height=0;uint32_t sourceSpine=0;std::string href;};
 struct Bookmark {Position position;char name[80]{};};
 struct BookState {Position position;uint32_t count=0;Bookmark marks[64]{};};
 struct StoredSettings {Settings settings;char recentPath[512]{};};
@@ -74,6 +75,8 @@ public:
  bool scanLibrary();bool openLibrary();
  bool open(const std::string& path,bool recent=true);bool close();bool suspend();
  bool step();bool turn(int direction);bool jump(Position);bool jumpToc(unsigned);
+ std::vector<DocumentLink> visibleLinks()const;
+ bool followLink(const DocumentLink&);
  bool setLayout(const Settings&);bool toggleBookmark();bool removeBookmark(unsigned);bool renameBookmark(unsigned,const char*);
  bool render();bool savePosition();bool park();bool unpark();
  Position position()const;

@@ -59,3 +59,6 @@ void reader_test_scene_snapshot(const char *path) {
  }
  assert(!fclose(out));
 }
+
+void reader_test_scene_tap(unsigned x,unsigned y){touch_tap(x,y);}
+void reader_test_scene_back(void){nav_pressed=RISC_NAV_BACK;}

@@ -1,7 +1,7 @@
 #include "ReaderEngine.h"
 #include "port/ReaderPort.h"
 #include "RiscScenePageV1.h"
-#include "RiscSceneReadingV1.h"
+#include "RiscSceneReadingLinksV1.h"
 #include "RiscSceneResidentV1.h"
 #include "SceneKeyboardV1.h"
 #include "T5FileOpenApi.h"
@@ -13,6 +13,7 @@
 
 namespace {
 using namespace reader;
+static_assert(Page::MAX_LINKS_PER_PAGE*2<=RISC_SCENE_READING_MAX_LINKS,"Two visible pages must fit link presentation");
 enum class Screen { Library, Reading, Menu, Contents, Bookmarks, Bookmark, Rename, Layout, Fonts, Files, Notice, Starting, Advanced, Finished, Remove, BookmarkTools };
 enum Action : uint32_t {
  Back=1, Exit, Read, Previous, Next, Menu, Library, Scan, Browse, Sort,
@@ -22,6 +23,7 @@ enum Action : uint32_t {
  JumpBookmark, RenameBookmark, DeleteBookmark, Key, Retry,
  LibraryTab=300, Again, MarkFinished, RemoveAsk, RemoveConfirm, ToggleChrome,
  Scrub, Scroll, LayoutMode, Invert, Advanced, FontCycle, BookmarkTools,
+ FollowLink=350,
  DismissRow=400,
 
 };
@@ -33,7 +35,11 @@ struct App {
  const risc_scene_page_refresh_api_v1* refreshPresenter=nullptr;
  const risc_scene_checkpoint_api_v1* checkpointScene=nullptr;
  const risc_scene_reading_api_v1* readingPresenter=nullptr;
+ const risc_scene_reading_links_api_v1* linkPresenter=nullptr;
  risc_scene_reading_document_v1 readingDocument{};
+ risc_scene_reading_links_v1 readingLinks{};
+ std::vector<DocumentLink> displayedLinks;
+ std::vector<Position> linkHistory;
  risc_runtime_capability_v1 grants[5]{};
  unsigned acquired=0;
  risc_scene_resident_v1 resident{};
@@ -102,7 +108,7 @@ struct App {
     if(engine->isBookmarked())readingDocument.flags|=RISC_SCENE_READING_BOOKMARKED;
    }else readingDocument.flags|=retainedBookmark?RISC_SCENE_READING_BOOKMARKED:0;
    readingDocument.bookmark_action=AddBookmark;readingDocument.layout_action=Layout;readingDocument.contents_action=Contents;readingDocument.scrub_action=Scrub;readingDocument.scroll_action=Scroll;
-   int rc=readingPresenter->present_reading(scene->context,session,&readingDocument,controlsOnly?nullptr:engine->bitmap(),controlsOnly?0:engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT);
+   int rc=linkPresenter?linkPresenter->present_linked(scene->context,session,&readingDocument,&readingLinks,controlsOnly?nullptr:engine->bitmap(),controlsOnly?0:engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT):readingPresenter->present_reading(scene->context,session,&readingDocument,controlsOnly?nullptr:engine->bitmap(),controlsOnly?0:engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT);
    return checked(rc)&&rc==0;
   }
   return false;
@@ -114,6 +120,8 @@ struct App {
    uint32_t renderStart=millis();
    if(!engine->render()){error("Page could not be rendered");return publish();}
    renderMs=millis()-renderStart;
+   displayedLinks=engine->visibleLinks();readingLinks={};readingLinks.struct_size=sizeof(readingLinks);readingLinks.action=FollowLink;readingLinks.count=displayedLinks.size();
+   for(unsigned i=0;i<displayedLinks.size();i++){const auto& l=displayedLinks[i];readingLinks.items[i]={l.x,l.y,l.width,l.height};}
    pageDocument={};pageDocument.struct_size=sizeof(pageDocument);pageDocument.previous_action=Previous;pageDocument.next_action=Next;pageDocument.menu_action=ToggleChrome;pageDocument.back_action=Menu;
    copy(pageDocument.title,sizeof(pageDocument.title),engine->title());copy(pageDocument.footer,sizeof(pageDocument.footer),readingFooter());
    retainedBookmark=engine->isBookmarked();bool ok=presentPage(true);
@@ -130,7 +138,7 @@ struct App {
   return checked(rc)&&rc==0;
  }
  void openBook(const std::string& path){
-  restoringReading=false;
+  restoringReading=false;linkHistory.clear();
   if(!engine->open(path)||!engine->beginReading()){error("Book could not be opened");return;}chrome=false;screen=Screen::Reading;waiting=engine->waiting();dirty=true;
  }
  void back(){
@@ -155,8 +163,8 @@ struct App {
    switch(screen){
    case Screen::Library:if(!engine->open(r.path,false))error("Book could not be opened");else show(Screen::Menu);break;
    case Screen::Files:if(r.directory){directory=r.path;first=0;dirty=true;}else openBook(r.path);break;
-   case Screen::Contents:if(engine->jumpToc(r.index)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Contents location is unavailable");break;
-   case Screen::Bookmarks:if(engine->jump(engine->state.marks[r.index].position)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Bookmark is unavailable");break;
+   case Screen::Contents:linkHistory.clear();if(engine->jumpToc(r.index)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Contents location is unavailable");break;
+   case Screen::Bookmarks:linkHistory.clear();if(engine->jump(engine->state.marks[r.index].position)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Bookmark is unavailable");break;
    case Screen::BookmarkTools:selected=r.index;show(Screen::Bookmark);break;
    case Screen::Fonts:{auto settings=engine->preferences.settings;copy(settings.family,sizeof(settings.family),r.label);if(!engine->setLayout(settings))error("Font is unavailable");else show(Screen::Layout);break;}
    default:break;
@@ -176,7 +184,7 @@ struct App {
   case Read:
    if(engine->isOpen()){if(!engine->beginReading())error("Reading status was not saved");else {chrome=false;show(Screen::Reading);waiting=engine->waiting();}}
    else openBook(engine->preferences.recentPath);break;
-  case Again:if(!engine->beginReading(true))error("Book could not be restarted");else{chrome=false;show(Screen::Reading);waiting=engine->waiting();}break;
+  case Again:linkHistory.clear();if(!engine->beginReading(true))error("Book could not be restarted");else{chrome=false;show(Screen::Reading);waiting=engine->waiting();}break;
   case Previous:case Next:case Scroll:{
    restoringReading=false;
    bool forward=a==Next||(a==Scroll&&value>1024);
@@ -186,10 +194,22 @@ struct App {
     else if(forward&&engine->atEnd()){if(engine->markFinished(true))show(Screen::Finished);else error("Finished status was not saved");}
    }else{chrome=false;waiting=engine->waiting();dirty=true;}
    break;}
-  case Scrub:if(!engine->jumpProgress(unsigned(value)))error("Location is unavailable");else{waiting=engine->waiting();dirty=true;}break;
+  case Scrub:linkHistory.clear();if(!engine->jumpProgress(unsigned(value)))error("Location is unavailable");else{waiting=engine->waiting();dirty=true;}break;
   case ToggleChrome:chrome=!chrome;metadataOnly=true;dirty=true;break;
-  case Menu:show(Screen::Menu);break;
-  case Library:if(!engine->close())error("Reading position could not be saved");else{engine->openLibrary();show(Screen::Library);}break;
+  case FollowLink:{
+   if(value<0||unsigned(value)>=displayedLinks.size())break;
+   const Position origin=engine->position();
+   if(engine->followLink(displayedLinks[value])){
+    if(linkHistory.size()==16)linkHistory.erase(linkHistory.begin());linkHistory.push_back(origin);
+    chrome=false;show(Screen::Reading);waiting=engine->waiting();
+   }else error("Link destination is unavailable");
+   break;}
+  case Menu:
+   if(screen==Screen::Reading&&!linkHistory.empty()){
+    if(engine->jump(linkHistory.back())){linkHistory.pop_back();chrome=false;show(Screen::Reading);waiting=engine->waiting();}
+    else error("Previous link position is unavailable");
+   }else show(Screen::Menu);break;
+  case Library:linkHistory.clear();if(!engine->close())error("Reading position could not be saved");else{engine->openLibrary();show(Screen::Library);}break;
   case Scan:if(!engine->scanLibrary())error("Library scan failed");else show(Screen::Library);break;
   case Browse:directory="/";show(Screen::Files);break;
   case Sort:sort=value;first=0;dirty=true;break;
@@ -224,7 +244,7 @@ struct App {
   lastSequence=e.sequence;
   if(e.kind==RISC_SCENE_CONTROLS_EVENT||e.kind==RISC_SCENE_SUSPEND_EVENT)return true;
   if(screen==Screen::Reading&&!waiting){
-   if(e.kind==RISC_SCENE_VALUE_EVENT)return (e.action==Scrub&&e.node==7&&chrome&&e.value>=0&&e.value<=1000)||(e.action==Scroll&&e.node==8&&engine->ui.scroll&&!chrome&&e.value>=0&&e.value<=2048);
+   if(e.kind==RISC_SCENE_VALUE_EVENT)return (e.action==FollowLink&&e.node==RISC_SCENE_READING_LINK_NODE&&linkPresenter&&e.value>=0&&unsigned(e.value)<displayedLinks.size())||(e.action==Scrub&&e.node==7&&chrome&&e.value>=0&&e.value<=1000)||(e.action==Scroll&&e.node==8&&engine->ui.scroll&&!chrome&&e.value>=0&&e.value<=2048);
    if(e.kind!=RISC_SCENE_ACTION_EVENT)return false;
    return (e.action==Previous&&e.node==1)||(e.action==Next&&e.node==3)||(e.action==ToggleChrome&&e.node==2)||(e.action==Menu&&e.node==0)||(chrome&&((e.action==AddBookmark&&e.node==4)||(e.action==Layout&&e.node==5)||(e.action==Contents&&e.node==6)));
   }
@@ -316,6 +336,8 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
   a->refreshPresenter=risc_scene_page_refresh_get_v1(a->scene);
   a->checkpointScene=risc_scene_checkpoint_get_v1(a->scene);
   a->readingPresenter=risc_scene_reading_get_v1(a->scene);
+  a->linkPresenter=risc_scene_reading_links_get_v1(a->scene);
+  a->readingLinks.struct_size=sizeof(a->readingLinks);a->readingLinks.action=FollowLink;
   const auto* v=static_cast<const risc_storage_volume_api_v1*>(a->grants[1].api);const auto* ext=risc_storage_volume_extension(v);const auto* heap=static_cast<const risc_memory_heap_api_v1*>(a->grants[2].api);
   const auto* random=static_cast<const risc_random_api_v1*>(a->grants[3].api);bind(a->rt,v,heap,random);
   if(random&&random->api_version==1&&random->struct_size>=sizeof(*random)&&random->fill&&a->presenter&&risc_storage_volume_fs(v)&&heap&&heap->api_version==1&&heap->struct_size>=sizeof(*heap)&&heap->snapshot&&ext&&ext->file_open&&ext->file_seek&&ext->file_info&&ext->file_sync&&ext->dir_rewind&&ext->dir_close_checked&&ext->handle_error&&ext->mkdir&&ext->rename&&risc_scene_resident_bind_v1(a->rt,&a->resident)){
@@ -346,7 +368,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
     {
      if(a->initialized){a->engine->openLibrary();a->show(Screen::Library);}else a->error("SD card unavailable");
      {
-      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.7",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
+      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.8",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
       const auto* files=static_cast<const t5_file_open_api_v1*>(a->grants[4].api);char source[512]{};
       if(a->initialized&&files&&files->struct_size>=sizeof(*files)&&files->source_path_get&&files->source_path_get(source,sizeof(source))){if(!strncmp(source,"/sd/",4))a->openBook(source+3);else a->error("Unsupported book location");}
       unsigned ticks=0;
