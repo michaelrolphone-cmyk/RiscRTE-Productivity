@@ -1,0 +1,44 @@
+name: Daily Digest ELF
+on:
+  push:
+    branches: [feat/daily-digest]
+    paths: ['daily_digest/**', 'Apps/daily_digest.json', '.github/workflows/daily-digest.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 536e01a36461d2e66bdfa735186c1d02267b3fb7
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiskRTE-XTEINK-X4-PRO
+          ref: c39d60ec63ad3eb614db875d6f83eabf0e29bac1
+          path: X4
+          persist-credentials: false
+      - name: Snapshot build interfaces
+        run: |
+          mkdir -p evidence
+          tar --exclude=.git --exclude='*.ttf' --exclude='*.otf' --exclude='*.elf' --exclude='*.bin' --exclude='*.epub' --exclude='*.zip' -czf evidence/daily-digest-sdk.tar.gz Runtime System Productivity X4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-digest-sdk
+          path: evidence/daily-digest-sdk.tar.gz
+          retention-days: 1
