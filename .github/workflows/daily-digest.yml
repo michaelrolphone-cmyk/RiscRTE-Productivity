@@ -1,0 +1,75 @@
+name: Daily Digest ELF
+on:
+  push:
+    branches: [feat/daily-digest]
+    paths: ['daily_digest/**', 'Apps/daily_digest.json', '.github/workflows/daily-digest.yml']
+  pull_request:
+    paths: ['daily_digest/**', 'Apps/daily_digest.json', '.github/workflows/daily-digest.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 536e01a36461d2e66bdfa735186c1d02267b3fb7
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          path: System
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exercise download, failures, storage and Reader handoff
+        run: |
+          set -euo pipefail
+          mkdir evidence
+          python Productivity/daily_digest/test.py --runtime Runtime --system System 2>&1 | tee evidence/tests.log
+          python Productivity/daily_digest/test.py --runtime Runtime --system System --sanitize 2>&1 | tee evidence/sanitizers.log
+      - name: Compile ESP32-S3 app and provider
+        run: |
+          set -euo pipefail
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python Productivity/daily_digest/build.py --runtime Runtime --system System --output build 2>&1 | tee evidence/target.log
+      - name: Package SD app separately from firmware integration provider
+        run: |
+          mkdir -p package/Apps/daily-digest package/firmware-integration/net-http-client
+          cp build/daily-digest/daily_digest.elf package/Apps/daily-digest/
+          cp build/daily-digest/daily_digest.json package/Apps/daily-digest/manifest.json
+          cp build/net-http-client/driver.elf build/net-http-client/manifest.json package/firmware-integration/net-http-client/
+          cp build/daily-digest/daily_digest.json package/firmware-integration/
+          cp Productivity/daily_digest/README.md package/README.md
+          cp -r evidence package/
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime']}
+          Path('package/evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-paper-x4-0.1.0
+          path: package/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-paper-build-evidence
+          path: |
+            evidence/
+            build/**/*.json
+            build/**/*.su
+          retention-days: 14
