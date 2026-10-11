@@ -2,7 +2,7 @@ name: Publish Reader performance correction
 on:
   push:
     branches: [feat/reader-nova7-gui]
-    paths: [.reader-performance/02.txt]
+    paths: [.reader-performance/02.txt, .github/workflows/reader-performance-apply.yml]
 permissions:
   contents: read
 jobs:
@@ -28,9 +28,9 @@ jobs:
           assert hashlib.sha256(patch).hexdigest()=='f6f1048f4690d1a199c7f3983a574773637c8ef02306b4c049b001b6113c801b'
           Path('/tmp/performance.patch').write_bytes(patch)
           PY
-          git apply --check --unidiff-zero /tmp/performance.patch
-          git apply --index --unidiff-zero /tmp/performance.patch
-          git rm .reader-performance/*.txt .github/workflows/reader-performance-apply.yml
+          git apply --check --unidiff-zero --exclude='.github/workflows/*' /tmp/performance.patch
+          git apply --index --unidiff-zero --exclude='.github/workflows/*' /tmp/performance.patch
+          git rm .reader-performance/*.txt
           git diff --cached --check
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix Reader page-turn latency with warm checkpoints and retained vector glyph caches (0.1.7)'
           git push origin HEAD:feat/reader-nova7-gui
