@@ -1,0 +1,78 @@
+test_exact_motion_identity_required (test_native_paper_transitions.NativePaperTransitions.test_exact_motion_identity_required) ... ok
+test_incomplete_selection_fails (test_native_paper_transitions.NativePaperTransitions.test_incomplete_selection_fails) ... ok
+test_off_preserves_inputs_versions_and_authority (test_native_paper_transitions.NativePaperTransitions.test_off_preserves_inputs_versions_and_authority) ... ok
+test_raw_watch_manifests_and_runtime_alarm_pins_unchanged (test_native_paper_transitions.NativePaperTransitions.test_raw_watch_manifests_and_runtime_alarm_pins_unchanged) ... ok
+test_all_app_manifests (test_pipeline.PipelineTests.test_all_app_manifests) ... ok
+test_bad_manifest_name_rejected (test_pipeline.PipelineTests.test_bad_manifest_name_rejected) ... ok
+test_current_source_drift_records_upstream_convergence (test_pipeline.PipelineTests.test_current_source_drift_records_upstream_convergence) ... ok
+test_git_blob_identity (test_pipeline.PipelineTests.test_git_blob_identity) ... ok
+test_inventory_cannot_escape_output_or_collide (test_pipeline.PipelineTests.test_inventory_cannot_escape_output_or_collide) ... ok
+test_release_parity_uses_actual_bytes_and_version (test_pipeline.PipelineTests.test_release_parity_uses_actual_bytes_and_version) ... ok
+test_release_report_cannot_hide_nonrequired_apps (test_pipeline.PipelineTests.test_release_report_cannot_hide_nonrequired_apps) ... ok
+test_sdk_snapshot_and_inventory (test_pipeline.PipelineTests.test_sdk_snapshot_and_inventory) ... ok
+test_stamped_artifact_cannot_silently_change (test_pipeline.PipelineTests.test_stamped_artifact_cannot_silently_change) ... ok
+test_three_way_conflict_preservation (test_pipeline.PipelineTests.test_three_way_conflict_preservation) ... ok
+test_unknown_import_rejected (test_pipeline.PipelineTests.test_unknown_import_rejected) ... ok
+test_authority_is_consumer_only (test_points_inventory.PointsInventoryTests.test_authority_is_consumer_only) ... ok
+test_dependency_rejects_unpinned (test_points_inventory.PointsInventoryTests.test_dependency_rejects_unpinned) ... ok
+test_distinct_original_profile_preserves_legacy (test_points_inventory.PointsInventoryTests.test_distinct_original_profile_preserves_legacy) ... ok
+test_exact_dependency_pins (test_points_inventory.PointsInventoryTests.test_exact_dependency_pins) ... ok
+test_no_legacy_baseline_expansion (test_points_inventory.PointsInventoryTests.test_no_legacy_baseline_expansion) ... ok
+test_default_catalog_bytes_preserved (test_points_native_profile.NativePointsProfile.test_default_catalog_bytes_preserved) ... ok
+test_distinct_opt_in_native_authority (test_points_native_profile.NativePointsProfile.test_distinct_opt_in_native_authority) ... ok
+test_frozen_contract (test_points_native_profile.NativePointsProfile.test_frozen_contract) ... ok
+test_builder_rejects_expanded_authority_or_reused_identity (test_timecard_native_time_profile.TimecardNativeProfileTests.test_builder_rejects_expanded_authority_or_reused_identity) ... ok
+test_exact_native_identity_and_minimum_authority (test_timecard_native_time_profile.TimecardNativeProfileTests.test_exact_native_identity_and_minimum_authority) ... ok
+test_old_profiles_remain_separate (test_timecard_native_time_profile.TimecardNativeProfileTests.test_old_profiles_remain_separate) ... ok
+test_appdata_declaration_is_exact_recorded_consumer_copy (test_timecard_profile.TimecardProfileTests.test_appdata_declaration_is_exact_recorded_consumer_copy) ... ok
+test_default_remains_development_and_package_is_explicit (test_timecard_profile.TimecardProfileTests.test_default_remains_development_and_package_is_explicit) ... ok
+test_original_model_is_not_a_watch_copy (test_timecard_profile.TimecardProfileTests.test_original_model_is_not_a_watch_copy) ... ok
+test_package_rejects_missing_or_unpublished_runtime (test_timecard_profile.TimecardProfileTests.test_package_rejects_missing_or_unpublished_runtime) ... ok
+test_package_requires_exact_clean_runtime_and_complete_authority (test_timecard_profile.TimecardProfileTests.test_package_requires_exact_clean_runtime_and_complete_authority) ... ok
+test_create_and_repeat_are_idempotent (test_watch_101_component_tags.PublisherTests.test_create_and_repeat_are_idempotent) ... ok
+test_failed_or_incomplete_ci_blocks (test_watch_101_component_tags.PublisherTests.test_failed_or_incomplete_ci_blocks) ... ok
+test_identical_annotated_tags_are_accepted (test_watch_101_component_tags.PublisherTests.test_identical_annotated_tags_are_accepted) ... ok
+test_main_rejects_untrusted_event_before_network (test_watch_101_component_tags.PublisherTests.test_main_rejects_untrusted_event_before_network) ... ok
+test_old_ci_success_does_not_mask_new_failure (test_watch_101_component_tags.PublisherTests.test_old_ci_success_does_not_mask_new_failure) ... ok
+test_preflight_late_collision_creates_nothing (test_watch_101_component_tags.PublisherTests.test_preflight_late_collision_creates_nothing) ... ok
+test_racing_identical_create_verified (test_watch_101_component_tags.PublisherTests.test_racing_identical_create_verified) ... ok
+test_scope_config_validation (test_watch_101_component_tags.PublisherTests.test_scope_config_validation) ... ok
+test_source_and_metadata_ancestry_are_checked (test_watch_101_component_tags.PublisherTests.test_source_and_metadata_ancestry_are_checked) ... ok
+test_unmerged_source_blocks (test_watch_101_component_tags.PublisherTests.test_unmerged_source_blocks) ... ok
+test_wrong_source_branch_event_or_workflow_does_not_count (test_watch_101_component_tags.PublisherTests.test_wrong_source_branch_event_or_workflow_does_not_count) ... ok
+test_wrong_version_or_identity_blocks (test_watch_101_component_tags.PublisherTests.test_wrong_version_or_identity_blocks) ... ok
+test_any_collision_prevents_all_creates (test_watch_102_component_tags.Watch102PublisherTests.test_any_collision_prevents_all_creates) ... ok
+test_both_tags_are_idempotent_and_preserve_previous_refs (test_watch_102_component_tags.Watch102PublisherTests.test_both_tags_are_idempotent_and_preserve_previous_refs) ... ok
+test_every_required_source_workflow_must_pass (test_watch_102_component_tags.Watch102PublisherTests.test_every_required_source_workflow_must_pass) ... ok
+test_exact_reviewed_component_inventory (test_watch_102_component_tags.Watch102PublisherTests.test_exact_reviewed_component_inventory) ... ok
+test_main_uses_explicit_release_and_checks_identity_before_network (test_watch_102_component_tags.Watch102PublisherTests.test_main_uses_explicit_release_and_checks_identity_before_network) ... ok
+test_racing_different_tag_is_never_moved (test_watch_102_component_tags.Watch102PublisherTests.test_racing_different_tag_is_never_moved) ... ok
+test_unreviewed_release_and_wrong_owner_are_rejected (test_watch_102_component_tags.Watch102PublisherTests.test_unreviewed_release_and_wrong_owner_are_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 50 tests in 0.052s
+
+OK
+app-stopwatch-v0.1.4 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+service-alarm-service-v0.4.0 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+app-stopwatch-v0.1.4 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+service-alarm-service-v0.4.0 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+app-stopwatch-v0.1.4 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+service-alarm-service-v0.4.0 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+app-stopwatch-v0.1.4 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+service-alarm-service-v0.4.0 -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+app-points_in_time-v0.4.3 -> 5acbd52d97d90c509e217a128b3ee5a6da30975c
+app-timecard-v0.1.0 -> 5acbd52d97d90c509e217a128b3ee5a6da30975c
+app-points_in_time-v0.4.3 -> 5acbd52d97d90c509e217a128b3ee5a6da30975c
+app-timecard-v0.1.0 -> 5acbd52d97d90c509e217a128b3ee5a6da30975c
+text_editor_core_test: PASS
+text_editor_core: host fixture passed
+text_editor_ui_test: PASS (ordered typing during refresh included)
+text_editor_ui: host fixture passed
+timecard_ui: host fixture passed
+Text Editor discard restore contract PASS
+Text Editor actual discard paths PASS
+Timecard actual lunch overlap paths PASS
+Text Editor document opening PASS
+Time Card clock-failure punch contract PASS
+Time Card store-load failure contract PASS

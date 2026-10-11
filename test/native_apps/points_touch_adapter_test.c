@@ -23,6 +23,8 @@ static unsigned ticks,polls,fixture_grants,frames,subs,presents;
 static unsigned stop_poll=120;
 static uint16_t pixels[240*244];
 static unsigned writes;
+static unsigned home_poll,launches,launch_poll,launch_presents;
+static char launched[32];
 static struct {bool seen,active;unsigned page,scroll,hour,minute;uint32_t hash;} shown[256];
 static bool contact_down,event_pending;
 static int contact_x,contact_y;
@@ -42,7 +44,7 @@ static void save_frame(void) {
 static bool fake_health(risc_runtime_health_v1*h){h->uptime_ms=ticks;return polls<stop_poll;}
 static void fake_yield(uint32_t n){ticks+=n;}
 static bool fake_diag(const char*s){fprintf(stderr,"%s\n",s);return true;}
-static bool fake_launch(const char*s){printf("launch=%s\n",s);stop_poll=polls;return true;}
+static bool fake_launch(const char*s){assert(strlen(s)<sizeof(launched));strcpy(launched,s);launches++;launch_poll=polls;launch_presents=presents;printf("launch=%s\n",s);return true;}
 static bool fake_info(void*c,risc_display_info_v1*s){(void)c;*s=(risc_display_info_v1){.width=240,.height=240,.nominal_refresh_millihz=60000,.typical_present_latency_us=16000,.supported_formats=RISC_DISPLAY_FORMAT_BIT(RISC_DISPLAY_FORMAT_RGB565)};return true;}
 static bool fake_frame(void*c,uint32_t f,risc_display_surface_v1*s){(void)c;assert(!frames);frames=1;*s=(risc_display_surface_v1){.frame=1,.pixels=pixels,.width=240,.height=240,.stride_bytes=488,.size_bytes=sizeof(pixels),.pixel_format=f};return true;}
 static void fake_frame_release(void*c,risc_display_frame_v1 f){(void)c;assert(frames&&f==1);frames=0;}
@@ -75,14 +77,14 @@ static int32_t fake_alarm_step(void*c){(void)c;return ALARM_OK;}
 static int32_t fake_alarm_ack(void*c,const alarm_token_v1*t){(void)c;(void)t;return ALARM_OK;}
 static int32_t fake_alarm_prepare(void*c,alarm_sleep_v1*s){(void)c;*s=(alarm_sleep_v1){.struct_size=sizeof(*s)};return ALARM_OK;}
 static const alarm_service_v1 alarm_api={1,sizeof(alarm_api),NULL,fake_alarm_status,fake_alarm_step,fake_alarm_step,fake_alarm_ack,fake_alarm_prepare,fake_alarm_step};
-static bool fake_nav(void*c,risc_input_navigation_frame_v1*s){(void)c;*s=(risc_input_navigation_frame_v1){0};return true;}
+static bool fake_nav(void*c,risc_input_navigation_frame_v1*s){(void)c;*s=(risc_input_navigation_frame_v1){0};if(home_poll&&polls==home_poll)s->buttons=s->pressed=RISC_NAV_HOME;return true;}
 static bool fake_foreground(void*c,const risc_input_foreground_v1*s,size_t n){(void)c;(void)s;(void)n;return true;}
 static bool fake_reset(void*c){(void)c;return true;}
 static const risc_input_navigation_api_v1 nav_api={1,sizeof(nav_api),NULL,fake_nav,fake_foreground,fake_reset};
 const risc_input_navigation_api_v1 *portable_input_navigation_open(const risc_runtime_api_v1*r){(void)r;return &nav_api;}
 void portable_input_navigation_close(const risc_runtime_api_v1*r){(void)r;}
 int portable_app_alarm_sleep(const risc_runtime_api_v1*r,const risc_display_output_api_v1*d,const risc_battery_gauge_api_v1*b,const alarm_service_v1*a){(void)r;(void)d;(void)b;(void)a;assert(!"Unexpected hardware sleep in audit");return 0;}
-static bool fake_acquire(const char*n,uint32_t v,uint64_t id,risc_runtime_capability_v1*g){(void)id;assert(g->struct_size==sizeof(*g));if(!strcmp(n,"display.output")&&v==1)g->api=&display_api;else if(!strcmp(n,"input.touch.raw")&&v==1)g->api=&touch_api;else if(!strcmp(n,"board.battery")&&v==1)g->api=&battery_api;else if(!strcmp(n,"rtc.clock")&&v==2)g->api=&rtc_api;else if(!strcmp(n,"storage.key-value")&&v==1)g->api=&kv_api;else if(!strcmp(n,"alarm.service")&&v==1)g->api=&alarm_api;else return false;fixture_grants++;return true;}
+static bool fake_acquire(const char*n,uint32_t v,uint64_t id,risc_runtime_capability_v1*g){(void)id;assert(g->struct_size==sizeof(*g));if(!strcmp(n,"display.output")&&v==1)g->api=&display_api;else if(!strcmp(n,"input.touch.raw")&&v==1)g->api=&touch_api;else if(!strcmp(n,"board.battery")&&v==1)g->api=&battery_api;else if(!strcmp(n,"rtc.clock")&&v==2)g->api=&rtc_api;else if(!strcmp(n,"storage.key-value")&&v==1)g->api=&kv_api;else if(!strcmp(n,"alarm.service")&&v==1)g->api=&alarm_api;else if(!strcmp(n,"input.navigation")&&v==1)g->api=&nav_api;else return false;fixture_grants++;return true;}
 static bool fake_release(risc_runtime_capability_v1*g){assert(g->api&&fixture_grants);g->api=NULL;fixture_grants--;return true;}
 static const risc_runtime_api_v1 runtime_api={1,sizeof(runtime_api),fake_health,fake_yield,fake_diag,fake_launch,fake_acquire,fake_release};
 const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t v){return v==1?&runtime_api:NULL;}
@@ -94,13 +96,17 @@ static void seed(unsigned count) {
  points_meta meta={.revision=1};strcpy(meta.custom[0].name,"Name");meta.custom[0].color=6;points_meta_encode(&meta,bytes);fake_put(NULL,POINTS_META_KEY,bytes,sizeof(bytes));writes=0;
 }
 int main(int argc,char**argv) {
- assert(argc==2);unsigned scenario=(unsigned)strtoul(argv[1],NULL,10);assert(scenario<3);
+ assert(argc==2);unsigned scenario=(unsigned)strtoul(argv[1],NULL,10);assert(scenario<6);
  memset(pixels,0xa5,sizeof(pixels));stop_poll=60;seed(scenario==1?8:1);
  if(scenario==0) {
   sample(3,80,100);sample(6,170,142); /* List -> editor -> time. */
   sample(10,170,146);sample(11,70,110);sample(12,70,110); /* Cross into hours while minute is captured. */
  } else if(scenario==1) {
   sample(3,170,210);sample(4,170,195);sample(5,170,174);sample(6,170,174);
+ } else if(scenario==3) {
+  sample(3,20,20); /* Root Back is app-owned, including its return destination. */
+ } else if(scenario==5) {
+  home_poll=3; /* Root Home must not queue the app's separate Back destination. */
  } else {
   sample(3,80,100);sample(6,170,100); /* List -> editor -> type. */
   sample(9,150,195);sample(10,150,35);sample(11,150,35); /* Scroll existing custom type into view. */
@@ -108,9 +114,11 @@ int main(int argc,char**argv) {
   sample(20,45,80);sample(23,190,190); /* a -> DONE; still only draft. */
   sample(26,60,103);sample(29,72,80);sample(32,20,20); /* b -> Back: discard keyboard change. */
   sample(35,175,220); /* Explicit metadata Save. */
+  if(scenario==4)home_poll=32; /* Accepted Home preempts nested Back and later Save. */
  }
  assert(app_module_init()==0);app_main();app_module_fini();
  assert(!fixture_grants&&!frames&&!subs);
+ if(scenario<3)assert(!launches);
  if(scenario==0) {
   assert(page==PAGE_TIME && draft.hour==10 && draft.minute==26 && !writes);
   assert(shown[10].seen&&shown[10].page==PAGE_TIME&&shown[10].active);
@@ -123,6 +131,25 @@ int main(int argc,char**argv) {
   assert(shown[4].seen&&shown[4].active&&shown[4].scroll==15);
   assert(shown[5].seen&&shown[5].active&&shown[5].scroll==36);
   assert(shown[4].hash!=shown[5].hash); /* Pixel scrolling during the held contact. */
+ } else if(scenario==3) {
+  assert(page==PAGE_LIST&&!writes&&polls==4);
+#ifdef POINTS_RETURN_APP
+  assert(launches==1&&!strcmp(launched,POINTS_RETURN_APP));
+  assert(polls==launch_poll&&presents==launch_presents);
+#else
+  assert(!launches);
+#endif
+ } else if(scenario>=4) {
+#ifdef PORTABLE_HOME_APP
+  assert(launches==1&&!strcmp(launched,PORTABLE_HOME_APP));
+  assert(polls==home_poll&&polls==launch_poll&&presents==launch_presents&&!writes);
+  if(scenario==4) {
+   assert(page==PAGE_CUSTOM_KEYBOARD&&!strcmp(custom_draft.custom[0].name,"Namea"));
+   assert(!strcmp(p7_key_text,"Nameab"));
+  } else assert(page==PAGE_LIST);
+#else
+  assert(!"Home scenario requires a configured global Home destination");
+#endif
  } else {
   assert(page==PAGE_EDIT && !strcmp(custom_draft.custom[0].name,"Namea") && writes==1);
   uint8_t bytes[POINTS_RECORD_SIZE];uint32_t size=0;points_meta meta;

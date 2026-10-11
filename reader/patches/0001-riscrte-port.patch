@@ -1,0 +1,516 @@
+diff --git a/freeink-font/third_party/freetype/include/freetype/config/ftoption.h b/freeink-font/third_party/freetype/include/freetype/config/ftoption.h
+index 94cc1ce..ea27361 100644
+--- a/freeink-font/third_party/freetype/include/freetype/config/ftoption.h
++++ b/freeink-font/third_party/freetype/include/freetype/config/ftoption.h
+@@ -109,7 +109,7 @@ FT_BEGIN_HEADER
+    * ```
+    *
+    */
+-#define FT_CONFIG_OPTION_ENVIRONMENT_PROPERTIES
++/* Environment properties are not part of an ELF invocation. */
+ 
+ 
+   /**************************************************************************
+diff --git a/freeink-font/third_party/freetype/src/base/ftobjs.c b/freeink-font/third_party/freetype/src/base/ftobjs.c
+index d080cc6..2cfc8aa 100644
+--- a/freeink-font/third_party/freetype/src/base/ftobjs.c
++++ b/freeink-font/third_party/freetype/src/base/ftobjs.c
+@@ -228,6 +228,7 @@
+ 
+ #ifndef FT_CONFIG_OPTION_DISABLE_STREAM_SUPPORT
+ 
++#ifndef FT_CONFIG_OPTION_DISABLE_FILE_SYSTEM
+     else if ( mode == FT_OPEN_PATHNAME )
+     {
+       /* create a normal system stream */
+@@ -239,6 +240,7 @@
+       if ( error )
+         FT_FREE( stream );
+     }
++#endif /* !FT_CONFIG_OPTION_DISABLE_FILE_SYSTEM */
+     else if ( ( mode == FT_OPEN_STREAM ) && args->stream )
+     {
+       /* use an existing, user-provided stream */
+diff --git a/freeink-font/third_party/freetype/src/base/ftsystem.c b/freeink-font/third_party/freetype/src/base/ftsystem.c
+index eee3642..9dc0d12 100644
+--- a/freeink-font/third_party/freetype/src/base/ftsystem.c
++++ b/freeink-font/third_party/freetype/src/base/ftsystem.c
+@@ -145,7 +145,7 @@
+    *
+    */
+ 
+-#ifndef FT_CONFIG_OPTION_DISABLE_STREAM_SUPPORT
++#if !defined(FT_CONFIG_OPTION_DISABLE_STREAM_SUPPORT) && !defined(FT_CONFIG_OPTION_DISABLE_FILE_SYSTEM)
+ 
+   /**************************************************************************
+    *
+diff --git a/lib/EpdFont/TtfEpdFont.cpp b/lib/EpdFont/TtfEpdFont.cpp
+index c09cd10..ec787d2 100644
+--- a/lib/EpdFont/TtfEpdFont.cpp
++++ b/lib/EpdFont/TtfEpdFont.cpp
+@@ -5,7 +5,7 @@
+ #include <Logging.h>
+ #include <MemoryManager.h>
+ #include <Utf8.h>
+-#include <esp_heap_caps.h>
++#include <ReaderPort.h>
+ 
+ #include <algorithm>
+ 
+@@ -16,9 +16,8 @@ namespace {
+ // an exact, heap-checked reserve. On no-PSRAM boards the block lands in
+ // internal DRAM and must leave working headroom for the rest of the system.
+ bool canGrow(const size_t bytes) {
+-  if (heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) >= bytes) return true;
+-  return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) >= bytes &&
+-         heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) >= bytes + 12 * 1024;
++  return reader::alive() && bytes <= SIZE_MAX - 12*1024 &&
++         reader::heapBytes(RISC_MEMORY_DEFAULT,true) >= bytes + 12*1024;
+ }
+ 
+ // Exact reserve to `need` rounded up to `step`, capped at `ceil`. Returns
+diff --git a/lib/EpdFont/VectorFontSupport.h b/lib/EpdFont/VectorFontSupport.h
+index 48b527b..6147785 100644
+--- a/lib/EpdFont/VectorFontSupport.h
++++ b/lib/EpdFont/VectorFontSupport.h
+@@ -9,7 +9,7 @@
+ // compiles the whole path out: FreeType never links, .ttf/.otf files are
+ // invisible to the font registry, and .cpfont SD fonts remain the only
+ // sideloaded-font route on those boards.
+-#ifdef BOARD_HAS_PSRAM
++#if defined(RISC_READER_VECTOR_FONTS)
+ #define CROSSPOINT_VECTOR_FONTS 1
+ #else
+ #define CROSSPOINT_VECTOR_FONTS 0
+diff --git a/lib/Epub/Epub/css/CssParser.cpp b/lib/Epub/Epub/css/CssParser.cpp
+index da079fe..76864ba 100644
+--- a/lib/Epub/Epub/css/CssParser.cpp
++++ b/lib/Epub/Epub/css/CssParser.cpp
+@@ -8,6 +8,8 @@
+ #include <array>
+ #include <cctype>
+ #include <charconv>
++#include <type_traits>
++#include <cerrno>
+ #include <cmath>
+ #include <cstring>
+ #include <string_view>
+@@ -67,8 +69,9 @@ constexpr char asciiToLower(const char c) { return (c >= 'A' && c <= 'Z') ? stat
+ // Case-insensitive equality on ASCII. lowercaseKeyword MUST already be
+ // lowercase; CSS keywords are ASCII by spec so byte-wise tolower is safe.
+ constexpr bool iequalsAscii(std::string_view value, std::string_view lowercaseKeyword) {
+-  return std::equal(value.begin(), value.end(), lowercaseKeyword.begin(), lowercaseKeyword.end(),
+-                    [](char a, char b) { return asciiToLower(a) == b; });
++  if(value.size()!=lowercaseKeyword.size()) return false;
++  for(size_t i=0;i<value.size();++i) if(asciiToLower(value[i])!=lowercaseKeyword[i]) return false;
++  return true;
+ }
+ 
+ // Walk s and invoke fn(token) for each non-empty run between delimiters.
+@@ -98,8 +101,21 @@ bool tryParseNumber(std::string_view s, T& out) {
+   const char* begin = s.data();
+   const char* end = s.data() + s.size();
+   if (begin < end && *begin == '+') ++begin;
+-  const auto r = std::from_chars(begin, end, out);
+-  return r.ec == std::errc{} && r.ptr == end;
++  if constexpr (std::is_floating_point<T>::value) {
++    // GCC 8's target libstdc++ lacks floating from_chars. Bounded decimal
++    // conversion preserves whole-token validation without changing locale.
++    const size_t length = end-begin;
++    if(!length || length>=96) return false;
++    for(const char* p=begin;p!=end;++p)
++      if(!((*p>='0'&&*p<='9')||*p=='.'||*p=='e'||*p=='E'||*p=='-'||*p=='+')) return false;
++    char token[96];memcpy(token,begin,length);token[length]=0;
++    char* parsed=nullptr;errno=0;const float value=static_cast<float>(strtod(token,&parsed));
++    if(parsed!=token+length||errno==ERANGE||!std::isfinite(value)) return false;
++    out=value;return true;
++  } else {
++    const auto r = std::from_chars(begin, end, out);
++    return r.ec == std::errc{} && r.ptr == end;
++  }
+ }
+ 
+ // Collect up to 4 whitespace-separated tokens for a CSS edge-value shorthand
+diff --git a/lib/Epub/Epub.cpp b/lib/Epub/Epub.cpp
+index 2945832..3e3e5ad 100644
+--- a/lib/Epub/Epub.cpp
++++ b/lib/Epub/Epub.cpp
+@@ -184,7 +184,9 @@ bool Epub::parseTocNcxFile() const {
+     return false;
+   }
+ 
+-  TocNcxParser ncxParser(contentBasePath, ncxSize, bookMetadataCache.get());
++  // NCX links are relative to the NCX document, including nested navigation folders.
++  const auto ncxBase = tocNcxItem.substr(0, tocNcxItem.find_last_of('/') + 1);
++  TocNcxParser ncxParser(ncxBase, ncxSize, bookMetadataCache.get());
+ 
+   if (!ncxParser.setup()) {
+     LOG_ERR("EBP", "Could not setup toc ncx parser");
+diff --git a/lib/JpegToBmpConverter/JpegToBmpConverter.cpp b/lib/JpegToBmpConverter/JpegToBmpConverter.cpp
+index f888574..1ee17f5 100644
+--- a/lib/JpegToBmpConverter/JpegToBmpConverter.cpp
++++ b/lib/JpegToBmpConverter/JpegToBmpConverter.cpp
+@@ -5,8 +5,8 @@
+ #include <JPEGDEC.h>
+ #include <Logging.h>
+ #include <Memory.h>
+-#include <freertos/FreeRTOS.h>
+-#include <freertos/task.h>
++
++
+ 
+ #include <cstdio>
+ #include <cstring>
+diff --git a/lib/LibraryIndex/LibraryBuilder.cpp b/lib/LibraryIndex/LibraryBuilder.cpp
+index 90b44b0..dc559d0 100644
+--- a/lib/LibraryIndex/LibraryBuilder.cpp
++++ b/lib/LibraryIndex/LibraryBuilder.cpp
+@@ -19,12 +19,12 @@
+ namespace library {
+ namespace {
+ 
+-constexpr char INDEX_PATH[] = "/.crosspoint/library.idx";
+-constexpr char NEW_PATH[] = "/.crosspoint/library.new";
+-constexpr char BACKUP_PATH[] = "/.crosspoint/library.bak";
+-constexpr char STAGE_PATH[] = "/.crosspoint/library.stage";
+-constexpr char DIRTY_PATH[] = "/.crosspoint/library.dirty";
+-constexpr char CACHE_DIR[] = "/.crosspoint";
++constexpr char INDEX_PATH[] = "/System/State/Applications/ebook-reader/library.idx";
++constexpr char NEW_PATH[] = "/System/State/Applications/ebook-reader/library.new";
++constexpr char BACKUP_PATH[] = "/System/State/Applications/ebook-reader/library.bak";
++constexpr char STAGE_PATH[] = "/System/State/Applications/ebook-reader/library.stage";
++constexpr char DIRTY_PATH[] = "/System/State/Applications/ebook-reader/library.dirty";
++constexpr char CACHE_DIR[] = "/System/State/Applications/ebook-reader";
+ // Sticky fallback when the marker could not be persisted (card unavailable at
+ // write time): callers must still see the index as stale until a rebuild clears it.
+ bool dirtyInMemory = false;
+@@ -91,91 +91,11 @@ void serviceBuilder(uint32_t& workUnits) {
+ }
+ 
+ bool recoverInterruptedInstall() {
+-  if (!Storage.exists(BACKUP_PATH)) return true;
+-  if (!Storage.exists(INDEX_PATH)) {
+-    if (Storage.rename(BACKUP_PATH, INDEX_PATH)) {
+-      LOG_INF("LIBIDX", "restored previous index after interrupted install");
+-      return true;
+-    }
+-    LOG_ERR("LIBIDX", "cannot restore %s; rebuild deferred", BACKUP_PATH);
+-    return false;
+-  }
+-
+-  // Both names exist when power was lost after the new index became live but
+-  // before backup cleanup. Validate them one at a time (SdFat has one reader)
+-  // before deciding which copy is stale.
+-  LibraryIndexFile candidate;
+-  if (candidate.open(INDEX_PATH)) {
+-    candidate.close();
+-    if (Storage.remove(BACKUP_PATH)) return true;
+-    LOG_ERR("LIBIDX", "cannot remove stale backup; rebuild deferred");
+-    return false;
+-  }
+-  if (candidate.ioFailed()) {
+-    LOG_ERR("LIBIDX", "cannot read live index during recovery");
+-    return false;
+-  }
+-  candidate.close();
+-
+-  if (candidate.open(BACKUP_PATH)) {
+-    candidate.close();
+-    if (!Storage.remove(INDEX_PATH) || !Storage.rename(BACKUP_PATH, INDEX_PATH)) {
+-      LOG_ERR("LIBIDX", "validated backup could not replace an invalid live index");
+-      return false;
+-    }
+-    LOG_INF("LIBIDX", "restored previous index after interrupted install");
+-    return true;
+-  }
+-  if (candidate.ioFailed()) {
+-    LOG_ERR("LIBIDX", "cannot read backup index during recovery");
+-    return false;
+-  }
+-  candidate.close();
+-
+-  // Neither file validates. The live path will be preserved until a complete
+-  // new index is ready; the unusable backup only blocks transactional install.
+-  if (!Storage.remove(BACKUP_PATH)) {
+-    LOG_ERR("LIBIDX", "invalid stale backup cannot be removed; rebuild deferred");
+-    return false;
+-  }
+-  return true;
++  return Storage.recoverFile(INDEX_PATH);
+ }
+ 
+ bool installNewIndex() {
+-  const bool hadPrevious = Storage.exists(INDEX_PATH);
+-
+-  // A backup beside a live index is left by a successful install interrupted
+-  // before cleanup. It is stale now; remove it before reserving that name for
+-  // the current previous index.
+-  if (Storage.exists(BACKUP_PATH) && !Storage.remove(BACKUP_PATH)) {
+-    LOG_ERR("LIBIDX", "cannot remove stale backup; keeping the live index");
+-    Storage.remove(NEW_PATH);
+-    return false;
+-  }
+-
+-  if (hadPrevious && !Storage.rename(INDEX_PATH, BACKUP_PATH)) {
+-    LOG_ERR("LIBIDX", "cannot stage previous index for replacement");
+-    Storage.remove(NEW_PATH);
+-    return false;
+-  }
+-
+-  if (!Storage.rename(NEW_PATH, INDEX_PATH)) {
+-    LOG_ERR("LIBIDX", "rename %s -> %s failed", NEW_PATH, INDEX_PATH);
+-    if (hadPrevious && !Storage.rename(BACKUP_PATH, INDEX_PATH)) {
+-      // recoverInterruptedInstall() retries this on the next rebuild. Do not
+-      // remove the backup: it is the only complete index left.
+-      LOG_ERR("LIBIDX", "previous index rollback failed; backup retained at %s", BACKUP_PATH);
+-    }
+-    Storage.remove(NEW_PATH);
+-    return false;
+-  }
+-
+-  if (hadPrevious && !Storage.remove(BACKUP_PATH)) {
+-    // The new live index is already complete. A stale backup is harmless and is
+-    // removed before the next replacement attempt.
+-    LOG_ERR("LIBIDX", "new index installed but stale backup cleanup failed");
+-  }
+-  return true;
++  return !reader::failed() && Storage.replaceFile(NEW_PATH, INDEX_PATH);
+ }
+ 
+ void clearLibraryIndexDirty() {
+@@ -424,6 +344,8 @@ struct DedupFrame {
+   ~DedupFrame() { state.activeDedupCount = base; }
+ };
+ 
++bool name_is_system(const char* name){return readerCasecmp(name,"System")==0;}
++
+ void walk(WalkState& st, const std::string& path, const int depth) {
+   if (st.failed || depth > LIBRARY_MAX_DEPTH || st.books >= CLIX_MAX_RECORDS) return;
+ 
+@@ -433,6 +355,7 @@ void walk(WalkState& st, const std::string& path, const int depth) {
+   HalFile dir = Storage.open(path.c_str());
+   if (!dir || !dir.isDirectory()) {
+     if (dir) dir.close();
++    st.failed = true;
+     return;
+   }
+   dir.rewindDirectory();
+@@ -469,7 +392,7 @@ void walk(WalkState& st, const std::string& path, const int depth) {
+     const uint32_t modificationTime = isDir ? 0 : entry.modificationTime();
+     entry.close();
+ 
+-    if (st.nameBuf[0] == '\0' || isHiddenOrSidecar(st.nameBuf)) continue;
++    if (st.nameBuf[0] == '\0' || isHiddenOrSidecar(st.nameBuf) || (path=="/" && name_is_system(st.nameBuf))) continue;
+     const std::string name(st.nameBuf);
+ 
+     if (isDir) {
+diff --git a/lib/Memory/Memory.h b/lib/Memory/Memory.h
+index 0093a85..4fbeb5e 100644
+--- a/lib/Memory/Memory.h
++++ b/lib/Memory/Memory.h
+@@ -20,14 +20,12 @@
+ //   someApi(buf.get(), size);
+ //
+ 
+-template <typename T, typename... Args>
+-  requires(!std::is_array_v<T>)
++template <typename T, typename... Args, typename = std::enable_if_t<!std::is_array_v<T>>>
+ std::unique_ptr<T> makeUniqueNoThrow(Args&&... args) {
+   return std::unique_ptr<T>(new (std::nothrow) T(std::forward<Args>(args)...));
+ }
+ 
+-template <typename T>
+-  requires std::is_unbounded_array_v<T>
++template <typename T, typename = std::enable_if_t<std::is_array_v<T>>>
+ std::unique_ptr<T> makeUniqueNoThrow(size_t count) {
+   using Elem = std::remove_extent_t<T>;
+   return std::unique_ptr<T>(new (std::nothrow) Elem[count]());
+diff --git a/lib/MiniBidi/BidiUtils.cpp b/lib/MiniBidi/BidiUtils.cpp
+index e50128f..f808eea 100644
+--- a/lib/MiniBidi/BidiUtils.cpp
++++ b/lib/MiniBidi/BidiUtils.cpp
+@@ -11,13 +11,10 @@ extern "C" {
+ #include <Utf8.h>
+ 
+ #include <cstring>
+-#include <mutex>
+ 
+-// Guards the static bidi_char buffers in applyBidiVisual() and
+-// computeVisualWordOrder().  The bidi+shaping pipeline is not reentrant;
+-// this mutex serialises access so multi-core callers don't corrupt each
+-// other's intermediate state.
+-static std::mutex bidiMutex;
++
++// The upstream firmware serializes these buffers across multiple tasks.
++// RiscRTE invokes this ELF only on its owner task; buffers are module-local.
+ 
+ namespace {
+ 
+@@ -35,8 +32,7 @@ bool isNaturalDirectionClass(const uchar cls) {
+ }
+ 
+ // Visual-reorder scratch shared by applyBidiVisual() and
+-// computeVisualWordOrder(). Neither function calls the other, and bidiMutex
+-// already serialises both, so a single buffer serves both instead of a
++// computeVisualWordOrder(). Neither function calls the other, and this ELF invokes both only on its owner task, so a single buffer serves both instead of a
+ // per-function static — saving ~1.5 KB of always-resident RAM.
+ bidi_char sharedBidiLine[BIDI_MAX_LINE];
+ 
+@@ -93,8 +89,6 @@ bool isTransparentMark(const uint32_t cp) {
+ 
+ bool applyBidiVisual(const char* utf8, std::string& out, int paragraphLevel) {
+   if (!utf8 || !*utf8) return false;
+-  const std::lock_guard<std::mutex> lock(bidiMutex);
+-
+   bidi_char* const line = sharedBidiLine;
+   static bidi_char shaped[BIDI_MAX_LINE];
+   int count = 0;
+@@ -189,8 +183,6 @@ bool computeVisualWordOrder(const std::vector<std::string>& words, bool paragrap
+   visualOrder.clear();
+   const size_t nWords = words.size();
+   if (nWords <= 1 || nWords > BIDI_MAX_LINE) return false;
+-  const std::lock_guard<std::mutex> lock(bidiMutex);
+-
+   bidi_char* const line = sharedBidiLine;
+   int count = 0;
+   bool truncated = false;
+diff --git a/lib/PngToBmpConverter/PngToBmpConverter.cpp b/lib/PngToBmpConverter/PngToBmpConverter.cpp
+index 3509519..bfeddd7 100644
+--- a/lib/PngToBmpConverter/PngToBmpConverter.cpp
++++ b/lib/PngToBmpConverter/PngToBmpConverter.cpp
+@@ -5,8 +5,8 @@
+ #include <InflateStream.h>
+ #include <Logging.h>
+ #include <Memory.h>
+-#include <freertos/FreeRTOS.h>
+-#include <freertos/task.h>
++
++
+ 
+ #include <cstdio>
+ #include <cstring>
+diff --git a/lib/Serialization/Serialization.h b/lib/Serialization/Serialization.h
+index d0557dd..752e42b 100644
+--- a/lib/Serialization/Serialization.h
++++ b/lib/Serialization/Serialization.h
+@@ -1,7 +1,8 @@
+ #pragma once
+ #include <HalStorage.h>
+ 
+-#include <iostream>
++#include <istream>
++#include <ostream>
+ #include <limits>
+ 
+ namespace serialization {
+diff --git a/lib/expat/xmlparse.c b/lib/expat/xmlparse.c
+index 3f132a0..8df7211 100644
+--- a/lib/expat/xmlparse.c
++++ b/lib/expat/xmlparse.c
+@@ -66,6 +66,13 @@
+ 
+ #define XML_BUILDING_EXPAT 1
+ 
++/* RiscRTE: entropy comes from the declared random.bytes capability; debug
++ * diagnostics have no process environment or FILE dependency. */
++#include <stddef.h>
++extern void readerXmlRandom(void*,size_t);
++extern int readerXmlDebug(const char*,...);
++#define HAVE_ARC4RANDOM_BUF 1
++#define arc4random_buf readerXmlRandom
+ #include "expat_config.h"
+ 
+ #if !defined(XML_GE) || (1 - XML_GE - 1 == 2) || (XML_GE < 0) || (XML_GE > 1)
+@@ -742,7 +749,7 @@ static void expat_heap_stat(XML_Parser rootParser, char operator, XmlBigCount ab
+                             XmlBigCount peakTotal, int sourceLine) {
+   // NOTE: This can be +infinity or -nan
+   const float amplification = (float)newTotal / (float)rootParser->m_accounting.countBytesDirect;
+-  fprintf(stderr,
++  readerXmlDebug(
+           "expat: Allocations(%p): Direct " EXPAT_FMT_ULL("10") ", allocated %c" EXPAT_FMT_ULL(
+               "10") " to " EXPAT_FMT_ULL("10") " (" EXPAT_FMT_ULL("10") " peak), amplification %8.2f (xmlparse.c:%d)\n",
+           (void*)rootParser, rootParser->m_accounting.countBytesDirect, operator, absDiff, newTotal, peakTotal,
+@@ -1098,7 +1105,7 @@ static unsigned long gather_time_entropy(void) {
+ 
+ static unsigned long ENTROPY_DEBUG(const char* label, unsigned long entropy) {
+   if (getDebugLevel("EXPAT_ENTROPY_DEBUG", 0) >= 1u) {
+-    fprintf(stderr, "expat: Entropy: %s --> 0x%0*lx (%lu bytes)\n", label, (int)sizeof(entropy) * 2, entropy,
++    readerXmlDebug( "expat: Entropy: %s --> 0x%0*lx (%lu bytes)\n", label, (int)sizeof(entropy) * 2, entropy,
+             (unsigned long)sizeof(entropy));
+   }
+   return entropy;
+@@ -7518,8 +7525,7 @@ static void accountingReportStats(XML_Parser originParser, const char* epilog) {
+   }
+ 
+   const float amplificationFactor = accountingGetCurrentAmplification(rootParser);
+-  fprintf(
+-      stderr,
++  readerXmlDebug(
+       "expat: Accounting(%p): Direct " EXPAT_FMT_ULL("10") ", indirect " EXPAT_FMT_ULL("10") ", amplification %8.2f%s",
+       (void*)rootParser, rootParser->m_accounting.countBytesDirect, rootParser->m_accounting.countBytesIndirect,
+       (double)amplificationFactor, epilog);
+@@ -7531,7 +7537,7 @@ static void accountingReportDiff(XML_Parser rootParser, unsigned int levelsAwayF
+                                  const char* after, ptrdiff_t bytesMore, int source_line, enum XML_Account account) {
+   assert(!rootParser->m_parentParser);
+ 
+-  fprintf(stderr, " (+" EXPAT_FMT_PTRDIFF_T("6") " bytes %s|%u, xmlparse.c:%d) %*s\"", bytesMore,
++  readerXmlDebug( " (+" EXPAT_FMT_PTRDIFF_T("6") " bytes %s|%u, xmlparse.c:%d) %*s\"", bytesMore,
+           (account == XML_ACCOUNT_DIRECT) ? "DIR" : "EXP", levelsAwayFromRootParser, source_line, 10, "");
+ 
+   const char ellipis[] = "[..]";
+@@ -7543,19 +7549,19 @@ static void accountingReportDiff(XML_Parser rootParser, unsigned int levelsAwayF
+   if ((rootParser->m_accounting.debugLevel >= 3u) ||
+       (after - before) <= (ptrdiff_t)(contextLength + ellipsisLength + contextLength)) {
+     for (; walker < after; walker++) {
+-      fprintf(stderr, "%s", unsignedCharToPrintable(walker[0]));
++      readerXmlDebug( "%s", unsignedCharToPrintable(walker[0]));
+     }
+   } else {
+     for (; walker < before + contextLength; walker++) {
+-      fprintf(stderr, "%s", unsignedCharToPrintable(walker[0]));
++      readerXmlDebug( "%s", unsignedCharToPrintable(walker[0]));
+     }
+-    fprintf(stderr, ellipis);
++    readerXmlDebug( ellipis);
+     walker = after - contextLength;
+     for (; walker < after; walker++) {
+-      fprintf(stderr, "%s", unsignedCharToPrintable(walker[0]));
++      readerXmlDebug( "%s", unsignedCharToPrintable(walker[0]));
+     }
+   }
+-  fprintf(stderr, "\"\n");
++  readerXmlDebug( "\"\n");
+ }
+ 
+ static XML_Bool accountingDiffTolerated(XML_Parser originParser, int tok, const char* before, const char* after,
+@@ -7621,7 +7627,7 @@ static void entityTrackingReportStats(XML_Parser rootParser, ENTITY* entity, con
+   const char* const entityName = entity->name;
+ #endif
+ 
+-  fprintf(stderr, "expat: Entities(%p): Count %9u, depth %2u/%2u %*s%s%s; %s length %d (xmlparse.c:%d)\n",
++  readerXmlDebug( "expat: Entities(%p): Count %9u, depth %2u/%2u %*s%s%s; %s length %d (xmlparse.c:%d)\n",
+           (void*)rootParser, rootParser->m_entity_stats.countEverOpened, rootParser->m_entity_stats.currentDepth,
+           rootParser->m_entity_stats.maximumDepthSeen, ((int)rootParser->m_entity_stats.currentDepth - 1) * 2, "",
+           entity->is_param ? "%" : "&", entityName, action, entity->textLen, sourceLine);
+@@ -8191,20 +8197,4 @@ const char* unsignedCharToPrintable(unsigned char c) {
+ 
+ #endif /* XML_GE == 1 */
+ 
+-static unsigned long getDebugLevel(const char* variableName, unsigned long defaultDebugLevel) {
+-  const char* const valueOrNull = getenv(variableName);
+-  if (valueOrNull == NULL) {
+-    return defaultDebugLevel;
+-  }
+-  const char* const value = valueOrNull;
+-
+-  errno = 0;
+-  char* afterValue = NULL;
+-  unsigned long debugLevel = strtoul(value, &afterValue, 10);
+-  if ((errno != 0) || (afterValue == value) || (afterValue[0] != '\0')) {
+-    errno = 0;
+-    return defaultDebugLevel;
+-  }
+-
+-  return debugLevel;
+-}
++static unsigned long getDebugLevel(const char* variableName, unsigned long defaultDebugLevel) { (void)variableName;return defaultDebugLevel; }

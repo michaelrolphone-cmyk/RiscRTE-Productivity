@@ -1,0 +1,13 @@
+# Points 0.6.11 input and editor repair
+
+The selected resident 0.6.10 recipe omitted the transition-renderer flag, which also selected the fast display intent. System's focused interactive-paper correction removes this coupling: full-buffer page changes and partial damage use LOW_LATENCY. The selected UC8279 fast provider already implements that intent and retains its 2.3-second settling. Explicit desk quality remains separate. App controllers still wait for writable frame ownership before drawing.
+
+The Points keyboard previously queued each release until its pressed frame completed and discarded subsequent contacts. A valid release now updates the draft immediately, with one captured key per contact. Pending pixels stay immutable; the next writable frame renders the latest draft. Moving off a key, multiple contacts, cancellation, Back and terminal retention clear its ownership. New pages must become visible once before their controls accept input.
+
+Add and Edit now have distinct headings and a visible Back control. Back discards the event draft without changing the saved catalog. Paper type selection uses the existing shared pixel-scroll controller, including inertia and drag/tap arbitration. A tap keeps the row identity visible at contact start even when another frame completes. Paper New Type opens the supplied name/keyboard/symbol design immediately. Done keeps those draft values and opens matching-styled defaults; Save Type commits. Color, duration, mode, notification defaults and deletion remain available. Keyboard name capacity remains 31 characters, matching the stored contract.
+
+Qualification uses the actual Watch RGB renderer and selected X4 MONO1 adapter, plus resident builds from target receipts. Tests cover rapid key releases and layer changes while a present remains pending, immutable submitted pixels, cancellation, scrolling during a pending frame, draft/save behavior, migration, storage exhaustion, uncertain saves and terminal retention. Timing is deterministic host time; physical input-to-display latency remains a hardware check.
+
+The original Watch and X4 images remain frozen. This is a source/app successor, not an installable product by itself.
+
+Visual review used the actual 480×800 one-bit renderer beside the supplied HTML screen. The Orbitron/Rajdhani font files, weights, baselines, rows, symbol selector and QWERTY key geometry are retained. Deliberate differences are the stored 31-character name capacity instead of the sample 14, one-bit edge rasterization instead of browser antialiasing, Add/Edit Back required by subsequent feedback, and a separate styled defaults page so duration/mode/color features remain available. These are not pixel-identical browser screenshots.

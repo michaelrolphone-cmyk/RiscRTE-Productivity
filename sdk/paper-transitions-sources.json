@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "adapter_sha": "cd2a579370ed7700f4d1e043986f8304c04c6071",
+  "adapter_public": false,
+  "versions": {
+    "points_in_time": "0.6.3",
+    "timecard": "0.2.9"
+  },
+  "define": "-DPORTABLE_PAPER_TRANSITIONS",
+  "source_sha256": {
+    "lib/PortableApps/src/adapter.c": "37bc9581d73a1787c092743f68a05e7092bdf5326cad399ef0bee413c8cd7a17",
+    "lib/PortableApps/src/quick_actions.c": "77b5ee25f443ccc0666ed63a706bb773eaead11db0ef8af5cf68f48cefc76f12",
+    "lib/PortableApps/src/quick_adapter.inc": "b44c1ace2d1cafe0c7b34cf018f5aec84d97cf6cd75423f3ce2d79fd2ed13959",
+    "lib/PortableApps/src/quick_paper.inc": "0dc780ff380a9199023f36042b6f5123972eac8a1feddc14f4db289ddd17ed10",
+    "lib/PortableApps/include/PortableQuickActions.h": "390dd43b9423c22b649480c00d7029b757bc594581f82216a6123e8af71dae91",
+    "lib/PortableApps/src/quick_session.c": "4dc3e4c2378cdf5b894a97cfab828b28aff3cce3b76fbf6a6768598d5cd6d097",
+    "lib/PortableApps/include/PortableQuickSession.h": "39b984a72bf94ce1d974c259e017fa335914131437cfa60faeacd187eb6de05a",
+    "lib/PortableApps/include/PortableQuickPreferences.h": "b3f72b03bee30e9acec34d1aab5d0c7e86bc3315d8ecc99b6bb99cf09ea08eee"
+  },
+  "hardware_verified": false
+}

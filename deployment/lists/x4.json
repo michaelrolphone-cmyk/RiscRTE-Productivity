@@ -1,0 +1,7 @@
+{
+  "schema": "nova7.lists.deployment.v1",
+  "target": "x4",
+  "presentation": "portrait-monochrome",
+  "app_data_namespace": 63,
+  "provider_capacity": 28
+}

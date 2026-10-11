@@ -1,0 +1,14 @@
+{
+  "version": "0.6.9",
+  "minimum_runtime": "0.1.83",
+  "productivity_base": "8c8263a8d52c8435d291f82b65f98bd3756b2c4b",
+  "runtime": "34095f642d307f157ac0ed32ee5cb7f6532f9ac1",
+  "utilities": "9bd572791a8304194ceb2b7542fc9cbd124e911b",
+  "watch_adapter": "e2b2b8b7d903acb6aec6b07ebee7d037de2babb1",
+  "watch_sleep": "b3d41db86d95773b2944d2d2b6746b6e0ed98d51",
+  "x4_adapter": "b1d539df71c7e2c32bf3be6c4ed4228d13f45e0b",
+  "presentation_system": "5a5cdbf92a6d307708cfa432b28caa9218c1a109",
+  "compiler": "Xtensa GCC 8.4.0 esp-2021r2-patch5",
+  "selected_source": "Apps/points_catalog_app.c",
+  "local_qualification_only": true
+}

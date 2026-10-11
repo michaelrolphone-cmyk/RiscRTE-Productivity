@@ -12,7 +12,7 @@ const t5_storage_api_v1 *timecard_portable_file_storage(void){return &tc_files;}
 static void tap(unsigned at,int x,int y){for(unsigned i=0;i<2;i++){actions[action_count].at=at+i;actions[action_count].x=x;actions[action_count].y=y;action_count++;}}
 static void reset(const char *frames_path){
  directory=frames_path;memset(pixels,0xa5,sizeof(pixels));memset(cells,0,sizeof(cells));ticks=polls=grants=frames=0;
- subs=presents=action_count=launch_count=launch_at=history_writes=crown_at=0;stop_poll=120;history_read_ok=true;
+ subs=presents=action_count=launch_count=launch_at=history_writes=crown_at=home_at=primary_at=0;expected_launch="springboard.elf";stop_poll=120;history_read_ok=true;
  strcpy(history,"{\"days\":[{\"d\":20261004,\"in\":480}]}");
 }
 int main(int argc,char **argv){

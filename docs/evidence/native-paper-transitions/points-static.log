@@ -1,0 +1,19 @@
+Native Points/adapter scenario0 passed; samples13 frames2 retained0
+Native Points/adapter scenario1 passed; samples13 frames1 retained0
+Native Points/adapter scenario2 passed; samples13 frames1 retained0
+Native Points/adapter scenario3 passed; samples12 frames1 retained1
+Native Points/adapter scenario4 passed; samples12 frames1 retained1
+Native Points/adapter scenario5 passed; samples12 frames1 retained1
+Native Points/adapter scenario6 passed; samples11 frames1 retained1
+Native Points/adapter scenario7 passed; samples12 frames2 retained0
+Native Points/adapter scenario8 passed; samples13 frames1 retained0
+Native Points/adapter scenario0 passed; samples13 frames2 retained0
+Native Points/adapter scenario1 passed; samples13 frames1 retained0
+Native Points/adapter scenario2 passed; samples13 frames1 retained0
+Native Points/adapter scenario3 passed; samples12 frames1 retained1
+Native Points/adapter scenario4 passed; samples12 frames1 retained1
+Native Points/adapter scenario5 passed; samples12 frames1 retained1
+Native Points/adapter scenario6 passed; samples11 frames1 retained1
+Native Points/adapter scenario7 passed; samples12 frames2 retained0
+Native Points/adapter scenario8 passed; samples13 frames1 retained0
+Actual native Points/controller/helper/toolbar composition with Quick enabled passed normal + ASan/UBSan
