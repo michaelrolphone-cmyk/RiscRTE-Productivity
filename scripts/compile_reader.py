@@ -15,7 +15,7 @@ cpp+=[a.png/'src/PNGdec.cpp',a.jpeg/'src/JPEGDEC.cpp']
 inc=[ROOT/'reader/port',include,a.runtime/'sdk/cxx']+inc+[a.png/'src',a.jpeg/'src',a.upstream/'lib/uzlib/src']
 cc+=list((a.upstream/'lib/uzlib/src').glob('*.c'))+list((a.png/'src').glob('*.c'))
 # uzlib's public include is under src in this upstream snapshot.
-common=['-Os','-fno-ivopts','-fPIC','-ffunction-sections','-fdata-sections','-DRISC_READER_VECTOR_FONTS','-DXML_DTD','-DXML_GE=1','-DXML_NS','-DHAVE_MEMMOVE','-DBYTEORDER=1234','-DXML_CONTEXT_BYTES=1024','-DXML_STATIC','-DFT_CONFIG_OPTION_DISABLE_FILE_SYSTEM','-DPNG_NO_LOGGING','-include',str(ROOT/'reader/port/Arduino.h')]
+common=['-Os','-fno-ivopts','-fPIC','-ffunction-sections','-fdata-sections','-fstack-usage','-DRISC_READER_VECTOR_FONTS','-DXML_DTD','-DXML_GE=1','-DXML_NS','-DHAVE_MEMMOVE','-DBYTEORDER=1234','-DXML_CONTEXT_BYTES=1024','-DXML_STATIC','-DFT_CONFIG_OPTION_DISABLE_FILE_SYSTEM','-DPNG_NO_LOGGING','-include',str(ROOT/'reader/port/Arduino.h')]
 base=Path.home()/'.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-'
 cxx=os.environ.get('NATIVE_APP_CXX',str(base)+'g++') if a.target else 'g++';c=os.environ.get('NATIVE_APP_CC',str(base)+'gcc') if a.target else 'gcc'
 if a.target:common+=['-mtext-section-literals','-mlongcalls','-fvisibility=hidden']

@@ -51,7 +51,9 @@ bool Engine::open(const std::string& path){
  if(!book)clearError(); // A reported catalog/open failure must not poison the next independent open.
  if(!close())return false;clearError();if(!selectFont())return false;book=std::make_shared<Epub>(path,stateRoot);
  if(!book->load()||failed()){message=book->getProtectionError().empty()?"Book could not be opened":book->getProtectionError();book.reset();return false;}
- state=BookState();stateGeneration=0;stateWritable=true;
+ // Reset in place: a BookState temporary reserves over 5 KiB for this entire
+ // call, including the nested EPUB parser and FreeType rasterizer below.
+ state.position={0,0};state.count=0;memset(state.marks,0,sizeof(state.marks));stateGeneration=0;stateWritable=true;
  if(!readRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable)){message="Saved reading position is damaged";book.reset();return false;}
  if(state.count>64||state.position.spine>=unsigned(book->getSpineItemsCount())){message="Saved position is invalid";stateWritable=false;book.reset();return false;}
  for(unsigned i=0;i<state.count;i++)if(!memchr(state.marks[i].name,0,sizeof(state.marks[i].name))||state.marks[i].position.spine>=unsigned(book->getSpineItemsCount())){message="Saved bookmarks are damaged";book.reset();return false;}
@@ -98,13 +100,13 @@ bool Engine::setLayout(const Settings& settings){
  if(!saveSettings()){preferences.settings=previous;selectFont();renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-previous.orientation)&3));if(book)jump(old);return false;}
  return !book||jump(old);
 }
-bool Engine::toggleBookmark(){if(!page||seeking)return false;Position current=position();BookState previous=state;
+bool Engine::toggleBookmark(){if(!page||seeking)return false;Position current=position();
  for(unsigned i=0;i<state.count;i++)if(state.marks[i].position.spine==current.spine&&state.marks[i].position.offset==current.offset)return removeBookmark(i);
- if(state.count==64){message="Bookmark list is full";return false;}auto& mark=state.marks[state.count++];mark.position=current;snprintf(mark.name,sizeof(mark.name),"Chapter %d - page %d",spine+1,pageNumber+1);
- if(!saveBook()){state=previous;message="Bookmark was not saved";return false;}return true;
+ if(state.count==64){message="Bookmark list is full";return false;}Bookmark previous=state.marks[state.count];auto& mark=state.marks[state.count++];mark.position=current;snprintf(mark.name,sizeof(mark.name),"Chapter %d - page %d",spine+1,pageNumber+1);
+ if(!saveBook()){state.marks[--state.count]=previous;message="Bookmark was not saved";return false;}return true;
 }
-bool Engine::removeBookmark(unsigned n){if(n>=state.count)return false;BookState previous=state;for(unsigned i=n+1;i<state.count;i++)state.marks[i-1]=state.marks[i];--state.count;if(!saveBook()){state=previous;return false;}return true;}
-bool Engine::renameBookmark(unsigned n,const char* name){if(n>=state.count||!name||strlen(name)>=80)return false;BookState previous=state;snprintf(state.marks[n].name,80,"%s",name);if(!saveBook()){state=previous;return false;}return true;}
+bool Engine::removeBookmark(unsigned n){if(n>=state.count)return false;Bookmark previous=state.marks[n];for(unsigned i=n+1;i<state.count;i++)state.marks[i-1]=state.marks[i];--state.count;if(!saveBook()){for(unsigned i=state.count;i>n;--i)state.marks[i]=state.marks[i-1];state.marks[n]=previous;++state.count;return false;}return true;}
+bool Engine::renameBookmark(unsigned n,const char* name){if(n>=state.count||!name||strlen(name)>=80)return false;Bookmark previous=state.marks[n];snprintf(state.marks[n].name,80,"%s",name);if(!saveBook()){state.marks[n]=previous;return false;}return true;}
 bool Engine::render(){if(!page||seeking)return false;renderer.clearScreen();auto prewarm=fontCache.createPrewarmScope();int m=preferences.settings.margin;
  page->render(renderer,fontId,m,m);prewarm.endScanAndPrewarm();page->render(renderer,fontId,m,m);return !failed();}
 std::string Engine::footer()const{if(!section)return "";char s[96];float fraction=section->pageCount?float(pageNumber)/section->pageCount:0;snprintf(s,sizeof(s),"%u%%  |  CH %d  |  %d / %s%u",unsigned(book->calculateProgress(spine,fraction)*100),spine+1,pageNumber+1,section->isBuilding()?"~":"",section->estimatedTotalPages());return s;}

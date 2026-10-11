@@ -43,3 +43,10 @@ if a.font:
     (fixture / 'fonts').mkdir(exist_ok=True)
     shutil.copyfile(a.font, fixture / 'fonts/TestFont.ttf')
 subprocess.run([str(binary), str(fixture)], check=True)
+failure_binary=a.output/'bookmark-failure-test'
+subprocess.run(['g++','-std=c++17','-DRISC_READER_VECTOR_FONTS','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-include',str(ROOT/'reader/port/Arduino.h'),*['-I'+str(x) for x in include],str(ROOT/'test/reader/bookmark_failure_test.cpp'),str(ROOT/'test/reader/host_volume.cpp'),*json.loads((objects/'objects.json').read_text()),'-o',str(failure_binary)],check=True)
+failure_fixture=a.output/'bookmark-fixture'
+if failure_fixture.exists():shutil.rmtree(failure_fixture)
+create(failure_fixture)
+shutil.copytree(fixture/'fonts',failure_fixture/'fonts')
+subprocess.run([str(failure_binary),str(failure_fixture)],check=True)

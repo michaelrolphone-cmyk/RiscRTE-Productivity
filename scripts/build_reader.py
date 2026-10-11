@@ -26,6 +26,8 @@ def build(a):
     subprocess.run([sys.executable, str(ROOT / 'scripts/compile_reader.py'), '--target',
                     '--upstream', str(staged), '--runtime', str(a.runtime), '--system', str(a.system),
                     '--png', str(a.png), '--jpeg', str(a.jpeg), '--output', str(objects)], check=True)
+    from reader_stack_budget import check
+    stack_frames=check(objects)
     sys.path.insert(0, str(a.runtime / 'scripts'))
     from link_cpp_module import link
     compiler = os.environ.get('NATIVE_APP_CXX', str(Path.home() / '.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-g++'))
@@ -62,7 +64,7 @@ def build(a):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
-    receipt.update({'upstream': lock, 'physical_testing': 'not performed',
+    receipt.update({'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':stack_frames,
                     'native_admission': 'requires matching native candidate verification',
                     'asset_sha256': {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((package / 'sd').rglob('*')) if p.is_file()},
                     'source_trees': {name: subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD^{tree}'], text=True).strip() for name, path in [('runtime', a.runtime), ('system', a.system), ('productivity', ROOT)]},

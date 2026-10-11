@@ -6,6 +6,8 @@
 #undef risc_runtime_get_api
 #undef main
 #include "RiscScenePageV1.h"
+static unsigned exit_after_frame;
+void reader_test_scene_allow_exit(void){exit_after_frame=submits+1;}
 
 const void *reader_test_scene_start(void) {
     w=800;h=480;format=1;
@@ -21,7 +23,7 @@ const void *reader_test_scene_start(void) {
 void reader_test_scene_tick(unsigned amount) {
     ms+=amount;
     if(ms>=200000){fprintf(stderr,"scene timeout submits=%u polls=%u presenting=%d subscribed=%d nav=%u calls=%u\n",submits,polls,presenting,subscribed,nav_pressed,calls);abort();}
-    if(submits>=1 && ms>1000)nav_pressed=RISC_NAV_BACK;
+    if(exit_after_frame && submits>=exit_after_frame && ms>1000)nav_pressed=RISC_NAV_HOME;
 }
 void reader_test_scene_finish(void) {
     assert(submits>=1 && !subscribed && !presenting && !held);
