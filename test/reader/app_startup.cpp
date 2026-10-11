@@ -1,7 +1,7 @@
 #include "host_volume.cpp"
 #include "T5FileOpenApi.h"
 #include "RiscScenePageV1.h"
-#include "RiscSceneCheckpointV1.h"
+#include "RiscSceneReadingV1.h"
 #include "RiscResidentShellV1.h"
 #include "ReaderEngine.h"
 #include <cassert>
@@ -19,7 +19,7 @@ extern "C" void reader_test_scene_exit_in(unsigned);
 extern "C" void risc_cpp_set_failure_handler(void(*)()) {}
 static const void *sceneApi;
 static unsigned acquired,released;
-static bool readySeen;
+static bool readySeen,legacyScene,compatibilitySeen;
 static const char *sourcePath;
 static unsigned pages;
 static bool residentTest,redrawTest,controlsTest,controlsSent,restorePending,policyPending;
@@ -36,16 +36,18 @@ static risc_scene_page_document_v1 shownPage;
 static unsigned policyCalls,restores;
 static uint64_t lastPolicy;
 static std::vector<uint8_t> firstPage;
-static risc_scene_checkpoint_api_v1 sceneCopy;
+static risc_scene_reading_api_v1 sceneCopy;
+static const risc_scene_reading_api_v1 *realReading;
 static const risc_scene_page_api_v1 *realScene;
 static const risc_scene_page_refresh_api_v1 *realRefresh;
 static const risc_scene_checkpoint_api_v1 *realCheckpoint;
-static int32_t presentPage(void* c,uint64_t session,const risc_scene_page_document_v1* p,const uint8_t* bytes,size_t size,uint32_t refresh){
+static int32_t presentReading(void* c,uint64_t session,const risc_scene_reading_document_v1* reading,const uint8_t* bytes,size_t size,uint32_t refresh){
+ const auto* p=&reading->base;
  assert(!restorePending&&"Unchanged resident page was republished");
  assert(!residentTest||turnsTest||!pages);
- assert(refresh==RISC_SCENE_PAGE_REFRESH_CLEAN);
+ assert(bytes&&refresh==RISC_SCENE_PAGE_REFRESH_CLEAN);
  cleanRequests+=refresh==RISC_SCENE_PAGE_REFRESH_CLEAN;
- int32_t result=realRefresh->present_page_with_refresh(c,session,p,bytes,size,refresh);
+ int32_t result=realReading->present_reading(c,session,reading,bytes,size,refresh);
  if(!result){unsigned ink=0;for(size_t i=0;i<size;++i)ink+=bytes[i]!=255;assert(ink>100);
   shownPage=*p;
   if(!pages)firstPage.assign(bytes,bytes+size);
@@ -62,6 +64,7 @@ static int32_t resumeScene(void* c,uint64_t s,uint32_t flags){
  return rc;
 }
 static void checkDocument(const risc_components_document_v1* d){
+ if(legacyScene&&!strcmp(d->routes[0].title,"READER UPDATE")){compatibilitySeen=true;reader_test_scene_allow_exit();}
  if(catalogTest){
   unsigned bookRows=0,emptyAuthors=0;
   for(unsigned i=0;i<d->node_count;++i){
@@ -75,7 +78,7 @@ static void checkDocument(const risc_components_document_v1* d){
   if(badCatalog&&!strcmp(d->routes[0].title,"BROWSE SD")){sawBrowser=true;reader_test_scene_allow_exit();}
  }
  if(!residentTest||!pages)return;
- for(unsigned i=0;i<d->node_count;++i)assert(strcmp(d->nodes[i].label,"Opening book")&&"Loading screen replaced the visible page during resident restore");
+ for(unsigned i=0;i<d->node_count;++i)assert(strcmp(d->nodes[i].label,"Opening book")&&strcmp(d->nodes[i].label,"OPENING BOOK")&&"Loading screen replaced the visible page during resident restore");
 }
 static int32_t openComponents(void* c,const risc_components_document_v1* d,const risc_scene_navigation_v1* n,uint64_t* s){checkDocument(d);return realScene->components.open(c,d,n,s);}
 static int32_t updateComponents(void* c,uint64_t s,const risc_components_document_v1* d){checkDocument(d);return realScene->components.update(c,s,d);}
@@ -91,7 +94,7 @@ static int32_t nextScene(void* c,uint64_t s,risc_scene_event_v1* e){
  if(turnsTest&&(!residentTest||restores==4)&&rc==RISC_SCENE_IDLE&&pages==turnEvents+1&&turnEvents<2){
   risc_scene_navigation_v1 n{};n.struct_size=sizeof(n);uint32_t flags=0;
   assert(!realScene->components.lifecycle.base.snapshot(c,s,&n,&flags));
-  if(!(flags&RISC_SCENE_PRESENTING)){e->kind=RISC_SCENE_ACTION_EVENT;e->document_revision=shownPage.revision;e->sequence=++eventSequence;e->action=turnEvents?shownPage.previous_action:shownPage.next_action;++turnEvents;return RISC_SCENE_OK;}
+  if(!(flags&RISC_SCENE_PRESENTING)){e->kind=RISC_SCENE_ACTION_EVENT;e->document_revision=shownPage.revision;e->sequence=++eventSequence;e->action=turnEvents?shownPage.previous_action:shownPage.next_action;e->node=turnEvents?1:3;++turnEvents;return RISC_SCENE_OK;}
  }
  return rc;
 }
@@ -127,32 +130,35 @@ static bool acquireApp(const char *name,uint32_t version,uint64_t instance,risc_
  assert(g->api);g->slot=++acquired;return true;
 }
 static bool releaseApp(risc_runtime_capability_v1 *g){assert(g->api&&!held);g->api=nullptr;++released;return true;}
-static bool appLog(const char *message){if(strstr(message,"scene ready page=480x632 sd=ready")){readySeen=true;
+static bool appLog(const char *message){if(strstr(message,"scene ready page=480x680 sd=ready")){readySeen=true;
  if(badCatalog){for(auto& f:files)f.second.error=1;} // Fail the already-open index's next read.
  else if(!sourcePath)reader_test_scene_allow_exit();}return log(message);}
 static void *runApp(void*){app_main();return nullptr;}
 int main(int argc,char **argv){
  assert(argc>=2&&argc<=4);sourcePath=argc>=3&&strcmp(argv[2],"-")?argv[2]:nullptr;
+ legacyScene=argc==4&&!strcmp(argv[3],"legacy-scene");
  bool laterTest=argc==4&&!strcmp(argv[3],"resident-later");
  bool residentTurns=argc==4&&!strcmp(argv[3],"resident-turns");
  controlsTest=argc==4&&!strcmp(argv[3],"controls");
  redrawTest=argc==4&&!strcmp(argv[3],"resident-redraw");residentTest=residentTurns||controlsTest||laterTest||redrawTest||(argc==4&&!strcmp(argv[3],"resident"));badCatalog=argc==4&&!strcmp(argv[3],"bad-catalog");catalogTest=badCatalog||(argc==4&&!strcmp(argv[3],"catalog"));turnsTest=residentTurns||(argc==4&&!strcmp(argv[3],"turns"));hostBind(argv[1]);
  if(catalogTest){reader::Engine e;assert(e.init(480,632));assert(e.scanLibrary());assert(e.library.bookCount()==4);}
  if(laterTest){reader::Engine e;assert(e.init(480,632)&&e.open(sourcePath));while(e.waiting())assert(e.step());for(unsigned i=0;i<8;i++){assert(e.turn(1));while(e.waiting())assert(e.step());}assert(e.savePosition());}
- realCheckpoint=static_cast<const risc_scene_checkpoint_api_v1*>(reader_test_scene_start());realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;sceneCopy=*realCheckpoint;sceneCopy.presentation.present_page_with_refresh=presentPage;sceneCopy.resume=resumeScene;sceneApi=&sceneCopy;
+ realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
+ sceneCopy=*realReading;if(legacyScene)sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(risc_scene_checkpoint_api_v1);sceneCopy.present_reading=presentReading;sceneCopy.checkpoint.resume=resumeScene;sceneApi=&sceneCopy;
  runtime.acquire=acquireApp;runtime.release=releaseApp;runtime.yield_ms=reader_test_scene_tick;runtime.diagnostic=appLog;
- sceneCopy.presentation.page.components.open=openComponents;sceneCopy.presentation.page.components.update=updateComponents;
+ sceneCopy.checkpoint.presentation.page.components.open=openComponents;sceneCopy.checkpoint.presentation.page.components.update=updateComponents;
  if(residentTest)runtime.resident_shell=residentClient;
- sceneCopy.presentation.page.components.lifecycle.base.next=nextScene;
+ sceneCopy.checkpoint.presentation.page.components.lifecycle.base.next=nextScene;
  // Host libc/64-bit call frames differ from Xtensa. This bounded-stack run
  // complements the target compiler frame budget; it is not hardware emulation.
  pthread_attr_t attr;assert(!pthread_attr_init(&attr));assert(!pthread_attr_setstacksize(&attr,32768));
  pthread_t thread;assert(!pthread_create(&thread,&attr,runApp,nullptr));assert(!pthread_attr_destroy(&attr));assert(!pthread_join(thread,nullptr));
- assert(readySeen&&!held&&acquired==5&&released==5);if(sourcePath)assert(pages);
+ assert((legacyScene?compatibilitySeen:readySeen)&&!held&&acquired==5&&released==5);if(sourcePath)assert(pages);
  if(residentTest)assert((controlsTest?controlsCalls==1&&restores==1:policyCalls==4&&restores==4)&&!restorePending);
  if(residentTest&&!turnsTest)assert(pages==1&&cleanRequests==1&&reader_test_scene_clean_count()==1+hostRedraws&&reader_test_scene_frame_count()==initialFrames+hostRedraws);
  if(turnsTest)assert(turnEvents==2&&pages==3&&cleanRequests==3&&reader_test_scene_clean_count()==3);
  if(catalogTest)assert(sawBrowse&&(badCatalog?sawUnavailable&&sawBrowser:sawLibraryRows));
  hostCheckClosed();reader_test_scene_finish();
  printf("Reader real app entry: %s, 32 KiB host stack, rotated page, close and grant cleanup%s PASS\n",sourcePath?sourcePath:"library",residentTest?", four resident policy restores including BUSY, stable page":badCatalog?", failed index read with working SD browser":catalogTest?", indexed books without author metadata":turnsTest?", next/previous clean refreshes":"");
+ return 0;
 }

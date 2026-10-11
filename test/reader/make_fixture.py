@@ -26,3 +26,17 @@ def create(root):
                 data = data.decode().replace('version="3.0"', 'version="2.0"').replace('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>', '<item id="ncx" href="navigation/book.ncx" media-type="application/x-dtbncx+xml"/>').replace('<spine>', '<spine toc="ncx">').encode()
             book.writestr(name, data)
         book.writestr('OPS/navigation/book.ncx', '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap><navPoint id="chapter" playOrder="1"><navLabel><text>Nested NCX chapter</text></navLabel><content src="../text/chapter.xhtml#start"/></navPoint></navMap></ncx>')
+
+
+def create_multichapter(root):
+    """A second fixture for weighted scrub and adjacent-chapter scrolling."""
+    books = Path(root) / 'Books'
+    with zipfile.ZipFile(books / 'sample.epub') as original, zipfile.ZipFile(books / 'multi.epub', 'w', zipfile.ZIP_DEFLATED) as book:
+        for name in original.namelist():
+            data = original.read(name)
+            if name == 'OPS/content.opf':
+                data = data.decode().replace('</manifest>', '<item id="c2" href="text/chapter2.xhtml" media-type="application/xhtml+xml"/><item id="c3" href="text/chapter3.xhtml" media-type="application/xhtml+xml"/></manifest>').replace('</spine>', '<itemref idref="c2"/><itemref idref="c3"/></spine>').encode()
+            book.writestr(name, data)
+        chapter = original.read('OPS/text/chapter.xhtml')
+        book.writestr('OPS/text/chapter2.xhtml', chapter.replace(b'Portable Reader', b'Second Chapter '))
+        book.writestr('OPS/text/chapter3.xhtml', chapter.replace(b'Portable Reader', b'Third Chapter  '))
