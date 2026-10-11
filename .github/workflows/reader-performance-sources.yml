@@ -1,0 +1,28 @@
+name: Reader performance source snapshot
+on:
+  push:
+    branches: [feat/reader-nova7-gui]
+    paths: [.github/workflows/reader-performance-sources.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          path: System
+          persist-credentials: false
+      - run: tar -czf reader-performance-sources.tar.gz Productivity System
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reader-performance-sources
+          path: reader-performance-sources.tar.gz
+          retention-days: 3
