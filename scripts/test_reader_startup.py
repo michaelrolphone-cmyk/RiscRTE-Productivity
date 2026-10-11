@@ -11,7 +11,9 @@ for name in ('runtime','system','engine-output','output'):
     p.add_argument('--'+name,type=lambda x:Path(x).resolve(),required=True)
 p.add_argument('--app-source',type=lambda x:Path(x).resolve(),default=ROOT/'reader/ReaderApp.cpp')
 a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
-sdk=a.engine_output/'objects/sdk/include'
+sys.path.insert(0,str(a.system/'scripts'))
+from scene_sdk import stage_sdk
+sdk=stage_sdk(a.runtime,a.system,a.output/'sdk')
 _,_,includes=inputs(a.engine_output/'upstream')
 includes=[ROOT/'reader/port',ROOT/'reader',sdk,a.runtime/'sdk/cxx']+includes
 objects=[]
@@ -25,8 +27,12 @@ fixture=a.output/'fixture'
 if fixture.exists():shutil.rmtree(fixture)
 sys.path.insert(0,str(ROOT/'test/reader'))
 from make_fixture import create
-for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md'):
+cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [('-', 'catalog'),('-', 'bad-catalog')]
+cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [(source,'turns') for source in ('/Books/sample.epub','/Books/sample.txt')]
+for source,scenario in cases:
     if fixture.exists():shutil.rmtree(fixture)
     create(fixture)
     shutil.copytree(a.engine_output/'fixture/fonts',fixture/'fonts')
-    subprocess.run([str(binary),str(fixture)]+([source] if source else []),check=True,timeout=60)
+    subprocess.run([str(binary),str(fixture)]+([source] if source else [])+([scenario] if scenario else []),check=True,timeout=60)

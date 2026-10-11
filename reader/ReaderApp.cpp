@@ -25,11 +25,13 @@ struct App {
  const risc_runtime_api_v1* rt=nullptr;
  const risc_scene_api_v1* scene=nullptr;
  const risc_scene_page_api_v1* presenter=nullptr;
+ const risc_scene_page_refresh_api_v1* refreshPresenter=nullptr;
  risc_runtime_capability_v1 grants[5]{};
  unsigned acquired=0;
  risc_scene_resident_v1 resident{};
  risc_components_document_v1 doc{};
  risc_scene_page_geometry_v1 geometry{};
+ risc_scene_page_document_v1 pageDocument{};
  uint64_t session=0,lastSequence=0;
  uint32_t revision=0;
  Engine* engine=nullptr;
@@ -37,7 +39,7 @@ struct App {
  unsigned first=0,selected=0,sort=0,keyLayer=0;
  std::vector<Row> rows;
  std::string directory="/",notice,draft;
- bool initialized=false,more=false,done=false,dirty=true,waiting=false,inService=false;
+ bool initialized=false,more=false,done=false,dirty=true,waiting=false,inService=false,libraryUnavailable=false;
  risc_scene_event_v1 pending{};
  bool hasPending=false;
 
@@ -67,10 +69,14 @@ struct App {
    const auto order=sort==0?library::SortOrder::RecentDesc:sort==1?library::SortOrder::TitleAsc:library::SortOrder::AuthorAsc;
    for(unsigned i=first;i<engine->library.bookCount()&&i<first+count;++i){
     library::ClixRecord rec{};Row r;
-    if(!engine->library.readRecord(engine->library.ordinalForRow(order,i),rec)||!engine->library.readTitle(rec,r.label)||!engine->library.readAuthor(rec,r.text)||!engine->library.readPath(rec,r.path))return false;
+    if(!engine->library.readRecord(engine->library.ordinalForRow(order,i),rec)||!engine->library.readPath(rec,r.path))return false;
+    // Upstream returns false for absent optional metadata, including ordinary
+    // TXT/Markdown authors. Only a failed read is an I/O error.
+    engine->library.readTitle(rec,r.label);engine->library.readAuthor(rec,r.text);
+    if(engine->library.ioFailed()||failed())return false;
     if(r.label.empty()&&!engine->library.readName(rec,r.label))return false;
     rows.push_back(std::move(r));
-   }more=first+count<engine->library.bookCount();
+   }more=first+count<engine->library.bookCount();if(engine->library.isOpen())libraryUnavailable=false;
   }else if(screen==Screen::Contents){
    for(unsigned i=first;i<unsigned(engine->tocCount())&&i<first+count;++i){auto t=engine->toc(i);rows.push_back({t.title,"","",i,false});}more=first+count<unsigned(engine->tocCount());
   }else if(screen==Screen::Bookmarks){
@@ -92,14 +98,20 @@ struct App {
   }return alive();
  }
  bool declare(){
-  if(!loadRows()){error("The SD card could not be read");}
+  if(!loadRows()){
+   if(screen==Screen::Library){
+    // A derived index must not remove the independent SD browser/rebuild path.
+    engine->library.close();if(!alive())return false;
+    rows.clear();more=false;libraryUnavailable=true;clearError();
+   }else error("The SD card could not be read");
+  }
   switch(screen){
   case Screen::Starting:begin("READER");node(RISC_COMPONENT_PROGRESS,"Opening reader","Preparing library and fonts",0);break;
   case Screen::Library:
    begin("READER");
    if(engine->preferences.recentPath[0])row("Continue reading",engine->preferences.recentPath,Read);
    {auto& n=node(RISC_COMPONENT_SEGMENTS,"SORT","",Sort);n.value=sort;n.maximum=2;n.step=1;copy(doc.details[n.id-1].choices,sizeof(doc.details[n.id-1].choices),"RECENT|TITLE|AUTHOR");}
-   if(rows.empty())node(RISC_COMPONENT_EMPTY,"No indexed books","Scan your SD card or browse its folders.",0);
+   if(rows.empty())node(RISC_COMPONENT_EMPTY,libraryUnavailable?"Library index unavailable":"No indexed books","Scan your SD card or browse its folders.",0);
    listRows();row("Browse SD","EPUB, TXT, Markdown",Browse);row("Scan library","Read book titles and authors from SD",Scan);row("Close reader","",Exit);break;
   case Screen::Menu:
    begin("BOOK");row("Continue reading",engine->title(),Read);row("Contents","",Contents);row("Bookmarks","",Bookmarks);row("Bookmark this page","Toggle saved location",AddBookmark);row("Layout","Fonts, spacing and margins",Layout);row("Library","",Library);break;
@@ -123,20 +135,25 @@ struct App {
   }
   return true;
  }
- bool openScene(){
-  declare();int rc=presenter->components.open(scene->context,&doc,nullptr,&session);if(!checked(rc)||rc){LOG_ERR("startup","scene open failed status=%d",rc);return false;}lastSequence=0;
+ bool openScene(bool restoringPage=false){
+  if(restoringPage)begin("READING");else if(!declare())return false;
+  int rc=presenter->components.open(scene->context,&doc,nullptr,&session);if(!checked(rc)||rc){LOG_ERR("startup","scene open failed status=%d",rc);return false;}lastSequence=0;
   rc=presenter->components.lifecycle.configure(scene->context,session,resident.enabled?RISC_SCENE_FEATURE_SHARED_CONTROLS:0);if(rc)LOG_ERR("startup","scene configure failed status=%d",rc);return checked(rc)&&rc==0;
  }
  bool closeScene(){
   if(!session)return true;for(unsigned i=0;i<1000&&alive();++i){int rc=scene->close(scene->context,session);if(!checked(rc))return false;if(!rc){session=0;return true;}if(rc!=RISC_SCENE_AGAIN){retain();return false;}rt->yield_ms(5);}retain();return false;
  }
+ bool presentPage(bool clean=false){
+  pageDocument.revision=++revision;
+  int rc=refreshPresenter?refreshPresenter->present_page_with_refresh(scene->context,session,&pageDocument,engine->bitmap(),engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT):presenter->present_page(scene->context,session,&pageDocument,engine->bitmap(),engine->bitmapSize());return checked(rc)&&rc==0;
+ }
  bool publish(){
   if(screen==Screen::Reading&&!waiting){
    if(!engine->render()){error("Page could not be rendered");return publish();}
-   risc_scene_page_document_v1 p{};p.struct_size=sizeof(p);p.revision=++revision;p.previous_action=Previous;p.next_action=Next;p.menu_action=Menu;p.back_action=Menu;copy(p.title,sizeof(p.title),engine->title());copy(p.footer,sizeof(p.footer),engine->footer());
-   int rc=presenter->present_page(scene->context,session,&p,engine->bitmap(),engine->bitmapSize());return checked(rc)&&rc==0;
+   pageDocument={};pageDocument.struct_size=sizeof(pageDocument);pageDocument.previous_action=Previous;pageDocument.next_action=Next;pageDocument.menu_action=Menu;pageDocument.back_action=Menu;copy(pageDocument.title,sizeof(pageDocument.title),engine->title());copy(pageDocument.footer,sizeof(pageDocument.footer),engine->footer());
+   return presentPage(true);
   }
-  declare();int rc=presenter->components.update(scene->context,session,&doc);return checked(rc)&&rc==0;
+  if(!declare())return false;int rc=presenter->components.update(scene->context,session,&doc);return checked(rc)&&rc==0;
  }
  void openBook(const std::string& path){
   if(!engine->open(path)){error("Book could not be opened");return;}screen=Screen::Reading;waiting=engine->waiting();dirty=true;
@@ -211,13 +228,28 @@ struct App {
  }
  bool shell(unsigned reason){
   std::string reopen=engine->path();
+  const bool restorePage=screen==Screen::Reading&&!waiting&&pageDocument.struct_size==sizeof(pageDocument);
   if(!closeScene()||!engine->suspend())return false;
   int rc=risc_scene_resident_dispatch_v1(&resident,reason);if(rc==RISC_RESIDENT_RETAINED||!alive()){retain();return false;}if(rc!=RISC_RESIDENT_OK&&rc!=RISC_RESIDENT_BUSY)return false;
+  hasPending=false;
+  if(restorePage){
+   // suspend closes storage but retains the bitmap. Copy it into the new scene
+   // before any service callback can paint, then rebuild handles behind it.
+   if(!openScene(true)||!presentPage())return false;
+   dirty=false;
+  }
   // Remount/font discovery and all book handles are recreated after shared UI.
   delete engine;engine=new Engine;
   initialized=engine->init(geometry.width,geometry.height);
   if(!initialized){error("SD card unavailable");}
   else {engine->openLibrary();if(!reopen.empty()){if(!engine->open(reopen))error("Book unavailable after resume");else waiting=engine->waiting();}}
+  if(restorePage){
+   // The scene already owns the visible pixels. Rebuild the replacement
+   // engine's bitmap behind them for subsequent checkpoints, without another
+   // publication or clean refresh of this unchanged page.
+   if(initialized&&screen==Screen::Reading&&!waiting&&!engine->render())error("Page could not be restored");
+   return true;
+  }
   hasPending=false;dirty=true;return openScene();
  }
  static void service(void* p){
@@ -241,6 +273,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
  }
  if(a->acquired==5){
   a->scene=static_cast<const risc_scene_api_v1*>(a->grants[0].api);a->presenter=risc_scene_page_get_v1(a->scene);
+  a->refreshPresenter=risc_scene_page_refresh_get_v1(a->scene);
   const auto* v=static_cast<const risc_storage_volume_api_v1*>(a->grants[1].api);const auto* ext=risc_storage_volume_extension(v);const auto* heap=static_cast<const risc_memory_heap_api_v1*>(a->grants[2].api);
   const auto* random=static_cast<const risc_random_api_v1*>(a->grants[3].api);bind(a->rt,v,heap,random);
   if(random&&random->api_version==1&&random->struct_size>=sizeof(*random)&&random->fill&&a->presenter&&risc_storage_volume_fs(v)&&heap&&heap->api_version==1&&heap->struct_size>=sizeof(*heap)&&heap->snapshot&&ext&&ext->file_open&&ext->file_seek&&ext->file_info&&ext->file_sync&&ext->dir_rewind&&ext->dir_close_checked&&ext->handle_error&&ext->mkdir&&ext->rename&&risc_scene_resident_bind_v1(a->rt,&a->resident)){
@@ -273,8 +306,8 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
         else {a->engine->message.clear();a->action(e.action,e.value);}
        }
        if(++ticks>=20){ticks=0;risc_scene_navigation_v1 nav{};nav.struct_size=sizeof(nav);uint32_t flags=0;rc=a->scene->snapshot(a->scene->context,a->session,&nav,&flags);if(!a->checked(rc)||rc)break;
-        int status=risc_scene_resident_poll_v1(&a->resident,flags);if(status==RISC_RESIDENT_RETAINED){retain();return;}if(status==RISC_RESIDENT_EXIT)break;
-        if(a->resident.policy&&!(flags&(RISC_SCENE_PRESENTING|RISC_SCENE_INPUT_BUSY))&&!a->shell(RISC_RESIDENT_CHECKPOINT_POLICY))break;
+        int status=risc_scene_resident_poll_work_v1(&a->resident,flags,a->waiting?RISC_RESIDENT_POLL_INHIBIT_IDLE|RISC_RESIDENT_POLL_INHIBIT_POLICY:0);if(status==RISC_RESIDENT_RETAINED){retain();return;}if(status==RISC_RESIDENT_EXIT)break;
+        if(a->resident.policy&&!a->waiting&&!(flags&(RISC_SCENE_PRESENTING|RISC_SCENE_INPUT_BUSY))&&!a->shell(RISC_RESIDENT_CHECKPOINT_POLICY))break;
        }
        a->rt->yield_ms(5);
       }
