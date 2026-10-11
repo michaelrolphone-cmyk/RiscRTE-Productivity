@@ -1,0 +1,83 @@
+name: Reader NOVA-7 qualification
+on:
+  push:
+    branches: [feat/reader-nova7-gui]
+    paths: ['reader/**', 'scripts/**', 'test/reader/**', 'Apps/ebook_reader.json']
+  pull_request:
+    paths: ['reader/**', 'scripts/**', 'test/reader/**', 'Apps/ebook_reader.json', '.github/workflows/reader-nova7.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 536e01a36461d2e66bdfa735186c1d02267b3fb7
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Drivers
+          ref: 605a407f5aba0116dad35be123075298eff77e3c
+          path: Drivers
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Obtain unchanged pinned engine sources
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('Productivity/reader/upstream.json').read_text())
+          entries=[('CrossPoint',lock['repository'],lock['commit'])]+[(name,d['repository'],d['commit']) for name,d in lock['dependencies'].items()]
+          for name,url,sha in entries:
+              subprocess.run(['git','init',name],check=True)
+              subprocess.run(['git','-C',name,'remote','add','origin',url],check=True)
+              subprocess.run(['git','-C',name,'fetch','--depth','1','origin',sha],check=True)
+              subprocess.run(['git','-C',name,'checkout','--detach','FETCH_HEAD'],check=True)
+          subprocess.run(['git','-C','CrossPoint','submodule','update','--init','--depth','1','freeink-sdk'],check=True)
+          assert subprocess.check_output(['git','-C','CrossPoint/freeink-sdk','rev-parse','HEAD'],text=True).strip()==lock['sdk_commit']
+          Path('evidence').mkdir()
+          sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime','Drivers','CrossPoint','png','jpeg']}
+          Path('evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
+          PY
+      - name: Test engine, retained lifecycle, GUI and production FatFs
+        run: |
+          set -euo pipefail
+          python Productivity/scripts/test_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/engine 2>&1 | tee evidence/engine.log
+          python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/startup 2>&1 | tee evidence/startup.log
+          python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui 2>&1 | tee evidence/gui.log
+          python Productivity/scripts/test_reader_fatfs.py --drivers Drivers --engine-output build/engine --output build/fatfs 2>&1 | tee evidence/fatfs.log
+          mkdir evidence/frames
+          cp build/gui/frames/*.pbm evidence/frames/
+      - name: Compile and structurally validate ESP32-S3 Reader
+        run: |
+          set -euo pipefail
+          python -m pip install platformio==6.1.19 pyelftools==0.32
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python Productivity/scripts/build_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/target 2>&1 | tee evidence/target.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reader-nova7-016
+          path: |
+            build/target/ebook-reader/ebook_reader.elf
+            build/target/ebook-reader/ebook_reader.json
+            build/target/ebook-reader/build.json
+            build/target/ebook-reader/licenses/
+            evidence/
+          retention-days: 14

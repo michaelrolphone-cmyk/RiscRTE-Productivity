@@ -44,3 +44,18 @@ void reader_test_scene_finish(void) {
     assert(submits>=1 && !subscribed && !presenting && !held);
     assert(driver->quiesce());driver->stop();
 }
+/* Capture the actual native framebuffer, converting the profile's 270-degree
+ * surface mapping back to its logical portrait dimensions. */
+void reader_test_scene_snapshot(const char *path) {
+ assert(!held&&!presenting&&format==1&&w==800&&h==480);
+ FILE *out=fopen(path,"wb");assert(out);fputs("P4\n480 800\n",out);
+ for(unsigned y=0;y<800;y++)for(unsigned bx=0;bx<60;bx++){
+  uint8_t byte=0;
+  for(unsigned bit=0;bit<8;bit++){
+   unsigned x=bx*8+bit,physicalX=y,physicalY=479-x;
+   if(pixels[16+physicalY*100+physicalX/8]&(0x80u>>(physicalX%8)))byte|=0x80u>>bit;
+  }
+  assert(fwrite(&byte,1,1,out)==1);
+ }
+ assert(!fclose(out));
+}

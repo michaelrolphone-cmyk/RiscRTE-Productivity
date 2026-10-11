@@ -16,6 +16,7 @@ bool Engine::init(unsigned w,unsigned h){
  fontCache.setFontDecompressor(&decompressor);renderer.setFontCacheManager(&fontCache);installBuiltinFonts(renderer);
  if(!Storage.mkdir(stateRoot))return false;
  if(!loadSettings())message="Saved settings could not be read";
+ if(!loadUiSettings())message="Saved reader display settings are damaged";
  fontRegistry.discover();return selectFont();
 }
 bool Engine::loadSettings(){bool ok=readRecord(std::string(stateRoot)+"/preferences",&preferences,sizeof(preferences),settingsGeneration,settingsWritable);
@@ -46,7 +47,7 @@ ReaderRenderSpec Engine::spec()const{
 }
 bool Engine::openLibrary(){library.close();return Storage.recoverFile(library::libraryIndexPath())&&library.open(library::libraryIndexPath());}
 bool Engine::scanLibrary(){library.close();library::BuildStats stats;clearError();bool ok=library::buildLibraryIndex("/",stats,true);if(!ok||failed()){message="Library scan failed; previous index kept";openLibrary();return false;}return openLibrary();}
-bool Engine::open(const std::string& path){
+bool Engine::open(const std::string& path,bool recent){
  if(!FsHelpers::hasReflowableBookExtension(std::string_view(path))){message="Choose an EPUB, TXT or MD file";return false;}
  if(!book)clearError(); // A reported catalog/open failure must not poison the next independent open.
  if(!close())return false;clearError();if(!selectFont())return false;book=std::make_shared<Epub>(path,stateRoot);
@@ -57,44 +58,63 @@ bool Engine::open(const std::string& path){
  if(!readRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable)){message="Saved reading position is damaged";book.reset();return false;}
  if(state.count>64||state.position.spine>=unsigned(book->getSpineItemsCount())){message="Saved position is invalid";stateWritable=false;book.reset();return false;}
  for(unsigned i=0;i<state.count;i++)if(!memchr(state.marks[i].name,0,sizeof(state.marks[i].name))||state.marks[i].position.spine>=unsigned(book->getSpineItemsCount())){message="Saved bookmarks are damaged";book.reset();return false;}
- snprintf(preferences.recentPath,sizeof(preferences.recentPath),"%s",path.c_str());
+ summary=BookSummary();summaryGeneration=0;summaryWritable=true;
+ if(!readBookSummary(path,summary)){message="Saved library status is damaged";book.reset();return false;}
+ if(!readRecord(book->getCachePath()+"/nova-status",&summary,sizeof(summary),summaryGeneration,summaryWritable)){message="Saved library status is damaged";book.reset();return false;}
+ if(recent)snprintf(preferences.recentPath,sizeof(preferences.recentPath),"%s",path.c_str());
  renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-preferences.settings.orientation)&3));
  targetOffset=state.position.offset;seeking=true;
  if(!loadSection(state.position.spine)){book.reset();return false;}
- return saveSettings();
+ return !recent||saveSettings();
 }
 bool Engine::loadSection(int index){
- section.reset();page.reset();spine=index;pageNumber=0;
+ section.reset();page.reset();followingPage.reset();followingSection.reset();scrollOffset=0;spine=index;pageNumber=0;
  section=std::make_unique<Section>(book,index,renderer);
  auto v=spec();if(!section->loadSectionFile(v)||section->isPartial())if(!section->startBuild(v)){message="Chapter could not be paginated";return false;}
  return step();
 }
 bool Engine::step(){
  if(!section)return false;
+ const bool resolvingAnchor=seeking;
  if(section->isBuilding())if(!section->buildSomeMore(1)||failed()){message="Reading stopped: storage or document error";return false;}
  if(seeking){
-  if(!anchor.empty()){auto found=section->getPageForAnchor(anchor);if(found){pageNumber=*found;seeking=false;anchor.clear();}else if(!section->isBuilding()){message="Chapter anchor not found";anchor.clear();seeking=false;}}
+  if(seekFraction>=0){
+   if(section->isBuilding())return alive();
+   pageNumber=std::min(int(section->pageCount)-1,int(uint64_t(section->pageCount)*unsigned(seekFraction)/1000));
+   if(pageNumber<0)pageNumber=0;seeking=false;seekFraction=-1;
+  }else if(!anchor.empty()){auto found=section->getPageForAnchor(anchor);if(found){pageNumber=*found;seeking=false;anchor.clear();}else if(!section->isBuilding()){message="Chapter anchor not found";anchor.clear();seeking=false;}}
   else if(!section->isBuilding()||section->buildReachedVisibleTextOffset(targetOffset)){auto found=section->getPageForVisibleTextOffset(targetOffset);pageNumber=found?*found:0;seeking=false;}
  }
- if(!seeking&&pageNumber<section->pageCount){page=section->loadPage(pageNumber);if(!page||failed()){message="Page cache is unreadable";return false;}}
+ if(!seeking&&pageNumber<section->pageCount){page=section->loadPage(pageNumber);if(!page||failed()){message="Page cache is unreadable";return false;}if(resolvingAnchor&&ui.scroll&&targetOffset!=UINT32_MAX)alignScrollAnchor(targetOffset);}
  return alive();
 }
-Position Engine::position()const{return {uint32_t(spine),page?page->visibleTextOffset:targetOffset};}
+Position Engine::position()const{
+ uint32_t offset=page?page->visibleTextOffset:targetOffset;
+ if(page&&ui.scroll&&scrollOffset){
+  for(const auto& el:page->elements)if(el->getTag()==TAG_PageLine&&el->yPos+preferences.settings.margin>=scrollOffset){
+   const auto* line=static_cast<const PageLine*>(el.get())->getBlock();uint32_t start=UINT32_MAX;
+   for(unsigned i=0;i<line->wordCount();i++)start=std::min(start,line->wordSourceRange(i).start);
+   if(start!=UINT32_MAX){offset=start;break;}
+  }
+ }
+ return {uint32_t(spine),offset};
+}
 bool Engine::saveBook(){if(!book)return true;return writeRecord(book->getCachePath()+"/position",&state,sizeof(state),stateGeneration,stateWritable);}
-bool Engine::savePosition(){if(!book||!page||seeking)return true;state.position=position();if(!saveBook()){message="Reading position was not saved";return false;}return true;}
-bool Engine::close(){bool saved=savePosition();section.reset();page.reset();book.reset();anchor.clear();seeking=false;return saved&&!failed();}
-bool Engine::suspend(){if(!savePosition())return false;section.reset();page.reset();book.reset();library.close();sdFonts.unloadAll(renderer);if(vectorFont){renderer.unregisterTtfFont(fontId);renderer.removeFont(fontId);vectorFont.reset();}for(auto& f:vectorFiles)if(!f.close())return false;return alive();}
+bool Engine::savePosition(){if(!book||!page||seeking)return true;state.position=position();if(!saveBook()||!saveSummary()){message="Reading position was not saved";return false;}return true;}
+bool Engine::close(){bool saved=savePosition();section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();anchor.clear();seeking=false;return saved&&!failed();}
+bool Engine::suspend(){if(!savePosition())return false;section.reset();page.reset();followingPage.reset();followingSection.reset();book.reset();library.close();sdFonts.unloadAll(renderer);if(vectorFont){renderer.unregisterTtfFont(fontId);renderer.removeFont(fontId);vectorFont.reset();}for(auto& f:vectorFiles)if(!f.close())return false;return alive();}
 bool Engine::turn(int direction){
  if(!section||seeking)return false;
+ followingPage.reset();followingSection.reset();scrollOffset=0;
  if(direction>0){if(pageNumber+1>=section->pageCount&&section->isBuilding()){if(!section->buildSomeMore(1)||failed())return false;}if(pageNumber+1<section->pageCount)++pageNumber;else if(spine+1<book->getSpineItemsCount()){if(!savePosition())return false;targetOffset=0;return loadSection(spine+1);}else return false;}
  else if(pageNumber>0)--pageNumber;else if(spine>0){targetOffset=UINT32_MAX;seeking=true;return loadSection(spine-1);}else return false;
  page=section->loadPage(pageNumber);return bool(page)&&savePosition();
 }
-bool Engine::jump(Position target){if(!book||target.spine>=unsigned(book->getSpineItemsCount()))return false;targetOffset=target.offset;seeking=true;anchor.clear();return loadSection(target.spine);}
-bool Engine::jumpToc(unsigned n){if(!book||n>=unsigned(book->getTocItemsCount()))return false;auto entry=book->getTocItem(n);if(entry.spineIndex<0)return false;targetOffset=0;anchor=entry.anchor;seeking=true;return loadSection(entry.spineIndex);}
+bool Engine::jump(Position target){if(!book||target.spine>=unsigned(book->getSpineItemsCount()))return false;targetOffset=target.offset;seeking=true;seekFraction=-1;anchor.clear();return loadSection(target.spine);}
+bool Engine::jumpToc(unsigned n){if(!book||n>=unsigned(book->getTocItemsCount()))return false;auto entry=book->getTocItem(n);if(entry.spineIndex<0)return false;targetOffset=0;seekFraction=-1;anchor=entry.anchor;seeking=true;return loadSection(entry.spineIndex);}
 bool Engine::setLayout(const Settings& settings){
  if(!validSettings(settings)){message="Invalid layout";return false;}
- Position old=position();Settings previous=preferences.settings;section.reset();page.reset();preferences.settings=settings;
+ Position old=position();Settings previous=preferences.settings;section.reset();page.reset();followingPage.reset();followingSection.reset();preferences.settings=settings;
  if(!selectFont()){preferences.settings=previous;selectFont();renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-previous.orientation)&3));if(book)jump(old);return false;}
  renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-settings.orientation)&3));
  if(!saveSettings()){preferences.settings=previous;selectFont();renderer.setOrientation(static_cast<GfxRenderer::Orientation>((3-previous.orientation)&3));if(book)jump(old);return false;}
@@ -102,12 +122,23 @@ bool Engine::setLayout(const Settings& settings){
 }
 bool Engine::toggleBookmark(){if(!page||seeking)return false;Position current=position();
  for(unsigned i=0;i<state.count;i++)if(state.marks[i].position.spine==current.spine&&state.marks[i].position.offset==current.offset)return removeBookmark(i);
- if(state.count==64){message="Bookmark list is full";return false;}Bookmark previous=state.marks[state.count];auto& mark=state.marks[state.count++];mark.position=current;snprintf(mark.name,sizeof(mark.name),"Chapter %d - page %d",spine+1,pageNumber+1);
+ if(state.count==64){message="Bookmark list is full";return false;}Bookmark previous=state.marks[state.count];auto& mark=state.marks[state.count++];mark.position=current;std::string excerpt=snippet();
+ if(excerpt.empty())snprintf(mark.name,sizeof(mark.name),"Chapter %d - page %d",spine+1,pageNumber+1);
+ else snprintf(mark.name,sizeof(mark.name),"%s",excerpt.c_str());
  if(!saveBook()){state.marks[--state.count]=previous;message="Bookmark was not saved";return false;}return true;
 }
 bool Engine::removeBookmark(unsigned n){if(n>=state.count)return false;Bookmark previous=state.marks[n];for(unsigned i=n+1;i<state.count;i++)state.marks[i-1]=state.marks[i];--state.count;if(!saveBook()){for(unsigned i=state.count;i>n;--i)state.marks[i]=state.marks[i-1];state.marks[n]=previous;++state.count;return false;}return true;}
 bool Engine::renameBookmark(unsigned n,const char* name){if(n>=state.count||!name||strlen(name)>=80)return false;Bookmark previous=state.marks[n];snprintf(state.marks[n].name,80,"%s",name);if(!saveBook()){state.marks[n]=previous;return false;}return true;}
-bool Engine::render(){if(!page||seeking)return false;renderer.clearScreen();auto prewarm=fontCache.createPrewarmScope();int m=preferences.settings.margin;
- page->render(renderer,fontId,m,m);prewarm.endScanAndPrewarm();page->render(renderer,fontId,m,m);return !failed();}
+bool Engine::render(){
+ if(!page||seeking)return false;
+ if(ui.scroll&&scrollOffset&&!prepareFollowingPage())return false;
+ renderer.clearScreen();auto prewarm=fontCache.createPrewarmScope();int m=preferences.settings.margin;
+ int dy=ui.scroll?scrollOffset:0,followingY=renderer.getScreenHeight()-dy+m;
+ page->render(renderer,fontId,m,m-dy);
+ if(dy&&followingPage)followingPage->render(renderer,fontId,m,followingY);
+ prewarm.endScanAndPrewarm();page->render(renderer,fontId,m,m-dy);
+ if(dy&&followingPage)followingPage->render(renderer,fontId,m,followingY);
+ return !failed();
+}
 std::string Engine::footer()const{if(!section)return "";char s[96];float fraction=section->pageCount?float(pageNumber)/section->pageCount:0;snprintf(s,sizeof(s),"%u%%  |  CH %d  |  %d / %s%u",unsigned(book->calculateProgress(spine,fraction)*100),spine+1,pageNumber+1,section->isBuilding()?"~":"",section->estimatedTotalPages());return s;}
 }

@@ -1,7 +1,7 @@
 #include "ReaderEngine.h"
 #include "port/ReaderPort.h"
 #include "RiscScenePageV1.h"
-#include "RiscSceneCheckpointV1.h"
+#include "RiscSceneReadingV1.h"
 #include "RiscSceneResidentV1.h"
 #include "SceneKeyboardV1.h"
 #include "T5FileOpenApi.h"
@@ -13,21 +13,27 @@
 
 namespace {
 using namespace reader;
-enum class Screen { Library, Reading, Menu, Contents, Bookmarks, Bookmark, Rename, Layout, Fonts, Files, Notice, Starting };
+enum class Screen { Library, Reading, Menu, Contents, Bookmarks, Bookmark, Rename, Layout, Fonts, Files, Notice, Starting, Advanced, Finished, Remove, BookmarkTools };
 enum Action : uint32_t {
  Back=1, Exit, Read, Previous, Next, Menu, Library, Scan, Browse, Sort,
  OlderRows, MoreRows, OpenRow=100, Contents=200, Bookmarks, AddBookmark,
  Layout, Fonts, FontSize, Margin, LineSpacing, Alignment, ParagraphSpace,
  Indent, CharacterSpace, WordSpace, Hyphens, Embedded, Images, Orientation,
  JumpBookmark, RenameBookmark, DeleteBookmark, Key, Retry,
+ LibraryTab=300, Again, MarkFinished, RemoveAsk, RemoveConfirm, ToggleChrome,
+ Scrub, Scroll, LayoutMode, Invert, Advanced, FontCycle, BookmarkTools,
+ DismissRow=400,
+
 };
-struct Row {std::string label,text,path;uint32_t index=0;bool directory=false;};
+struct Row {std::string label,text,path;uint32_t index=0;bool directory=false;BookSummary summary;};
 struct App {
  const risc_runtime_api_v1* rt=nullptr;
  const risc_scene_api_v1* scene=nullptr;
  const risc_scene_page_api_v1* presenter=nullptr;
  const risc_scene_page_refresh_api_v1* refreshPresenter=nullptr;
  const risc_scene_checkpoint_api_v1* checkpointScene=nullptr;
+ const risc_scene_reading_api_v1* readingPresenter=nullptr;
+ risc_scene_reading_document_v1 readingDocument{};
  risc_runtime_capability_v1 grants[5]{};
  unsigned acquired=0;
  risc_scene_resident_v1 resident{};
@@ -38,7 +44,12 @@ struct App {
  uint32_t revision=0;
  Engine* engine=nullptr;
  Screen screen=Screen::Starting,noticeBack=Screen::Library;
- unsigned first=0,selected=0,sort=0,keyLayer=0;
+ unsigned first=0,selected=0,sort=0,keyLayer=0,tab=0;
+ bool chrome=false,metadataOnly=false;
+ Screen listBack=Screen::Menu,layoutBack=Screen::Menu;
+ std::string recentTitle;
+ BookSummary recentSummary;
+
  std::vector<Row> rows;
  std::string directory="/",notice,draft;
  bool initialized=false,more=false,done=false,dirty=true,waiting=false,inService=false,libraryUnavailable=false;
@@ -48,11 +59,11 @@ struct App {
  bool hasPending=false;
 
  bool checked(int rc){if(rc==RISC_SCENE_RETAINED){retain();return false;}return alive();}
- void show(Screen s){restoringReading=false;screen=s;first=0;dirty=true;}
+ void show(Screen s){metadataOnly=false;restoringReading=false;screen=s;first=0;dirty=true;}
  void error(const char* fallback){notice=engine&&!engine->message.empty()?engine->message:fallback;noticeBack=engine&&engine->isOpen()?Screen::Menu:Screen::Library;show(Screen::Notice);}
  void copy(char* out,size_t n,const std::string& s){snprintf(out,n,"%s",s.c_str());}
  risc_scene_node_v1& node(unsigned kind,const std::string& label,const std::string& text,unsigned action){
-  const unsigned i=doc.node_count++;auto& n=doc.nodes[i];n.id=i+1;n.route=1;n.kind=kind;n.action=action;copy(n.label,sizeof(n.label),label);copy(n.text,sizeof(n.text),text);return n;
+  const unsigned i=doc.node_count++;auto& n=doc.nodes[i];n.id=i+1;n.route=1;n.kind=kind;n.action=action;doc.details[i].marker=6;copy(n.label,sizeof(n.label),label);copy(n.text,sizeof(n.text),text);return n;
  }
  void row(const std::string& label,const std::string& text,unsigned action){node(RISC_COMPONENT_ROW,label,text,action);}
  void stepper(const char* label,unsigned action,int value,int maximum,const std::string& text=""){
@@ -60,85 +71,14 @@ struct App {
  }
  void toggle(const char* label,unsigned action,bool value){auto& n=node(RISC_COMPONENT_SWITCH,label,"",action);n.value=value;n.maximum=1;n.step=1;}
  void begin(const char* title){
-  memset(&doc,0,sizeof(doc));doc.api_version=1;doc.struct_size=sizeof(doc);doc.revision=++revision;doc.root=1;doc.screen_key=1+unsigned(screen);doc.route_count=1;doc.routes[0].id=1;doc.routes[0].back_action=Back;copy(doc.routes[0].title,sizeof(doc.routes[0].title),title);
+  memset(&doc,0,sizeof(doc));doc.api_version=1;doc.struct_size=sizeof(doc);doc.revision=++revision;doc.root=1;doc.screen_key=1+unsigned(screen);if(readingPresenter)doc.flags=RISC_COMPONENTS_DOCUMENT;doc.route_count=1;doc.routes[0].id=1;doc.routes[0].back_action=Back;copy(doc.routes[0].title,sizeof(doc.routes[0].title),title);
  }
  void listRows(){
   for(unsigned i=0;i<rows.size();++i)row(rows[i].label,rows[i].text,OpenRow+i);
   if(first)row("Previous entries","",OlderRows);
   if(more)row("More entries","",MoreRows);
  }
- bool loadRows(){
-  rows.clear();if(!initialized)return true;more=false;constexpr unsigned count=8;
-  if(screen==Screen::Library){
-   const auto order=sort==0?library::SortOrder::RecentDesc:sort==1?library::SortOrder::TitleAsc:library::SortOrder::AuthorAsc;
-   for(unsigned i=first;i<engine->library.bookCount()&&i<first+count;++i){
-    library::ClixRecord rec{};Row r;
-    if(!engine->library.readRecord(engine->library.ordinalForRow(order,i),rec)||!engine->library.readPath(rec,r.path))return false;
-    // Upstream returns false for absent optional metadata, including ordinary
-    // TXT/Markdown authors. Only a failed read is an I/O error.
-    engine->library.readTitle(rec,r.label);engine->library.readAuthor(rec,r.text);
-    if(engine->library.ioFailed()||failed())return false;
-    if(r.label.empty()&&!engine->library.readName(rec,r.label))return false;
-    rows.push_back(std::move(r));
-   }more=first+count<engine->library.bookCount();if(engine->library.isOpen())libraryUnavailable=false;
-  }else if(screen==Screen::Contents){
-   for(unsigned i=first;i<unsigned(engine->tocCount())&&i<first+count;++i){auto t=engine->toc(i);rows.push_back({t.title,"","",i,false});}more=first+count<unsigned(engine->tocCount());
-  }else if(screen==Screen::Bookmarks){
-   for(unsigned i=first;i<engine->state.count&&i<first+count;++i)rows.push_back({engine->state.marks[i].name,"Saved location","",i,false});more=first+count<engine->state.count;
-  }else if(screen==Screen::Fonts){
-   std::vector<std::string> names={"Noto Serif"};for(const auto& f:engine->fontRegistry.getFamilies())if(f.name!="Noto Serif")names.push_back(f.name);
-   for(unsigned i=first;i<names.size()&&i<first+count;++i)rows.push_back({names[i],names[i]==engine->preferences.settings.family?"Selected":"","",i,false});more=first+count<names.size();
-  }else if(screen==Screen::Files){
-   auto folder=Storage.open(directory.c_str());if(!folder||!folder.isDirectory())return false;
-   unsigned visible=0;while(auto f=folder.openNextFile()){
-    char name[128];if(!f.getName(name,sizeof(name)))return false;
-    bool dir=f.isDirectory();std::string path=directory+(directory=="/"?"":"/")+name;
-    if(!f.close())return false;
-    if(name[0]=='.'||(directory=="/"&&readerCasecmp(name,"System")==0))continue;
-    if(!dir&&!FsHelpers::hasReflowableBookExtension(std::string_view(name)))continue;
-    if(visible++<first)continue;if(rows.size()==count){more=true;break;}
-    rows.push_back({name,dir?"Folder":"Book",path,0,dir});
-   }if(!folder.close()||failed())return false;
-  }return alive();
- }
- bool declare(){
-  if(!loadRows()){
-   if(screen==Screen::Library){
-    // A derived index must not remove the independent SD browser/rebuild path.
-    engine->library.close();if(!alive())return false;
-    rows.clear();more=false;libraryUnavailable=true;clearError();
-   }else error("The SD card could not be read");
-  }
-  switch(screen){
-  case Screen::Starting:begin("READER");node(RISC_COMPONENT_PROGRESS,"Opening reader","Preparing library and fonts",0);break;
-  case Screen::Library:
-   begin("READER");
-   if(engine->preferences.recentPath[0])row("Continue reading",engine->preferences.recentPath,Read);
-   {auto& n=node(RISC_COMPONENT_SEGMENTS,"SORT","",Sort);n.value=sort;n.maximum=2;n.step=1;copy(doc.details[n.id-1].choices,sizeof(doc.details[n.id-1].choices),"RECENT|TITLE|AUTHOR");}
-   if(rows.empty())node(RISC_COMPONENT_EMPTY,libraryUnavailable?"Library index unavailable":"No indexed books","Scan your SD card or browse its folders.",0);
-   listRows();row("Browse SD","EPUB, TXT, Markdown",Browse);row("Scan library","Read book titles and authors from SD",Scan);row("Close reader","",Exit);break;
-  case Screen::Menu:
-   begin("BOOK");row("Continue reading",engine->title(),Read);row("Contents","",Contents);row("Bookmarks","",Bookmarks);row("Bookmark this page","Toggle saved location",AddBookmark);row("Layout","Fonts, spacing and margins",Layout);row("Library","",Library);break;
-  case Screen::Contents:begin("CONTENTS");listRows();if(rows.empty())node(RISC_COMPONENT_EMPTY,"No contents","",0);break;
-  case Screen::Bookmarks:begin("BOOKMARKS");listRows();if(rows.empty())node(RISC_COMPONENT_EMPTY,"No bookmarks","Add one from the book menu.",0);break;
-  case Screen::Bookmark:begin("BOOKMARK");node(RISC_SCENE_TEXT_NODE,engine->state.marks[selected].name,"",0);row("Go to bookmark","",JumpBookmark);row("Rename","",RenameBookmark);row("Remove bookmark","",DeleteBookmark);break;
-  case Screen::Rename:{begin("BOOKMARK NAME");auto& n=node(RISC_SCENE_KEYBOARD_NODE,"NAME",draft,Key);n.value=keyLayer;n.maximum=3;n.step=1;n.target=71;break;}
-  case Screen::Fonts:begin("FONT");listRows();break;
-  case Screen::Files:begin("BROWSE SD");copy(doc.subtitle,sizeof(doc.subtitle),directory);listRows();if(rows.empty())node(RISC_COMPONENT_EMPTY,"No books here","",0);break;
-  case Screen::Layout:{
-   begin("LAYOUT");const auto& s=engine->preferences.settings;row("Font",s.family,Fonts);
-   auto sizes=engine->fontSizes();auto at=std::find(sizes.begin(),sizes.end(),s.pointSize);stepper("Size",FontSize,at==sizes.end()?0:at-sizes.begin(),sizes.size()-1,std::to_string(s.pointSize)+" pt");
-   stepper("Margins",Margin,s.margin/5,8,std::to_string(s.margin));stepper("Line spacing",LineSpacing,s.lineSpacing,3,s.lineSpacing==0?"Compact":s.lineSpacing==1?"Normal":s.lineSpacing==2?"Wide":"Extra wide");
-   stepper("Alignment",Alignment,s.alignment,4,s.alignment==0?"Justified":s.alignment==1?"Left":s.alignment==2?"Center":s.alignment==3?"Right":"Book style");
-   toggle("Paragraph spacing",ParagraphSpace,s.paragraphSpacing);stepper("Paragraph indent",Indent,s.indent,8);
-   stepper("Character spacing",CharacterSpace,s.characterSpacing,4);stepper("Word spacing",WordSpace,(s.wordSpacing-50)/10,15,std::to_string(s.wordSpacing)+"%");
-   toggle("Hyphenation",Hyphens,s.hyphenation);toggle("Book styles",Embedded,s.embeddedStyle);toggle("Images",Images,s.images);
-   stepper("Text rotation",Orientation,s.orientation,3,std::to_string(s.orientation*90)+" degrees");break;}
-  case Screen::Notice:begin("READER");node(RISC_COMPONENT_EMPTY,"Unable to continue",notice,0);if(initialized)row("Back","",Back);else {row("Retry SD card","",Retry);row("Close reader","",Exit);}break;
-  case Screen::Reading:begin("READING");node(RISC_COMPONENT_PROGRESS,"Opening book","Building this page",0);break;
-  }
-  return true;
- }
+ #include "ReaderGui.inc"
  bool openScene(bool restoringPage=false){
   if(restoringPage)begin("READING");else if(!declare())return false;
   int rc=presenter->components.open(scene->context,&doc,nullptr,&session);if(!checked(rc)||rc){LOG_ERR("startup","scene open failed status=%d",rc);return false;}lastSequence=0;
@@ -150,67 +90,118 @@ struct App {
  bool pauseScene(){
   for(unsigned i=0;i<1000&&alive();++i){int rc=checkpointScene->pause(scene->context,session);if(!checked(rc))return false;if(!rc){scenePaused=true;return true;}if(rc!=RISC_SCENE_AGAIN){retain();return false;}rt->yield_ms(5);}retain();return false;
  }
- bool presentPage(bool clean=false){
+ bool presentPage(bool clean=false,bool controlsOnly=false){
   pageDocument.revision=++revision;
-  int rc=refreshPresenter?refreshPresenter->present_page_with_refresh(scene->context,session,&pageDocument,engine->bitmap(),engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT):presenter->present_page(scene->context,session,&pageDocument,engine->bitmap(),engine->bitmapSize());return checked(rc)&&rc==0;
+  if(readingPresenter){
+   readingDocument.struct_size=sizeof(readingDocument);readingDocument.base=pageDocument;
+   readingDocument.flags=(chrome?RISC_SCENE_READING_CHROME:0)|(engine->ui.invert?RISC_SCENE_READING_INVERT:0)|(engine->ui.scroll?RISC_SCENE_READING_SCROLL:0);
+   if(!engineSuspended){
+    readingDocument.progress=engine->progress();copy(readingDocument.progress_text,sizeof(readingDocument.progress_text),readingStatus());
+    if(engine->isBookmarked())readingDocument.flags|=RISC_SCENE_READING_BOOKMARKED;
+   }else readingDocument.flags|=retainedBookmark?RISC_SCENE_READING_BOOKMARKED:0;
+   readingDocument.bookmark_action=AddBookmark;readingDocument.layout_action=Layout;readingDocument.contents_action=Contents;readingDocument.scrub_action=Scrub;readingDocument.scroll_action=Scroll;
+   int rc=readingPresenter->present_reading(scene->context,session,&readingDocument,controlsOnly?nullptr:engine->bitmap(),controlsOnly?0:engine->bitmapSize(),clean?RISC_SCENE_PAGE_REFRESH_CLEAN:RISC_SCENE_PAGE_REFRESH_DEFAULT);
+   return checked(rc)&&rc==0;
+  }
+  return false;
  }
+ bool retainedBookmark=false;
  bool publish(){
   if(screen==Screen::Reading&&!waiting){
+   if(metadataOnly){metadataOnly=false;return presentPage(false,true);}
    if(!engine->render()){error("Page could not be rendered");return publish();}
-   pageDocument={};pageDocument.struct_size=sizeof(pageDocument);pageDocument.previous_action=Previous;pageDocument.next_action=Next;pageDocument.menu_action=Menu;pageDocument.back_action=Menu;copy(pageDocument.title,sizeof(pageDocument.title),engine->title());copy(pageDocument.footer,sizeof(pageDocument.footer),engine->footer());
-   return presentPage(true);
+   pageDocument={};pageDocument.struct_size=sizeof(pageDocument);pageDocument.previous_action=Previous;pageDocument.next_action=Next;pageDocument.menu_action=ToggleChrome;pageDocument.back_action=Menu;
+   copy(pageDocument.title,sizeof(pageDocument.title),engine->title());copy(pageDocument.footer,sizeof(pageDocument.footer),readingFooter());
+   retainedBookmark=engine->isBookmarked();return presentPage(true);
   }
-  if(!declare())return false;int rc=presenter->components.update(scene->context,session,&doc);return checked(rc)&&rc==0;
+  if(!declare())return false;
+  int rc;
+  if(screen==Screen::Layout){
+   risc_scene_page_geometry_v1 preview{sizeof(preview),0,0,0};
+   rc=readingPresenter->preview_geometry(scene->context,&preview);if(!checked(rc)||rc)return false;
+   if(!engine->renderPreview(preview.width,preview.height)){error("Font preview unavailable");return publish();}
+   rc=readingPresenter->present_preview(scene->context,session,&doc,1,engine->previewBitmap(),engine->previewSize());
+  }else rc=presenter->components.update(scene->context,session,&doc);
+  return checked(rc)&&rc==0;
  }
  void openBook(const std::string& path){
   restoringReading=false;
-  if(!engine->open(path)){error("Book could not be opened");return;}screen=Screen::Reading;waiting=engine->waiting();dirty=true;
+  if(!engine->open(path)||!engine->beginReading()){error("Book could not be opened");return;}chrome=false;screen=Screen::Reading;waiting=engine->waiting();dirty=true;
  }
  void back(){
   if(screen==Screen::Reading){show(Screen::Menu);return;}
   if(screen==Screen::Library){done=true;return;}
   if(screen==Screen::Files){if(directory!="/"){size_t n=directory.find_last_of('/');directory=n?directory.substr(0,n):"/";first=0;dirty=true;}else show(Screen::Library);return;}
   if(screen==Screen::Notice){show(noticeBack);return;}
-  if(screen==Screen::Fonts){show(Screen::Layout);return;}
-  if(screen==Screen::Bookmark||screen==Screen::Rename){show(Screen::Bookmarks);return;}
-  if(screen==Screen::Menu){show(Screen::Reading);waiting=engine->waiting();return;}
+  if(screen==Screen::Fonts||screen==Screen::Advanced){show(Screen::Layout);return;}
+  if(screen==Screen::Layout){show(layoutBack);waiting=engine->waiting();return;}
+  if(screen==Screen::Contents||screen==Screen::Bookmarks){show(listBack);waiting=engine->waiting();return;}
+  if(screen==Screen::Bookmark||screen==Screen::Rename||screen==Screen::BookmarkTools){show(Screen::Bookmarks);return;}
+  if(screen==Screen::Remove){show(Screen::Menu);return;}
+  if(screen==Screen::Menu||screen==Screen::Finished){action(Library,0);return;}
   show(engine->isOpen()?Screen::Menu:Screen::Library);
  }
  void action(unsigned a,int value){
+  if(a>=DismissRow&&a<DismissRow+rows.size()&&screen==Screen::Bookmarks){
+   if(!engine->removeBookmark(rows[a-DismissRow].index))error("Bookmark was not removed");else dirty=true;return;
+  }
   if(a>=OpenRow&&a<OpenRow+rows.size()){
    Row r=rows[a-OpenRow];
    switch(screen){
-   case Screen::Library:openBook(r.path);break;
+   case Screen::Library:if(!engine->open(r.path,false))error("Book could not be opened");else show(Screen::Menu);break;
    case Screen::Files:if(r.directory){directory=r.path;first=0;dirty=true;}else openBook(r.path);break;
-   case Screen::Contents:if(engine->jumpToc(r.index)){show(Screen::Reading);waiting=engine->waiting();}else error("Contents location is unavailable");break;
-   case Screen::Bookmarks:selected=r.index;show(Screen::Bookmark);break;
-   case Screen::Fonts:{auto s=engine->preferences.settings;copy(s.family,sizeof(s.family),r.label);if(!engine->setLayout(s))error("Font is unavailable");else show(Screen::Layout);break;}
+   case Screen::Contents:if(engine->jumpToc(r.index)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Contents location is unavailable");break;
+   case Screen::Bookmarks:if(engine->jump(engine->state.marks[r.index].position)&&engine->markFinished(false)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Bookmark is unavailable");break;
+   case Screen::BookmarkTools:selected=r.index;show(Screen::Bookmark);break;
+   case Screen::Fonts:{auto settings=engine->preferences.settings;copy(settings.family,sizeof(settings.family),r.label);if(!engine->setLayout(settings))error("Font is unavailable");else show(Screen::Layout);break;}
    default:break;
    }return;
   }
   if(a>=FontSize&&a<=Orientation){
-   auto s=engine->preferences.settings;switch(a){
-   case FontSize:{auto sizes=engine->fontSizes();if(value>=0&&unsigned(value)<sizes.size())s.pointSize=sizes[value];break;}
-   case Margin:s.margin=value*5;break;case LineSpacing:s.lineSpacing=value;break;case Alignment:s.alignment=value;break;
-   case ParagraphSpace:s.paragraphSpacing=value;break;case Indent:s.indent=value;break;case CharacterSpace:s.characterSpacing=value;break;case WordSpace:s.wordSpacing=50+value*10;break;
-   case Hyphens:s.hyphenation=value;break;case Embedded:s.embeddedStyle=value;break;case Images:s.images=value;break;case Orientation:s.orientation=value;break;
-   }if(!engine->setLayout(s))error("Layout could not be saved");dirty=true;return;
+   auto settings=engine->preferences.settings;switch(a){
+   case FontSize:{auto sizes=engine->fontSizes();if(value>=0&&unsigned(value)<sizes.size())settings.pointSize=sizes[value];break;}
+   case Margin:settings.margin=value*5;break;case LineSpacing:settings.lineSpacing=value;break;case Alignment:settings.alignment=value;break;
+   case ParagraphSpace:settings.paragraphSpacing=value;break;case Indent:settings.indent=value;break;case CharacterSpace:settings.characterSpacing=value;break;case WordSpace:settings.wordSpacing=50+value*10;break;
+   case Hyphens:settings.hyphenation=value;break;case Embedded:settings.embeddedStyle=value;break;case Images:settings.images=value;break;case Orientation:settings.orientation=value;break;
+   }if(!engine->setLayout(settings))error("Layout could not be saved");dirty=true;return;
   }
   switch(a){
   case Retry:delete engine;engine=new Engine;initialized=engine->init(geometry.width,geometry.height);if(initialized){engine->openLibrary();show(Screen::Library);}else error("SD card unavailable");break;
   case Back:if(!initialized)done=true;else back();break;case Exit:done=true;break;
-  case Read:if(engine->isOpen()){show(Screen::Reading);waiting=engine->waiting();}else openBook(engine->preferences.recentPath);break;
-  case Previous:case Next:restoringReading=false;if(!engine->turn(a==Next?1:-1)&&!engine->message.empty())error("Page is unavailable");else {waiting=engine->waiting();dirty=true;}break;
+  case Read:
+   if(engine->isOpen()){if(!engine->beginReading())error("Reading status was not saved");else {chrome=false;show(Screen::Reading);waiting=engine->waiting();}}
+   else openBook(engine->preferences.recentPath);break;
+  case Again:if(!engine->beginReading(true))error("Book could not be restarted");else{chrome=false;show(Screen::Reading);waiting=engine->waiting();}break;
+  case Previous:case Next:case Scroll:{
+   restoringReading=false;
+   bool forward=a==Next||(a==Scroll&&value>1024);
+   bool changed=engine->ui.scroll?engine->scrollBy(a==Scroll?value-1024:(a==Next?1:-1)*int(geometry.height)*2/3):engine->turn(a==Next?1:-1);
+   if(!changed){
+    if(!engine->message.empty()||failed())error("Page is unavailable");
+    else if(forward&&engine->atEnd()){if(engine->markFinished(true))show(Screen::Finished);else error("Finished status was not saved");}
+   }else{chrome=false;waiting=engine->waiting();dirty=true;}
+   break;}
+  case Scrub:if(!engine->jumpProgress(unsigned(value)))error("Location is unavailable");else{waiting=engine->waiting();dirty=true;}break;
+  case ToggleChrome:chrome=!chrome;metadataOnly=true;dirty=true;break;
   case Menu:show(Screen::Menu);break;
-  case Library:if(!engine->close())error("Reading position could not be saved");else {engine->openLibrary();show(Screen::Library);}break;
+  case Library:if(!engine->close())error("Reading position could not be saved");else{engine->openLibrary();show(Screen::Library);}break;
   case Scan:if(!engine->scanLibrary())error("Library scan failed");else show(Screen::Library);break;
   case Browse:directory="/";show(Screen::Files);break;
   case Sort:sort=value;first=0;dirty=true;break;
+  case LibraryTab:tab=value;first=0;dirty=true;break;
   case MoreRows:first+=8;dirty=true;break;case OlderRows:first=first>=8?first-8:0;dirty=true;break;
-  case Contents:show(Screen::Contents);break;case Bookmarks:show(Screen::Bookmarks);break;
-  case AddBookmark:if(!engine->toggleBookmark())error("Bookmark was not saved");else show(Screen::Bookmarks);break;
-  case Layout:show(Screen::Layout);break;case Fonts:show(Screen::Fonts);break;
-  case JumpBookmark:if(engine->jump(engine->state.marks[selected].position)){show(Screen::Reading);waiting=engine->waiting();}else error("Bookmark is unavailable");break;
+  case Contents:listBack=screen;show(Screen::Contents);break;
+  case Bookmarks:listBack=screen;show(Screen::Bookmarks);break;
+  case BookmarkTools:show(Screen::BookmarkTools);break;
+  case AddBookmark:if(!engine->toggleBookmark())error("Bookmark was not saved");else{retainedBookmark=engine->isBookmarked();metadataOnly=true;dirty=true;}break;
+  case Layout:layoutBack=screen;show(Screen::Layout);break;case Fonts:show(Screen::Fonts);break;
+  case Advanced:show(Screen::Advanced);break;
+  case FontCycle:{auto names=fontNames();if(value>=0&&unsigned(value)<names.size()){auto settings=engine->preferences.settings;copy(settings.family,sizeof(settings.family),names[value]);if(!engine->setLayout(settings))error("Font is unavailable");dirty=true;}break;}
+  case LayoutMode:case Invert:{auto ui=engine->ui;if(a==LayoutMode)ui.scroll=value;else ui.invert=value;if(!engine->setUi(ui))error("Display setting was not saved");dirty=true;break;}
+  case MarkFinished:if(!engine->markFinished(value!=0))error("Finished status was not saved");else dirty=true;break;
+  case RemoveAsk:show(Screen::Remove);break;
+  case RemoveConfirm:if(!engine->removeFromLibrary())error("Book was not removed");else action(Library,0);break;
+  case JumpBookmark:if(engine->jump(engine->state.marks[selected].position)){chrome=false;show(Screen::Reading);waiting=engine->waiting();}else error("Bookmark is unavailable");break;
   case RenameBookmark:draft=engine->state.marks[selected].name;keyLayer=0;show(Screen::Rename);break;
   case DeleteBookmark:if(!engine->removeBookmark(selected))error("Bookmark was not removed");else show(Screen::Bookmarks);break;
   case Key:
@@ -227,11 +218,17 @@ struct App {
   if(e.document_revision!=revision||e.sequence<=lastSequence)return false;
   lastSequence=e.sequence;
   if(e.kind==RISC_SCENE_CONTROLS_EVENT||e.kind==RISC_SCENE_SUSPEND_EVENT)return true;
-  if(screen==Screen::Reading&&!waiting)return e.kind==RISC_SCENE_ACTION_EVENT&&(e.action==Previous||e.action==Next||e.action==Menu);
+  if(screen==Screen::Reading&&!waiting){
+   if(e.kind==RISC_SCENE_VALUE_EVENT)return (e.action==Scrub&&e.node==7&&chrome&&e.value>=0&&e.value<=1000)||(e.action==Scroll&&e.node==8&&engine->ui.scroll&&!chrome&&e.value>=0&&e.value<=2048);
+   if(e.kind!=RISC_SCENE_ACTION_EVENT)return false;
+   return (e.action==Previous&&e.node==1)||(e.action==Next&&e.node==3)||(e.action==ToggleChrome&&e.node==2)||(e.action==Menu&&e.node==0)||(chrome&&((e.action==AddBookmark&&e.node==4)||(e.action==Layout&&e.node==5)||(e.action==Contents&&e.node==6)));
+  }
   if(e.action==Back&&e.node==0)return e.kind==RISC_SCENE_ACTION_EVENT;
   if(!e.node||e.node>doc.node_count)return false;
-  const auto& n=doc.nodes[e.node-1];if(n.action!=e.action||n.flags&RISC_SCENE_DISABLED)return false;
-  bool value=n.kind==RISC_COMPONENT_STEPPER||n.kind==RISC_COMPONENT_SWITCH||n.kind==RISC_COMPONENT_SEGMENTS||n.kind==RISC_SCENE_KEYBOARD_NODE;
+  const auto& n=doc.nodes[e.node-1];if(n.flags&(RISC_SCENE_DISABLED|RISC_SCENE_HIDDEN))return false;
+  if(n.kind==RISC_COMPONENT_DISMISS_ROW&&doc.details[e.node-1].secondary_action==e.action)return e.kind==RISC_SCENE_ACTION_EVENT;
+  if(n.action!=e.action)return false;
+  bool value=n.kind==RISC_COMPONENT_STEPPER||n.kind==RISC_COMPONENT_SWITCH||n.kind==RISC_COMPONENT_CHECK_ROW||n.kind==RISC_COMPONENT_SEGMENTS||n.kind==RISC_SCENE_KEYBOARD_NODE;
   return value?e.kind==RISC_SCENE_VALUE_EVENT&&(n.kind==RISC_SCENE_KEYBOARD_NODE||(e.value>=n.minimum&&e.value<=n.maximum)):e.kind==RISC_SCENE_ACTION_EVENT;
  }
  bool restoreEngine(){
@@ -303,6 +300,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
   a->scene=static_cast<const risc_scene_api_v1*>(a->grants[0].api);a->presenter=risc_scene_page_get_v1(a->scene);
   a->refreshPresenter=risc_scene_page_refresh_get_v1(a->scene);
   a->checkpointScene=risc_scene_checkpoint_get_v1(a->scene);
+  a->readingPresenter=risc_scene_reading_get_v1(a->scene);
   const auto* v=static_cast<const risc_storage_volume_api_v1*>(a->grants[1].api);const auto* ext=risc_storage_volume_extension(v);const auto* heap=static_cast<const risc_memory_heap_api_v1*>(a->grants[2].api);
   const auto* random=static_cast<const risc_random_api_v1*>(a->grants[3].api);bind(a->rt,v,heap,random);
   if(random&&random->api_version==1&&random->struct_size>=sizeof(*random)&&random->fill&&a->presenter&&risc_storage_volume_fs(v)&&heap&&heap->api_version==1&&heap->struct_size>=sizeof(*heap)&&heap->snapshot&&ext&&ext->file_open&&ext->file_seek&&ext->file_info&&ext->file_sync&&ext->dir_rewind&&ext->dir_close_checked&&ext->handle_error&&ext->mkdir&&ext->rename&&risc_scene_resident_bind_v1(a->rt,&a->resident)){
@@ -311,7 +309,21 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
    if(a->openScene()){
    setService(App::service,a);
    a->geometry.struct_size=sizeof(a->geometry);
-   int geometryResult=a->presenter->geometry(a->scene->context,&a->geometry);
+   if(!a->readingPresenter){
+    LOG_ERR("startup","Reader requires matching NOVA scene provider");
+    a->begin("READER UPDATE");
+    a->node(RISC_COMPONENT_EMPTY,"UPDATE FIRMWARE","Install the matching NOVA scene provider with this Reader.",0);
+    a->node(RISC_SCENE_ACTION,"CLOSE READER","",Exit);
+    int rc=a->presenter->components.update(a->scene->context,a->session,&a->doc);
+    while(a->checked(rc)&&rc==RISC_SCENE_OK&&alive()){
+     risc_scene_event_v1 event{};event.struct_size=sizeof(event);
+     rc=a->scene->next(a->scene->context,a->session,&event);
+     if(rc==RISC_SCENE_OK&&(event.kind==RISC_SCENE_SUSPEND_EVENT||event.action==Exit||event.action==Back))break;
+     if(rc==RISC_SCENE_IDLE)rc=RISC_SCENE_OK;
+     a->rt->yield_ms(5);
+    }
+   }
+   int geometryResult=a->readingPresenter?a->readingPresenter->reading_geometry(a->scene->context,&a->geometry):RISC_SCENE_UNAVAILABLE;
    if(geometryResult)LOG_ERR("startup","page geometry failed status=%d",geometryResult);
    if(a->checked(geometryResult)&&geometryResult==0){
     a->engine=new Engine;
@@ -336,6 +348,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
        if(!rc&&a->valid(e)){
         if(e.kind==RISC_SCENE_SUSPEND_EVENT)break;
         if(e.kind==RISC_SCENE_CONTROLS_EVENT){if(a->resident.enabled&&!a->shell(RISC_RESIDENT_CHECKPOINT_CONTROLS))break;}
+        else if(e.action==ToggleChrome&&a->screen==Screen::Reading){a->action(e.action,e.value);}
         else if(a->restoreEngine()){a->engine->message.clear();a->action(e.action,e.value);}
        }
        if(++ticks>=20){ticks=0;risc_scene_navigation_v1 nav{};nav.struct_size=sizeof(nav);uint32_t flags=0;rc=a->scene->snapshot(a->scene->context,a->session,&nav,&flags);if(!a->checked(rc)||rc)break;

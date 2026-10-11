@@ -50,3 +50,12 @@ if failure_fixture.exists():shutil.rmtree(failure_fixture)
 create(failure_fixture)
 shutil.copytree(fixture/'fonts',failure_fixture/'fonts')
 subprocess.run([str(failure_binary),str(failure_fixture)],check=True)
+presentation_binary=a.output/'presentation-test'
+subprocess.run(['g++','-std=c++17','-DRISC_READER_VECTOR_FONTS','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-include',str(ROOT/'reader/port/Arduino.h'),*['-I'+str(x) for x in include],str(ROOT/'test/reader/presentation_test.cpp'),str(ROOT/'test/reader/host_volume.cpp'),*json.loads((objects/'objects.json').read_text()),'-o',str(presentation_binary)],check=True)
+presentation_fixture=a.output/'presentation-fixture'
+if presentation_fixture.exists():shutil.rmtree(presentation_fixture)
+create(presentation_fixture)
+from make_fixture import create_multichapter
+create_multichapter(presentation_fixture)
+shutil.copytree(fixture/'fonts',presentation_fixture/'fonts')
+subprocess.run([str(presentation_binary),str(presentation_fixture)],check=True)
