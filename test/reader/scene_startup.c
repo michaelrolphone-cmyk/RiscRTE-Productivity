@@ -62,3 +62,15 @@ void reader_test_scene_snapshot(const char *path) {
 
 void reader_test_scene_tap(unsigned x,unsigned y){touch_tap(x,y);}
 void reader_test_scene_back(void){nav_pressed=RISC_NAV_BACK;}
+
+void reader_test_scene_drag(unsigned x,unsigned from,unsigned to){
+ assert(event_at==event_count);event_at=0;event_count=3;
+ events[0]=(risc_touch_event_v1){++seq,ms,1,0,(uint16_t)x,(uint16_t)from};
+ events[1]=(risc_touch_event_v1){++seq,ms,2,0,(uint16_t)x,(uint16_t)to};
+ events[2]=(risc_touch_event_v1){++seq,ms,3,0,(uint16_t)x,(uint16_t)to};
+}
+uint32_t reader_test_scene_pixel_hash(void){
+ assert(!held&&!presenting);uint32_t result=2166136261u;
+ for(unsigned i=16;i<16+800*480/8;++i)result=(result^pixels[i])*16777619u;
+ return result;
+}

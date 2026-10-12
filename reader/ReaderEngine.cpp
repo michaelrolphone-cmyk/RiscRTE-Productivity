@@ -7,6 +7,16 @@
 namespace reader {
 static bool validSettings(const Settings& s){return memchr(s.family,0,sizeof(s.family))&&s.pointSize>=8&&s.pointSize<=40&&s.margin<=40&&s.lineSpacing<=3&&s.alignment<=4&&s.orientation<=3&&s.indent<=8&&s.wordSpacing>=50&&s.wordSpacing<=200&&s.characterSpacing<=4&&s.paragraphSpacing<=1&&s.hyphenation<=1&&s.embeddedStyle<=1&&s.images<=1;}
 
+bool libraryBookPath(const std::string& path){
+ // FAT paths are case-insensitive. Match a complete root component, never
+ // /Books-old or a traversal. Explicit file-open has no library-root filter.
+ if(path.size()<8||path[0]!='/'||path[6]!='/')return false;
+ const char* root="books";
+ for(unsigned i=0;i<5;++i){char c=path[i+1];if(c>='A'&&c<='Z')c+=32;if(c!=root[i])return false;}
+ return path.find("/../")==std::string::npos&&path.find("/./")==std::string::npos&&
+  FsHelpers::hasReflowableBookExtension(std::string_view(path));
+}
+
 Engine::Engine():renderer(display),fontCache(renderer.getFontMap(),renderer.getSdCardFonts(),renderer.getTtfFonts()){}
 Engine::~Engine(){if(!unpark())return;close();sdFonts.unloadAll(renderer);renderer.unregisterTtfFont(fontId);vectorFont.reset();freeink::MemoryManager::instance().reset();}
 bool Engine::init(unsigned w,unsigned h){
@@ -46,7 +56,7 @@ ReaderRenderSpec Engine::spec()const{
  v.viewportWidth=renderer.getScreenWidth()-2*s.margin;v.viewportHeight=renderer.getScreenHeight()-2*s.margin;v.hyphenationEnabled=s.hyphenation;v.embeddedStyle=s.embeddedStyle;v.imageRendering=s.images?0:2;return v;
 }
 bool Engine::openLibrary(){library.close();return Storage.recoverFile(library::libraryIndexPath())&&library.open(library::libraryIndexPath());}
-bool Engine::scanLibrary(){library.close();library::BuildStats stats;clearError();bool ok=library::buildLibraryIndex("/",stats,true);if(!ok||failed()){message="Library scan failed; previous index kept";openLibrary();return false;}return openLibrary();}
+bool Engine::scanLibrary(){library.close();library::BuildStats stats;clearError();bool ok=library::buildLibraryIndex("/Books",stats,true);if(!ok||failed()){message="Library scan failed; previous index kept";openLibrary();return false;}return openLibrary();}
 bool Engine::open(const std::string& path,bool recent){
  if(!FsHelpers::hasReflowableBookExtension(std::string_view(path))){message="Choose an EPUB, TXT or MD file";return false;}
  if(!book)clearError(); // A reported catalog/open failure must not poison the next independent open.

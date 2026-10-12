@@ -14,19 +14,22 @@ extern "C" void reader_test_scene_allow_exit();
 extern "C" uint64_t reader_test_scene_now();
 extern "C" void reader_test_scene_checkpoint();
 extern "C" unsigned reader_test_scene_clean_count();
+extern "C" void reader_test_scene_drag(unsigned,unsigned,unsigned);
+extern "C" uint32_t reader_test_scene_pixel_hash();
 extern "C" unsigned reader_test_scene_frame_count();
 extern "C" void reader_test_scene_exit_in(unsigned);
 extern "C" void risc_cpp_set_failure_handler(void(*)()) {}
 static const void *sceneApi;
 static unsigned acquired,released;
-static bool readySeen,legacyScene,compatibilitySeen;
+static bool readySeen,legacyScene,compatibilitySeen,libraryResident;
+static unsigned libraryUpdates;static bool libraryDragSent;static uint32_t libraryTopHash,libraryScrolledHash;
 static const char *sourcePath;
 static unsigned pages;
 static bool residentTest,redrawTest,controlsTest,controlsSent,restorePending,policyPending;
 static unsigned initialFrames,hostRedraws,controlsCalls;
 static uint32_t idleStorageSerial;
 static uint32_t expectedResumeFlags;
-static bool catalogTest,sawBrowse,sawLibraryRows;
+static bool catalogTest,sawBrowse,sawLibraryRows,staleCatalog,outsideBrowser,outsideSelected;
 static bool badCatalog,sawUnavailable,sawBrowser,browseSent;
 static risc_scene_event_v1 browseEvent;
 static bool turnsTest;
@@ -64,14 +67,19 @@ static int32_t resumeScene(void* c,uint64_t s,uint32_t flags){
  return rc;
 }
 static void checkDocument(const risc_components_document_v1* d){
+ if(libraryResident&&!strcmp(d->routes[0].title,"BOOKS"))++libraryUpdates;
  if(legacyScene&&!strcmp(d->routes[0].title,"READER UPDATE")){compatibilitySeen=true;reader_test_scene_allow_exit();}
- if(catalogTest){
+ if(catalogTest||outsideBrowser){
   unsigned bookRows=0,emptyAuthors=0;
   for(unsigned i=0;i<d->node_count;++i){
    const auto& n=d->nodes[i];assert(strcmp(n.label,"Unable to continue"));
    if(!strcmp(n.label,"Browse SD"))sawBrowse=true;
-   if(badCatalog&&!strcmp(n.label,"Browse SD")){browseEvent.kind=RISC_SCENE_ACTION_EVENT;browseEvent.document_revision=d->revision;browseEvent.node=n.id;browseEvent.action=n.action;}
+   if((badCatalog||outsideBrowser)&&!strcmp(n.label,"Browse SD")){browseEvent.kind=RISC_SCENE_ACTION_EVENT;browseEvent.document_revision=d->revision;browseEvent.node=n.id;browseEvent.action=n.action;}
    if(!strcmp(n.label,"Library index unavailable"))sawUnavailable=true;
+   if(outsideBrowser&&!strcmp(d->routes[0].title,"BROWSE SD")&&!strcmp(n.label,"outside.txt")){
+    sawBrowser=true;browseEvent.kind=RISC_SCENE_ACTION_EVENT;browseEvent.document_revision=d->revision;browseEvent.node=n.id;browseEvent.action=n.action;
+   }
+   if(staleCatalog)assert(strcmp(n.label,"OUTSIDE.TXT"));
    if(n.action>=100&&n.action<108){++bookRows;emptyAuthors+=n.text[0]==0;assert(n.label[0]);}
   }
   if(bookRows==4&&emptyAuthors)sawLibraryRows=true;
@@ -86,11 +94,16 @@ static int32_t nextScene(void* c,uint64_t s,risc_scene_event_v1* e){
  assert(!restorePending&&"Scene serviced before restoring the page");
  int rc=realScene->components.lifecycle.base.next(c,s,e);
  if(rc==RISC_SCENE_OK)e->sequence=++eventSequence;
+ if(libraryResident&&readySeen&&!libraryDragSent&&rc==RISC_SCENE_IDLE&&reader_test_scene_now()>1000){
+  risc_scene_navigation_v1 n{};n.struct_size=sizeof(n);uint32_t flags=0;assert(!realScene->components.lifecycle.base.snapshot(c,s,&n,&flags));
+  if(!(flags&(RISC_SCENE_PRESENTING|RISC_SCENE_INPUT_BUSY))){libraryTopHash=reader_test_scene_pixel_hash();reader_test_scene_drag(240,650,280);libraryDragSent=true;}
+ }
  if(controlsTest&&!controlsSent&&pages&&rc==RISC_SCENE_IDLE&&reader_test_scene_now()>4000){
   risc_scene_navigation_v1 n{};n.struct_size=sizeof(n);uint32_t flags=0;assert(!realScene->components.lifecycle.base.snapshot(c,s,&n,&flags));
   if(!(flags&RISC_SCENE_PRESENTING)){controlsSent=true;e->kind=RISC_SCENE_CONTROLS_EVENT;e->document_revision=shownPage.revision;e->sequence=++eventSequence;return RISC_SCENE_OK;}
  }
- if(badCatalog&&sawUnavailable&&!browseSent&&rc==RISC_SCENE_IDLE){*e=browseEvent;e->struct_size=sizeof(*e);e->sequence=++eventSequence;browseSent=true;return RISC_SCENE_OK;}
+ if(((badCatalog&&sawUnavailable)||(outsideBrowser&&sawBrowse))&&!browseSent&&rc==RISC_SCENE_IDLE){*e=browseEvent;e->struct_size=sizeof(*e);e->sequence=++eventSequence;browseSent=true;return RISC_SCENE_OK;}
+ if(outsideBrowser&&sawBrowser&&browseSent&&!outsideSelected&&rc==RISC_SCENE_IDLE){*e=browseEvent;e->struct_size=sizeof(*e);e->sequence=++eventSequence;outsideSelected=true;return RISC_SCENE_OK;}
  if(turnsTest&&(!residentTest||restores==4)&&rc==RISC_SCENE_IDLE&&pages==turnEvents+1&&turnEvents<2){
   risc_scene_navigation_v1 n{};n.struct_size=sizeof(n);uint32_t flags=0;
   assert(!realScene->components.lifecycle.base.snapshot(c,s,&n,&flags));
@@ -101,7 +114,7 @@ static int32_t nextScene(void* c,uint64_t s,risc_scene_event_v1* e){
 static int32_t checkpoint(uint64_t invocation,const risc_resident_request_v1* request,risc_resident_reply_v1* reply){
  assert(invocation==1);reply->flags=0;
  if(request->reason==RISC_RESIDENT_CHECKPOINT_POLL){
-  if(!controlsTest&&pages&&policyCalls<4&&reader_test_scene_now()-lastPolicy>=5000){reply->flags=RISC_RESIDENT_REPLY_POLICY_REQUEST;policyPending=true;}
+  if(!controlsTest&&(pages||(libraryResident&&readySeen))&&policyCalls<4&&reader_test_scene_now()-lastPolicy>=5000){reply->flags=RISC_RESIDENT_REPLY_POLICY_REQUEST;policyPending=true;}
   return RISC_RESIDENT_OK;
  }
  if(request->reason==RISC_RESIDENT_CHECKPOINT_CONTROLS){
@@ -111,6 +124,11 @@ static int32_t checkpoint(uint64_t invocation,const risc_resident_request_v1* re
  }
  assert(request->reason==RISC_RESIDENT_CHECKPOINT_POLICY&&policyPending);
  hostCheckClosed();reader_test_scene_checkpoint();assert(!restorePending);
+ if(libraryResident){
+  uint32_t frame=reader_test_scene_pixel_hash();
+  if(!policyCalls){assert(libraryDragSent&&frame!=libraryTopHash&&"Test must scroll the real library before policy");libraryScrolledHash=frame;}
+  else assert(frame==libraryScrolledHash&&"Policy changed the scrolled library image");
+ }
  if(!policyCalls){initialFrames=reader_test_scene_frame_count();idleStorageSerial=serial;}
  assert(serial==idleStorageSerial&&"Idle checkpoint reopened book/font storage");
  assert(reader_test_scene_frame_count()==initialFrames+hostRedraws&&"Idle checkpoint submitted an unchanged frame");
@@ -132,16 +150,18 @@ static bool acquireApp(const char *name,uint32_t version,uint64_t instance,risc_
 static bool releaseApp(risc_runtime_capability_v1 *g){assert(g->api&&!held);g->api=nullptr;++released;return true;}
 static bool appLog(const char *message){if(strstr(message,"scene ready page=480x680 sd=ready")){readySeen=true;
  if(badCatalog){for(auto& f:files)f.second.error=1;} // Fail the already-open index's next read.
- else if(!sourcePath)reader_test_scene_allow_exit();}return log(message);}
+ else if(!sourcePath&&!libraryResident&&!outsideBrowser)reader_test_scene_allow_exit();}return log(message);}
 static void *runApp(void*){app_main();return nullptr;}
 int main(int argc,char **argv){
  assert(argc>=2&&argc<=4);sourcePath=argc>=3&&strcmp(argv[2],"-")?argv[2]:nullptr;
+ libraryResident=argc==4&&!strcmp(argv[3],"resident-library");
+ outsideBrowser=argc==4&&!strcmp(argv[3],"browse-outside");staleCatalog=argc==4&&!strcmp(argv[3],"stale-catalog");
  legacyScene=argc==4&&!strcmp(argv[3],"legacy-scene");
  bool laterTest=argc==4&&!strcmp(argv[3],"resident-later");
  bool residentTurns=argc==4&&!strcmp(argv[3],"resident-turns");
  controlsTest=argc==4&&!strcmp(argv[3],"controls");
- redrawTest=argc==4&&!strcmp(argv[3],"resident-redraw");residentTest=residentTurns||controlsTest||laterTest||redrawTest||(argc==4&&!strcmp(argv[3],"resident"));badCatalog=argc==4&&!strcmp(argv[3],"bad-catalog");catalogTest=badCatalog||(argc==4&&!strcmp(argv[3],"catalog"));turnsTest=residentTurns||(argc==4&&!strcmp(argv[3],"turns"));hostBind(argv[1]);
- if(catalogTest){reader::Engine e;assert(e.init(480,632));assert(e.scanLibrary());assert(e.library.bookCount()==4);}
+ redrawTest=argc==4&&!strcmp(argv[3],"resident-redraw");residentTest=libraryResident||residentTurns||controlsTest||laterTest||redrawTest||(argc==4&&!strcmp(argv[3],"resident"));badCatalog=argc==4&&!strcmp(argv[3],"bad-catalog");catalogTest=staleCatalog||badCatalog||(argc==4&&!strcmp(argv[3],"catalog"));turnsTest=residentTurns||(argc==4&&!strcmp(argv[3],"turns"));hostBind(argv[1]);
+ if(catalogTest||libraryResident){reader::Engine e;assert(e.init(480,632));if(staleCatalog){library::BuildStats stats;assert(library::buildLibraryIndex("/",stats,true));assert(e.openLibrary());assert(e.library.bookCount()==5);}else{assert(e.scanLibrary());assert(e.library.bookCount()==4);}}
  if(laterTest){reader::Engine e;assert(e.init(480,632)&&e.open(sourcePath));while(e.waiting())assert(e.step());for(unsigned i=0;i<8;i++){assert(e.turn(1));while(e.waiting())assert(e.step());}assert(e.savePosition());}
  realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
  sceneCopy=*realReading;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(sceneCopy);if(legacyScene)sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(risc_scene_checkpoint_api_v1);sceneCopy.present_reading=presentReading;sceneCopy.checkpoint.resume=resumeScene;sceneApi=&sceneCopy;
@@ -155,8 +175,10 @@ int main(int argc,char **argv){
  pthread_t thread;assert(!pthread_create(&thread,&attr,runApp,nullptr));assert(!pthread_attr_destroy(&attr));assert(!pthread_join(thread,nullptr));
  assert((legacyScene?compatibilitySeen:readySeen)&&!held&&acquired==5&&released==5);if(sourcePath)assert(pages);
  if(residentTest)assert((controlsTest?controlsCalls==1&&restores==1:policyCalls==4&&restores==4)&&!restorePending);
- if(residentTest&&!turnsTest)assert(pages==1&&cleanRequests==1&&reader_test_scene_clean_count()==1+hostRedraws&&reader_test_scene_frame_count()==initialFrames+hostRedraws);
+ if(residentTest&&!turnsTest&&!libraryResident)assert(pages==1&&cleanRequests==1&&reader_test_scene_clean_count()==1+hostRedraws&&reader_test_scene_frame_count()==initialFrames+hostRedraws);
+ if(libraryResident)assert(libraryUpdates==1&&pages==0&&reader_test_scene_frame_count()==initialFrames&&"Library was rebuilt during policy handoff");
  if(turnsTest)assert(turnEvents==2&&pages==3&&cleanRequests==3&&reader_test_scene_clean_count()==3);
+ if(outsideBrowser)assert(sawBrowser&&outsideSelected&&pages==1);
  if(catalogTest)assert(sawBrowse&&(badCatalog?sawUnavailable&&sawBrowser:sawLibraryRows));
  hostCheckClosed();reader_test_scene_finish();
  printf("Reader real app entry: %s, 32 KiB host stack, rotated page, close and grant cleanup%s PASS\n",sourcePath?sourcePath:"library",residentTest?", four resident policy restores including BUSY, stable page":badCatalog?", failed index read with working SD browser":catalogTest?", indexed books without author metadata":turnsTest?", next/previous clean refreshes":"");

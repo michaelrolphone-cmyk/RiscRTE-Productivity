@@ -59,3 +59,10 @@ from make_fixture import create_multichapter
 create_multichapter(presentation_fixture)
 shutil.copytree(fixture/'fonts',presentation_fixture/'fonts')
 subprocess.run([str(presentation_binary),str(presentation_fixture)],check=True)
+
+scope_binary=a.output/'library-scope-test'
+subprocess.run(['g++','-std=c++17','-DRISC_READER_VECTOR_FONTS','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-include',str(ROOT/'reader/port/Arduino.h'),*['-I'+str(x) for x in include],str(ROOT/'test/reader/library_scope_test.cpp'),*json.loads((objects/'objects.json').read_text()),'-o',str(scope_binary)],check=True)
+scope_fixture=a.output/'library-scope-fixture'
+if scope_fixture.exists():shutil.rmtree(scope_fixture)
+create(scope_fixture)
+subprocess.run([str(scope_binary),str(scope_fixture)],check=True)

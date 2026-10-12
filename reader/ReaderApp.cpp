@@ -272,7 +272,10 @@ struct App {
  bool shell(unsigned reason){
   std::string reopen=engineSuspended?suspendedPath:engine->path();
   const bool restorePage=screen==Screen::Reading&&!waiting&&pageDocument.struct_size==sizeof(pageDocument);
-  const bool preserveScene=restorePage&&checkpointScene;
+  // A policy checkpoint is not navigation. Preserve list scroll/selection and
+  // the current row cache just as we preserve a visible book page. Reopening
+  // the scene here reset lists after UP and repeated SD/font discovery.
+  const bool preserveScene=checkpointScene&&(restorePage||reason==RISC_RESIDENT_CHECKPOINT_POLICY);
   const bool warmPolicy=preserveScene&&reason==RISC_RESIDENT_CHECKPOINT_POLICY;
   if(!(preserveScene?pauseScene():closeScene()))return false;
   if(warmPolicy){
@@ -368,7 +371,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
     {
      if(a->initialized){a->engine->openLibrary();a->show(Screen::Library);}else a->error("SD card unavailable");
      {
-      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.8",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
+      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.9",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
       const auto* files=static_cast<const t5_file_open_api_v1*>(a->grants[4].api);char source[512]{};
       if(a->initialized&&files&&files->struct_size>=sizeof(*files)&&files->source_path_get&&files->source_path_get(source,sizeof(source))){if(!strncmp(source,"/sd/",4))a->openBook(source+3);else a->error("Unsupported book location");}
       unsigned ticks=0;

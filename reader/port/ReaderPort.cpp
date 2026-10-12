@@ -80,7 +80,14 @@ void HalFile::flush(){if(isOpen()&&!directory_)ok(vol->file_sync(vol->base.conte
 bool HalFile::rename(const char* p){std::string old=path_;return close()&&Storage.rename(old.c_str(),p);}
 bool HalFile::truncate(uint64_t length){return isOpen()&&!directory_&&ok(fs->file_truncate(vol->base.context,handle_,length));}
 void HalFile::rewindDirectory(){if(isOpen()&&directory_)ok(vol->dir_rewind(vol->base.context,handle_));}
-HalFile HalFile::openNextFile(){if(!isOpen()||!directory_)return {};risc_storage_dirent_v1 e{};if(!vol->base.dir_next(vol->base.context,handle_,&e)){ok(vol->handle_error(vol->base.context,handle_,true)==0);return {};}if(!reader::alive())return {};std::string path=path_+(path_=="/"?"":"/")+e.name;auto f=Storage.open(path.c_str());if(!f)ioError=true;return f;}
+bool HalFile::nextEntry(risc_storage_dirent_v1& e){
+ e={};if(!isOpen()||!directory_)return false;
+ if(!vol->base.dir_next(vol->base.context,handle_,&e)){ok(vol->handle_error(vol->base.context,handle_,true)==0);return false;}
+ if(!reader::alive())return false;
+ if(!memchr(e.name,0,sizeof(e.name))||!e.name[0]||strchr(e.name,'/')||strchr(e.name,'\\')||e.is_directory>1){ioError=true;return false;}
+ reader::service();return true;
+}
+HalFile HalFile::openNextFile(){risc_storage_dirent_v1 e{};if(!nextEntry(e))return {};std::string path=path_+(path_=="/"?"":"/")+e.name;auto f=Storage.open(path.c_str());if(!f)ioError=true;return f;}
 HalStorage& HalStorage::getInstance(){static HalStorage s;return s;}
 bool HalStorage::ready()const{return fs&&reader::alive()&&vol->base.ready(vol->base.context);}
 HalFile HalStorage::open(const char* path,oflag_t flags){

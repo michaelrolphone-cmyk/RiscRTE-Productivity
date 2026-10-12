@@ -28,6 +28,7 @@ if fixture.exists():shutil.rmtree(fixture)
 sys.path.insert(0,str(ROOT/'test/reader'))
 from make_fixture import create
 cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [('-', 'resident-library'),('-', 'browse-outside'),('-', 'stale-catalog'),('/outside.txt',None)]
 cases += [('-', 'catalog'),('-', 'bad-catalog'),('-', 'legacy-scene')]
 cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
 cases += [('/Books/sample.epub','resident-redraw')]
@@ -38,5 +39,6 @@ cases += [(source,'turns') for source in ('/Books/sample.epub','/Books/sample.tx
 for source,scenario in cases:
     if fixture.exists():shutil.rmtree(fixture)
     create(fixture)
+    shutil.copyfile(fixture/'Books/sample.txt',fixture/'outside.txt')
     shutil.copytree(a.engine_output/'fixture/fonts',fixture/'fonts')
     subprocess.run([str(binary),str(fixture)]+([source] if source else [])+([scenario] if scenario else []),check=True,timeout=60)

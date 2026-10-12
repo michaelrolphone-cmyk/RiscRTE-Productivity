@@ -23,6 +23,7 @@ bool loadRows(){
  if(screen==Screen::Library){
   recentTitle.clear();recentSummary=BookSummary();
   std::string recent=engine->preferences.recentPath;
+  if(!libraryBookPath(recent))recent.clear();
   if(!recent.empty()){
    if(!readBookSummary(recent,recentSummary))return false;
    recentTitle=recentSummary.title;
@@ -38,7 +39,7 @@ bool loadRows(){
   for(unsigned i=0;i<engine->library.bookCount();++i){
    library::ClixRecord rec{};Row r;
    if(!engine->library.readRecord(engine->library.ordinalForRow(order,i),rec)||!engine->library.readPath(rec,r.path))return false;
-   if(recentRow&&r.path==recent)continue;
+   if(!libraryBookPath(r.path)||(recentRow&&r.path==recent))continue;
    if(!readBookSummary(r.path,r.summary))return false;
    if(r.summary.flags&BookHidden)continue;
    bool done=r.summary.flags&BookFinished;
@@ -59,10 +60,12 @@ bool loadRows(){
   auto names=fontNames();for(unsigned i=first;i<names.size()&&i<first+count;++i)rows.push_back({names[i],names[i]==engine->preferences.settings.family?"SELECTED":"","",i,false,{}});more=first+count<names.size();
  }else if(screen==Screen::Files){
   auto folder=Storage.open(directory.c_str());if(!folder||!folder.isDirectory())return false;
-  unsigned visible=0;while(auto f=folder.openNextFile()){
-   char name[128];if(!f.getName(name,sizeof(name)))return false;
-   bool dir=f.isDirectory();std::string path=directory+(directory=="/"?"":"/")+name;
-   if(!f.close())return false;
+  unsigned visible=0;risc_storage_dirent_v1 entry{};
+  while(folder.nextEntry(entry)){
+   // A directory row already carries type and name. Do not open every skipped
+   // application/document just to decide whether it belongs in this browser.
+   const char* name=entry.name;bool dir=entry.is_directory;
+   std::string path=directory+(directory=="/"?"":"/")+name;
    if(name[0]=='.'||(directory=="/"&&readerCasecmp(name,"System")==0))continue;
    if(!dir&&!FsHelpers::hasReflowableBookExtension(std::string_view(name)))continue;
    if(visible++<first)continue;if(rows.size()==count){more=true;break;}
@@ -87,12 +90,12 @@ bool declare(){
    copy(doc.details[n.id-1].choices,sizeof(doc.details[n.id-1].choices),"CH "+std::to_string(recentSummary.chapter?recentSummary.chapter:1)+(recentSummary.chapters?" OF "+std::to_string(recentSummary.chapters):"")+(recentSummary.remaining==UINT32_MAX?"":" - "+formatRemaining(recentSummary.remaining)+" LEFT"));
   }
   {auto& n=node(RISC_COMPONENT_SEGMENTS,"LIBRARY","",LibraryTab);n.value=tab;n.maximum=2;n.step=1;copy(doc.details[n.id-1].choices,sizeof(doc.details[n.id-1].choices),"READING|ALL|FINISHED");}
-  if(rows.empty()){auto& n=node(RISC_COMPONENT_EMPTY,libraryUnavailable?"Library index unavailable":"NOTHING HERE",libraryUnavailable?"Scan your SD card or browse its folders.":"Add books with the + button.",0);doc.details[n.id-1].symbol=RISC_SYMBOL_BOOK;}
+  if(rows.empty()){auto& n=node(RISC_COMPONENT_EMPTY,libraryUnavailable?"Library index unavailable":"NOTHING HERE",libraryUnavailable?"Scan /Books or browse the SD card.":"Add books with the + button.",0);doc.details[n.id-1].symbol=RISC_SYMBOL_BOOK;}
   for(unsigned i=0;i<rows.size();i++){
    const auto& r=rows[i];auto& n=node(RISC_COMPONENT_MEDIA_ROW,upper(r.label),upper(r.text)+((r.summary.flags&BookStarted)&&!(r.summary.flags&BookFinished)&&r.summary.remaining!=UINT32_MAX?" - "+formatRemaining(r.summary.remaining)+" LEFT":""),OpenRow+i);auto& d=doc.details[n.id-1];d.marker=unsigned(r.summary.identity%6);d.tone=r.summary.flags&BookFinished?RISC_TONE_DEFAULT:r.summary.flags&BookStarted?RISC_TONE_MUTED:RISC_TONE_ACCENT;
    copy(d.badge,sizeof(d.badge),r.summary.flags&BookFinished?"DONE":r.summary.flags&BookStarted?std::to_string((r.summary.progress+5)/10)+"%":"NEW");
   }
-  pageLinks();row("Browse SD","EPUB, TXT, Markdown",Browse);row("SCAN LIBRARY","Read book titles and authors from SD",Scan);
+  pageLinks();row("Browse SD","EPUB, TXT, Markdown",Browse);row("SCAN LIBRARY","Read titles and authors from /Books",Scan);
   {auto& n=node(RISC_COMPONENT_SEGMENTS,"ORDER","",Sort);n.value=sort;n.maximum=2;n.step=1;copy(doc.details[n.id-1].choices,sizeof(doc.details[n.id-1].choices),"RECENT|TITLE|AUTHOR");}
   row("CLOSE READER","",Exit);break;}
  case Screen::Menu:{

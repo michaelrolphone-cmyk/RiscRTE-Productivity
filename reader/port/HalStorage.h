@@ -36,7 +36,7 @@ class HalFile : public Print {
  size_t write(const uint8_t*,size_t)override;size_t write(const void* p,size_t n){return write((const uint8_t*)p,n);}size_t write(uint8_t c)override{return write(&c,1);}
  using Print::write;
  void flush();bool rename(const char*);bool truncate(uint64_t);
- void rewindDirectory();HalFile openNextFile();
+ void rewindDirectory();bool nextEntry(risc_storage_dirent_v1&);HalFile openNextFile();
 };
 class HalStorage {
 public:
