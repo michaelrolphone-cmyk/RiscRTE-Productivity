@@ -1,0 +1,40 @@
+name: Watch Points shared input
+on:
+  push:
+    branches: [fix/watch-points-shared-input-20261012]
+  pull_request:
+    paths:
+      - 'Apps/points_in_time.c'
+      - 'Apps/points_nova7.inc'
+      - 'Apps/points_watch_shared_input.h'
+      - 'test/native_apps/points_watch_shared_input_test.c'
+      - 'scripts/test_watch_shared_text_points.py'
+permissions:
+  contents: read
+jobs:
+  points:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 9c0ad2faa4b3aa73daf1c92cc343e0f83c2a5af3
+          path: .dependencies/system
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: 3385d634db829066e3f7f0d84474df5ed54bf143
+          path: .dependencies/utilities
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          export ASAN_OPTIONS=detect_leaks=0
+          export UBSAN_OPTIONS=halt_on_error=1
+          python scripts/test_watch_shared_text_points.py --system-apps .dependencies/system --utilities .dependencies/utilities
+          python scripts/test_points_in_time.py --system-apps .dependencies/system --utilities .dependencies/utilities

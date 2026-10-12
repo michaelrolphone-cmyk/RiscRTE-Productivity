@@ -3,7 +3,11 @@
  * left-aligned Orbitron/Rajdhani hierarchy, 40px single-line rows, per-type
  * left rails, 1px row rules, inline day controls and the shared Nova keyboard. */
 #include "PortableNovaUi.h"
+#ifdef WATCH_POINTS_SHARED_INPUT
+#include "points_watch_shared_input.h"
+#else
 #include "points_watch_keyboard.h"
+#endif
 
 #define P7_ROW_TOP 82
 #define P7_ROW_H 40
@@ -168,7 +172,7 @@ static void p7_mode(void) {
 #include "points_nova7_picker.inc"
 static void p7_custom(void) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;
-    p7_simple_header("CUSTOM TYPE",notice&&(!strcmp(notice,"Custom name cannot be empty")||!strcmp(notice,"Custom type save failed"))?notice:"NAME AND COLOR");
+    p7_simple_header("CUSTOM TYPE",notice&&(!strcmp(notice,"Custom name cannot be empty")||!strcmp(notice,"Custom type save failed")||!strcmp(notice,"Text input unavailable"))?notice:"NAME AND COLOR");
     portable_nova_round(20,86,200,34,12,NOVA_DIM);portable_nova_round(21,87,198,32,11,0);
     portable_nova_text(0,32,94,176,custom_draft.custom[ci].name[0]?custom_draft.custom[ci].name:"TAP TO TYPE",custom_draft.custom[ci].name[0]?NOVA_WHITE:NOVA_CAP);
     portable_nova_text(3,30,123,90,"COLOR",NOVA_CAP);
@@ -176,6 +180,7 @@ static void p7_custom(void) {
         if(custom_draft.custom[ci].color==i){portable_nova_round(x-3,y-3,30,30,15,NOVA_WHITE);portable_nova_round(x-1,y-1,26,26,13,0);portable_nova_round(x,y,24,24,12,nova_custom_colors[i]);}}
     portable_nova_button(24,207,82,28,"< BACK",false);portable_nova_button(134,207,82,28,"SAVE",false);
 }
+#ifndef WATCH_POINTS_SHARED_INPUT
 static void p7_keyboard(void) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;
     portable_nova_begin();
@@ -195,6 +200,7 @@ static void p7_keyboard(void) {
     char status[32];snprintf(status,sizeof(status),"%u / %u CHARACTERS",(unsigned)strlen(p7_key_text),POINTS_CUSTOM_NAME_MAX);
     portable_nova_text(3,18,217,204,status,NOVA_CAP);
 }
+#endif
 static void p7_problem(const char *title,const char *detail) {
     portable_nova_begin();p7_header("POINTS IN TIME",NULL,0);portable_nova_center(0,20,103,200,title,NOVA_RED);portable_nova_center(2,20,126,200,detail,NOVA_CAP);
     portable_nova_button(60,174,120,44,"RETRY",false);
@@ -213,7 +219,9 @@ static void draw_nova7(void) {
     else if(page==PAGE_MODE)p7_mode();
     else if(page==PAGE_DURATION)p7_duration();
     else if(page==PAGE_CUSTOM)p7_custom();
+#ifndef WATCH_POINTS_SHARED_INPUT
     else if(page==PAGE_CUSTOM_KEYBOARD)p7_keyboard();
+#endif
     else p7_edit();
     app->present(false);
 }
@@ -240,8 +248,10 @@ static void p7_custom_save(void) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT)return;custom_trim(custom_draft.custom[ci].name);
     if(!custom_draft.custom[ci].name[0]){notice="Custom name cannot be empty";return;}
     custom_draft.revision=writer.meta.revision+1;int32_t rc=points_writer_save_meta(&writer,storage,&custom_draft);
+    if(!points_live())return;
     if(rc!=ALARM_OK){notice="Custom type save failed";return;}draft.kind=(uint8_t)custom_kind;page=PAGE_EDIT;notice="Custom type saved";
 }
+#ifndef WATCH_POINTS_SHARED_INPUT
 static void p7_key_activate(unsigned key) {
     unsigned ci=custom_index(custom_kind);if(ci>=POINTS_CUSTOM_COUNT || page!=PAGE_CUSTOM_KEYBOARD)return;
     size_t n=strlen(p7_key_text);
@@ -256,6 +266,7 @@ static void p7_key_activate(unsigned key) {
         page=PAGE_CUSTOM;custom_key_choice=0;notice="Name draft updated";
     }
 }
+#endif
 static bool p7_edit_content_hit(int x,int y) {
     if(y<81||y>=P7_VIEW_BOTTOM)return false;
     int cy=y+p7_edit_offset(),row=82;
@@ -282,7 +293,12 @@ static void nova7_tap(int x,int y) {
 #endif
     if(writer.uncertain||writer.meta_uncertain||!writer.loaded){if(y>=150)retry_action();return;}
     if(page==PAGE_CUSTOM_KEYBOARD) {
+#ifndef WATCH_POINTS_SHARED_INPUT
         int key=p7_watch_key_hit(x,y);if(key>=0){custom_key_choice=(unsigned)key;p7_key_activate((unsigned)key);}return;
+
+#else
+        return;
+#endif
     }
     if(page!=PAGE_LIST)notice="Draft only - not saved";
     if(page==PAGE_LIST) {
@@ -350,11 +366,16 @@ static bool nova7_scroll_step(int direction) {
 }
 static bool nova7_buttons(uint32_t buttons) {
     if(page==PAGE_CUSTOM_KEYBOARD) {
+#ifndef WATCH_POINTS_SHARED_INPUT
         if(buttons&(T5_APP_BUTTON_LEFT|T5_APP_BUTTON_UP))custom_key_choice=custom_key_choice?custom_key_choice-1:P7_WATCH_KEY_COUNT-1;
         else if(buttons&(T5_APP_BUTTON_RIGHT|T5_APP_BUTTON_DOWN))custom_key_choice=(custom_key_choice+1)%P7_WATCH_KEY_COUNT;
         else if(buttons&T5_APP_BUTTON_CONFIRM)p7_key_activate(custom_key_choice);
         else return false;
         return true;
+
+#else
+        return false;
+#endif
     }
     if(buttons&T5_APP_BUTTON_UP)return nova7_scroll_step(-1);
     if(buttons&T5_APP_BUTTON_DOWN)return nova7_scroll_step(1);

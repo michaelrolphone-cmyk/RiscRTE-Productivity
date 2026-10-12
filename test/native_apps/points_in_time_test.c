@@ -129,11 +129,13 @@ int main(void){
  p7_text_calls=p7_fill_calls=p7_round_calls=p7_button_calls=0;
  custom_kind=POINTS_CUSTOM_1;custom_draft=(points_meta){.revision=1};custom_draft.custom[0].color=6;
  p7_key_begin();custom_key_page=1;
+#ifndef WATCH_POINTS_SHARED_INPUT
  for(unsigned i=1;i<=POINTS_CUSTOM_NAME_MAX;i++)p7_key_activate(i);
  assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM")&&!custom_draft.custom[0].name[0]);
  p7_key_activate(1);assert(!strcmp(p7_key_text,"ABCDEFGHIJKLM"));
  p7_key_activate(P7_WATCH_KEY_DELETE);assert(!strcmp(p7_key_text,"ABCDEFGHIJKL"));
  p7_key_activate(P7_WATCH_KEY_DONE);assert(page==PAGE_CUSTOM&&!strcmp(custom_draft.custom[0].name,"ABCDEFGHIJKL"));
+#endif
  p7_key_begin();draw_nova7();assert(strstr(rendered,"CUSTOM TYPE")&&strstr(rendered,"ABCDEFGHIJKL")&&strstr(rendered,"ABC/#")&&strstr(rendered,"DONE"));
  p7_key_cancel();
  writer.saved.revision=1;writer.saved.points[0]=(points_item){.kind=POINTS_WORK_START,.enabled=1,.weekdays=127,.hour=8,.minute=30};

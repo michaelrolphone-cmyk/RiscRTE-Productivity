@@ -20,14 +20,28 @@
 #endif
 #include <stddef.h>
 #include <stdio.h>
+#ifdef WATCH_POINTS_SHARED_INPUT
+#if !defined(PORTABLE_NOVA_UI) || !defined(PORTABLE_TEXT_INPUT_CLIENT)
+#error Watch Points shared input requires the NOVA presentation and shared input adapter
+#endif
+#include "PortableTextInputClient.h"
+static portable_text_client points_text_client;
+static risc_text_entry_state_v1 points_text_state;
+static bool points_text_closing,points_text_home;
+#endif
 #ifdef ALARM_NATIVE_UTC
 #include "points_native_time.h"
 #ifndef ALARM_SERVICE_TAGGED_V2
 #error Native Points requires explicitly negotiated alarm.service API2
 #endif
 #else
+#ifdef WATCH_POINTS_SHARED_INPUT
+#define points_live() portable_text_client_live(&points_text_client)
+#define points_service_result(rc) ((void)(rc),points_live())
+#else
 #define points_live() true
 #define points_service_result(rc) ((void)(rc),true)
+#endif
 #endif
 
 enum { PAGE_LIST, PAGE_EDIT, PAGE_TYPE, PAGE_TIME, PAGE_DAYS, PAGE_MODE, PAGE_DURATION, PAGE_SAVE, PAGE_CUSTOM, PAGE_CUSTOM_KEYBOARD };
@@ -41,7 +55,12 @@ static const alarm_service_v1 *service;
 static risc_runtime_capability_v1 grants[4];
 static unsigned acquired,page,list_page,selected,time_format;
 static const springboard_presentation *nova;
+#ifdef WATCH_POINTS_SHARED_INPUT
+/* Exact delivered Watch selection: this app has no Paper presenter. */
+#define paper ((const paper_presentation *)NULL)
+#else
 static const paper_presentation *paper;
+#endif
 static void pe_draw(void);
 static unsigned nova_list_scroll,nova_edit_scroll,nova_type_scroll,custom_kind,custom_pos,custom_key_page,custom_key_choice;
 static int nova_drag_x,nova_drag_y;
@@ -52,6 +71,21 @@ static points_item draft;
 static alarm_status_v1 service_state;
 static bool ready,service_valid,clock_valid;
 static const char *notice;
+#ifdef WATCH_POINTS_SHARED_INPUT
+static risc_key_value_v1 points_checked_storage,points_checked_preferences;
+static int32_t points_checked_get(void *context,const char *key,void *data,uint32_t capacity,uint32_t *size) {
+    if(!points_live())return RISC_KEY_VALUE_CONTEXT;
+    const risc_key_value_v1 *source=context;
+    int32_t rc=source->get(source->context,key,data,capacity,size);
+    return points_live()?rc:RISC_KEY_VALUE_CONTEXT;
+}
+static int32_t points_checked_put(void *context,const char *key,const void *data,uint32_t size) {
+    if(!points_live())return RISC_KEY_VALUE_CONTEXT;
+    const risc_key_value_v1 *source=context;
+    int32_t rc=source->put(source->context,key,data,size);
+    return points_live()?rc:RISC_KEY_VALUE_CONTEXT;
+}
+#endif
 static const char *const kinds[]={"Empty","Work","Work End","Lunch","Break","Bedtime"};
 static const char *const modes[]={"System default","Vibrate","Sound","Sound and vibrate"};
 static const char *const days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
@@ -153,12 +187,19 @@ static void refresh_status(void) {
 }
 static void close_dependencies(void) {
     if(!points_live())return;
-#ifdef ALARM_NATIVE_UTC
+#if defined(ALARM_NATIVE_UTC) || defined(WATCH_POINTS_SHARED_INPUT)
     if(runtime)while(acquired){
         risc_runtime_capability_v1 released=grants[acquired-1];
         bool ok=runtime->release(&released);
         if(!points_live())return;
-        if(!ok||released.api||released.slot||released.generation){points_retain();return;}
+        if(!ok||released.api||released.slot||released.generation){
+#ifdef WATCH_POINTS_SHARED_INPUT
+            (void)portable_text_client_retain(&points_text_client);
+#else
+            points_retain();
+#endif
+            return;
+        }
         grants[--acquired]=released;
     }
     storage=preferences=NULL;service=NULL;runtime=NULL;ready=false;
@@ -170,6 +211,9 @@ static void close_dependencies(void) {
 static bool open_dependencies(void) {
     if(!points_live())return false;
     runtime=risc_runtime_get_api(1);acquired=0;
+#ifdef WATCH_POINTS_SHARED_INPUT
+    points_text_client.runtime=runtime;
+#endif
     if(!runtime || runtime->api_version!=1 || runtime->struct_size<RISC_RUNTIME_CAPABILITIES_V1_SIZE ||
        !runtime->acquire || !runtime->release || !runtime->yield_ms)return false;
 #ifdef ALARM_NATIVE_UTC
@@ -187,7 +231,9 @@ static bool open_dependencies(void) {
         if(!ok){points_retain();return false;}
         if(!grants[i].api||!grants[i].slot||!grants[i].generation){points_retain();return false;}
 #else
-        if(!runtime->acquire(caps[i],apis[i],instances[i],&grants[i]))return false;
+        bool ok=runtime->acquire(caps[i],apis[i],instances[i],&grants[i]);
+        if(!points_live())return false;
+        if(!ok)return false;
 #endif
         acquired++;
     }
@@ -199,6 +245,12 @@ static bool open_dependencies(void) {
     storage=&points_storage_guarded;preferences=&points_preferences_guarded;
 #else
     storage=grants[0].api;rtc=grants[1].api;service=grants[2].api;preferences=grants[3].api;
+#ifdef WATCH_POINTS_SHARED_INPUT
+    if(!points_writer_storage_valid(storage)||!portable_time_format_api_valid(preferences))return false;
+    points_checked_storage=(risc_key_value_v1){1,sizeof(points_checked_storage),(void*)storage,points_checked_get,points_checked_put};
+    points_checked_preferences=(risc_key_value_v1){1,sizeof(points_checked_preferences),(void*)preferences,points_checked_get,NULL};
+    storage=&points_checked_storage;preferences=&points_checked_preferences;
+#endif
 #endif
     return points_writer_storage_valid(storage) && portable_time_format_api_valid(preferences) &&
 #ifndef ALARM_NATIVE_UTC
@@ -554,9 +606,10 @@ static void save_action(void) {
 }
 #else
 static void save_action(void) {
+    if(!points_live())return;
     int32_t rc;
     if(writer.meta_uncertain){rc=points_writer_retry_meta(&writer,storage);
-        if(rc==ALARM_OK&&writer.uncertain)rc=points_writer_retry(&writer,storage);
+        if(points_live()&&rc==ALARM_OK&&writer.uncertain)rc=points_writer_retry(&writer,storage);
     }
     else if(writer.uncertain)rc=points_writer_retry(&writer,storage);
     else {
@@ -570,11 +623,12 @@ static void save_action(void) {
 #endif
             return;}
         if(!service_valid || service_state.state==ALARM_STATE_BLOCKED){notice="Service blocked: retry";return;}
-        uint32_t now;clock_valid=read_clock(&now);if(!clock_valid){notice="RTC invalid: retry";return;}
+        uint32_t now;clock_valid=read_clock(&now);if(!points_live())return;if(!clock_valid){notice="RTC invalid: retry";return;}
         if(now>ALARM_RTC_MAX-ALARM_RECOVERY_SECONDS){notice="RTC range limit";return;}
         points_config desired=writer.saved;desired.revision++;desired.created=now;desired.points[selected]=draft;
         rc=points_writer_save(&writer,storage,&desired);
     }
+    if(!points_live())return;
     if(rc!=ALARM_OK){notice=writer.uncertain?"Save unconfirmed: retry":"Point or revision invalid";return;}
     page=PAGE_LIST;notice="Catalog saved";(void)service->refresh(service->context);
 }
@@ -792,6 +846,11 @@ static bool on_back(void) {
     return false;
 }
 void app_main(void) {
+#ifdef WATCH_POINTS_SHARED_INPUT
+    if(!points_live())return;
+    points_text_client=(portable_text_client){0};points_text_state=(risc_text_entry_state_v1){0};
+    points_text_closing=points_text_home=false;
+#endif
 #ifdef ALARM_NATIVE_UTC
     if(points_retained)return;
     points_clock=(portable_realtime_client){0};points_zone[0]=0;points_zone_index=0;
@@ -801,14 +860,24 @@ void app_main(void) {
 #ifdef PORTABLE_PRODUCTIVITY_SCROLL
     pe_scroll=(productivity_scroll){0};memset(&pe_scroll_state,0,sizeof(pe_scroll_state));
 #endif
-    nova=NULL;paper=NULL;pe_first=pe_edit_first=pe_choice_first=pe_focus=pe_key_page=0;pe_focus_visible=pe_exit=pe_down=false;pe_clean=true;memset(pe_key_text,0,sizeof(pe_key_text));
+    nova=NULL;
+#ifndef WATCH_POINTS_SHARED_INPUT
+    paper=NULL;
+#endif
+    pe_first=pe_edit_first=pe_choice_first=pe_focus=pe_key_page=0;pe_focus_visible=pe_exit=pe_down=false;pe_clean=true;memset(pe_key_text,0,sizeof(pe_key_text));
     nova_list_scroll=nova_edit_scroll=nova_type_scroll=custom_kind=custom_pos=custom_key_page=custom_key_choice=0;nova_drag_x=nova_drag_y=0;nova_drag_active=nova_delete_confirm=false;custom_draft=(points_meta){0};
     time_format=PORTABLE_TIME_FORMAT_12;service_state=(alarm_status_v1){0};service_valid=clock_valid=ready=false;notice="";
     if(!app || app->abi_version!=1 || app->struct_size<offsetof(t5_app_api_v1,draw_label)+sizeof(app->draw_label) ||
        !app->poll || !app->millis || !app->screen_width || !app->screen_height || !app->clear || !app->draw_label ||
        !app->fill_rect || !app->present)return;
+#ifdef WATCH_POINTS_SHARED_INPUT
+    /* The delivered Watch profile already selected no Paper presentation via
+     * its watch-paper-absent translation unit. Keep that color-only selection
+     * local now that the shared adapter owns a strong Paper entrypoint. */
+#else
     paper=paper_presentation_get();
     if(paper&&(paper->struct_size<sizeof(*paper)||!paper->begin||!paper->text||!paper->measure||!paper->circle||!paper->contact))paper=NULL;
+#endif
     if(!paper&&(app->screen_width()!=240||app->screen_height()!=240))return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
 #ifdef PORTABLE_NOVA_UI
@@ -821,6 +890,18 @@ void app_main(void) {
     uint32_t last_time_sample=last_draw;
 #endif
     for(;;) {
+#ifdef WATCH_POINTS_SHARED_INPUT
+        if(!points_live())return;
+        if(points_text_home)break;
+        /* Shared host capture and close progress run without any app poll,
+         * storage operation or drawing until presenter custody returns. */
+        if(page==PAGE_CUSTOM_KEYBOARD){
+            p7_key_step();if(!points_live())return;
+            if(page==PAGE_CUSTOM_KEYBOARD)runtime->yield_ms(20);
+            else if(!points_text_home){draw();if(!points_live())return;last_draw=app->millis();}
+            continue;
+        }
+#endif
         t5_app_input_t input={0};bool poll_ok=app->poll(&input,20);if(!points_live())return;
         if(!poll_ok) {
 #ifdef PORTABLE_ALARM_CLIENT
@@ -886,6 +967,9 @@ void app_main(void) {
 #endif
         }
         if(!points_live())return;
+#ifdef WATCH_POINTS_SHARED_INPUT
+        if(page==PAGE_CUSTOM_KEYBOARD)continue;
+#endif
         if(interacted || (paper?status_changed:(uint32_t)(app->millis()-last_draw)>=500)) {
             if(ready){uint32_t now;clock_valid=read_clock(&now);}
             if(!points_live())return;
