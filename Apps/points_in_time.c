@@ -25,6 +25,12 @@
 #error Watch Points shared input requires the NOVA presentation and shared input adapter
 #endif
 #include "PortableTextInputClient.h"
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "PortableTextInputPolicy.h"
+#include "RiscRuntimeHostControlV1.h"
+static portable_text_checkpoint_client points_text_checkpoint;
+static bool points_text_policy_continuity;
+#endif
 static portable_text_client points_text_client;
 static risc_text_entry_state_v1 points_text_state;
 static bool points_text_closing,points_text_home;

@@ -1,7 +1,7 @@
 name: Watch Points shared input
 on:
   push:
-    branches: [fix/watch-points-shared-input-20261012]
+    branches: [fix/watch-points-shared-input-20261012, work/points-input-policy-20261012]
   pull_request:
     paths:
       - 'Apps/points_in_time.c'
@@ -9,6 +9,13 @@ on:
       - 'Apps/points_watch_shared_input.h'
       - 'test/native_apps/points_watch_shared_input_test.c'
       - 'scripts/test_watch_shared_text_points.py'
+      - 'scripts/test_points_policy.py'
+      - 'scripts/points_policy_cases.py'
+      - 'test/native_apps/points_policy*'
+      - 'test/native_apps/points_policy_profile/**'
+      - 'docs/POINTS_MODAL_POLICY.md'
+      - '.github/workflows/watch-points-shared-input.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -21,14 +28,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 9c0ad2faa4b3aa73daf1c92cc343e0f83c2a5af3
+          ref: 66282802bb498590fcbab4eba871ff40cc3ddafd
           path: .dependencies/system
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-Utilities
-          ref: 3385d634db829066e3f7f0d84474df5ed54bf143
+          ref: 4cfe21248f1f81339072c39eba44dbaea3a444b6
           path: .dependencies/utilities
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 267aab6d9382ce4921a1536fab1620749b2f5301
+          path: .dependencies/runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: 089868395268b696c05651c33816345bfe0425df
+          path: .dependencies/watch
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -38,3 +57,16 @@ jobs:
           export UBSAN_OPTIONS=halt_on_error=1
           python scripts/test_watch_shared_text_points.py --system-apps .dependencies/system --utilities .dependencies/utilities
           python scripts/test_points_in_time.py --system-apps .dependencies/system --utilities .dependencies/utilities
+      - name: Real-host modal policy and preserved workflows
+        run: >-
+          python scripts/test_points_policy.py
+          --system-apps .dependencies/system
+          --utilities .dependencies/utilities
+          --runtime .dependencies/runtime
+          --watch .dependencies/watch
+          --output build/points-policy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: points-modal-policy-evidence
+          path: build/points-policy/result.json
