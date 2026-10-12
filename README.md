@@ -54,3 +54,7 @@ qualification; no publication or hardware activation is implied.
 The NOVA-7 Lists app uses one executable on T-Watch-S3 and X4 and the shared
 intent component presenter. See [the implementation, screenshots, builds and
 deployment profiles](docs/LISTS_SCENE.md).
+
+[Lists shared text input](docs/LISTS_SHARED_INPUT.md) migrates the four name
+editors to the existing shared service in explicit Watch/X4 builds, preserving
+the scene UI, 24-character limits and existing saved-data protocol.

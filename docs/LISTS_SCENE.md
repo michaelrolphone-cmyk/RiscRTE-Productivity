@@ -137,3 +137,11 @@ silently relabeled or published as upgraded images.
 
 No physical-device flashing or hardware accuracy/latency claim is made by these
 host tests. See `docs/lists/verification.json` for exact build hashes and scope.
+
+## Selected shared-input builds
+
+The Watch/X4 Lists text-entry migration is documented in
+[LISTS_SHARED_INPUT.md](LISTS_SHARED_INPUT.md). Its explicit build flag uses the
+existing shared text-input service while the generic flag-off build above remains
+reproducible and unchanged. Device recipes preserve each selected manifest and
+its existing namespace, provider selection and lifecycle policy.

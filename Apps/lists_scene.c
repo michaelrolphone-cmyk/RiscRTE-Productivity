@@ -49,6 +49,9 @@ static bool open_scene(const risc_scene_navigation_v1 *navigation){
     if(lifecycle){rc=lifecycle->configure(scene->context,session,resident.enabled?RISC_SCENE_FEATURE_SHARED_CONTROLS:0);if(!checked(rc)||rc)return false;}
     return true;
 }
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+#include "lists_text_input.inc"
+#endif
 static bool shell_ui(unsigned reason){
     risc_scene_navigation_v1 navigation={.struct_size=sizeof(navigation)};uint32_t flags;
     int rc=scene->snapshot(scene->context,session,&navigation,&flags);if(!checked(rc)||rc)return false;
@@ -61,6 +64,9 @@ static bool shell_ui(unsigned reason){
 __attribute__((visibility("default"))) void app_main(void){
     runtime=risc_runtime_get_api(1);if(!runtime||runtime->struct_size<RISC_RUNTIME_RETAIN_INVOCATION_V1_SIZE||!runtime->retain_invocation||!runtime->acquire||!runtime->release||!runtime->yield_ms)return;
     terminal=false;acquired=0;session=0;files=(lists_store){0};lists_ui_init(&ui);
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+    lists_text_reset();
+#endif
     if(!dependencies()){if(!terminal&&runtime->diagnostic){runtime->diagnostic("Lists requires NOVA scene components, app-data and civil time");if(!alive(NULL))return;}release_grants();return;}
     if(!risc_scene_resident_bind_v1(runtime,&resident)){if(!alive(NULL))return;retain();return;}
     if(!load()||!sample_clock()){if(!terminal)release_grants();return;}lists_ui_declare(&ui);
@@ -68,7 +74,23 @@ __attribute__((visibility("default"))) void app_main(void){
     int rc;unsigned poll_ticks=0;
     unsigned ticks=0;
     for(;;){
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+        if(lists_host_exit())break;
+        if(lists_text_busy()||(ui.page==LISTS_NAME_EDIT&&!ui.text_retry)){
+            if(!lists_text_step()||text_exit)break;
+            if(++ticks>=250){ticks=0;if(!sample_clock())return;}
+            if(!lists_text_busy()){
+                lists_ui_declare(&ui);rc=components->update(scene->context,session,&ui.document);
+                if(!checked(rc)||rc)break;
+            }
+            runtime->yield_ms(5);if(!alive(NULL))return;
+            continue;
+        }
+#endif
         risc_scene_event_v1 event={.struct_size=sizeof(event)};rc=scene->next(scene->context,session,&event);if(!checked(rc))return;if(rc!=RISC_SCENE_OK&&rc!=RISC_SCENE_IDLE)break;
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+        if(lists_host_exit())break;
+#endif
         bool redraw=false;
         if(rc==RISC_SCENE_OK){
             if(event.kind==RISC_SCENE_CONTROLS_EVENT&&resident.enabled&&event.document_revision==ui.document.revision){if(!shell_ui(RISC_RESIDENT_CHECKPOINT_CONTROLS))break;continue;}
@@ -96,5 +118,8 @@ __attribute__((visibility("default"))) void app_main(void){
         }
         runtime->yield_ms(5);if(!alive(NULL))return;
     }
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+    if(!lists_text_cleanup())return;
+#endif
     if(close_scene())release_grants();
 }

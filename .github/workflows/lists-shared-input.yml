@@ -1,0 +1,72 @@
+name: Lists shared input
+on:
+  push:
+    branches: [work/lists-shared-input-20261012]
+  pull_request:
+    paths:
+      - 'Apps/lists*'
+      - 'Apps/Lists*'
+      - 'lib/Lists/**'
+      - 'sdk/lists-selected-profile/**'
+      - 'sdk/lists-shared-input-sources.json'
+      - 'test/lists/**'
+      - 'scripts/test_lists*'
+      - 'scripts/build_lists_scene.py'
+      - 'tests/test_lists*'
+      - '.github/workflows/lists-shared-input.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: f4b30f8ebcc6d8cb905c8e90c91b1691acbe8165
+          path: .dependencies/system
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Productivity
+          ref: 395c48de8fa10b672816c89c02dd9a5d4987a094
+          path: .dependencies/baseline
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 64c8e52e46fd91e8fdafd636db04eed88f0c51a9
+          path: .dependencies/watch-runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 1c1ed8661ea30d47e7e9707c41d492ce3a2b4d70
+          path: .dependencies/x4-runtime
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Image evidence dependency
+        run: python -m pip install Pillow==12.3.0
+      - name: Exact predecessor parity and real shared hosts, normal and ASan/UBSan
+        run: >-
+          python scripts/test_lists_shared_input.py
+          --runtime .dependencies/watch-runtime
+          --x4-runtime .dependencies/x4-runtime
+          --system-apps .dependencies/system
+          --baseline-productivity .dependencies/baseline
+          --output build/lists-shared-input --sanitize
+      - name: Manifest, catalog and build flag contracts
+        run: python -m unittest discover -s tests -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lists-shared-input-evidence
+          path: build/lists-shared-input/
+          if-no-files-found: error

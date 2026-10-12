@@ -1,6 +1,8 @@
 /* Application semantics only. No display API, dimensions, glyphs or hit boxes. */
 #include "ListsScene.h"
+#ifndef PORTABLE_LISTS_SHARED_TEXT_INPUT
 #include "SceneKeyboardV1.h"
+#endif
 #include <stdio.h>
 #include <string.h>
 static const char *const names[]={"GROCERIES","WORK","HOME","ERRANDS","READING","FITNESS","TRAVEL"};
@@ -82,7 +84,13 @@ void lists_ui_declare(lists_ui *u){
         chip(u,"CUSTOM...",LA_CUSTOM_LIST,0);break;}
     case LISTS_OPTIONS:{if(!l){u->page=LISTS_HOME;lists_ui_declare(u);return;}header(u,l->name,"LIST OPTIONS",true);node(u,RISC_COMPONENT_ROW,"RENAME","",LA_RENAME_LIST,0);
         risc_scene_node_v1 *n=node(u,RISC_COMPONENT_SWITCH,"SHOW COMPLETED","",LA_SHOW_DONE,0);bounds(n,l->show_completed,1);button(u,"CLEAR COMPLETED",LA_CLEAR_DONE,0);button(u,"DELETE LIST",LA_DELETE_LIST,RISC_SCENE_DESTRUCTIVE);break;}
-    case LISTS_NAME_EDIT:{header(u,"NAME",u->edit_kind==LA_CUSTOM_LIST||u->edit_kind==LA_RENAME_LIST?"LIST NAME":"TASK NAME",true);risc_scene_node_v1 *n=node(u,RISC_SCENE_KEYBOARD_NODE,"NAME",u->draft,LA_KEY,0);bounds(n,(int)u->key_layer,3);n->target=LISTS_NAME-1;break;}
+    case LISTS_NAME_EDIT:{header(u,"NAME",u->edit_kind==LA_CUSTOM_LIST||u->edit_kind==LA_RENAME_LIST?"LIST NAME":"TASK NAME",true);
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+        node(u,RISC_SCENE_TEXT_NODE,"NAME",u->draft,0,0);button(u,"EDIT NAME",LA_TEXT_RETRY,RISC_SCENE_PRIMARY);button(u,"CANCEL",LA_BACK,0);
+#else
+        risc_scene_node_v1 *n=node(u,RISC_SCENE_KEYBOARD_NODE,"NAME",u->draft,LA_KEY,0);bounds(n,(int)u->key_layer,3);n->target=LISTS_NAME-1;
+#endif
+        break;}
     case LISTS_TIME:{header(u,"SET TIME",t->name,true);risc_scene_node_v1 *n=node(u,RISC_COMPONENT_TIME_PICKER,"TIME","",LA_TIME_VALUE,0);bounds(n,(int)u->time_value,1439);button(u,"SET TIME",LA_SET_TIME,RISC_SCENE_PRIMARY);button(u,"NO TIME",LA_NO_TIME,0);break;}
     case LISTS_CONFIRM:{header(u,"CONFIRM","",true);d->flags=RISC_COMPONENTS_CONFIRM;d->cancel_action=LA_KEEP;const char *title=u->confirm_kind==LA_DELETE_TASK?"DELETE TASK?":u->confirm_kind==LA_DELETE_LIST?"DELETE LIST?":"CLEAR COMPLETED?";
         node(u,RISC_SCENE_TEXT_NODE,title,u->confirm_kind==LA_DELETE_LIST?"The list and all its tasks will be removed.":"This removes the selected saved items.",0,0);button(u,"KEEP",LA_KEEP,0);button(u,"DELETE",LA_CONFIRM,RISC_SCENE_DESTRUCTIVE);break;}
@@ -117,8 +125,16 @@ static bool apply(lists_ui *u,unsigned action,int value,uint32_t ref){
     case LA_MARKER:u->marker=(unsigned)value;break;
     case LA_SUGGEST_LIST:if(ref<sizeof(names)/sizeof(names[0]))return add_list(u,names[ref]);break;
     case LA_SUGGEST_TASK:if(ref<4)return add_task(u,suggestions[suggestion_set(u)][ref]);break;
-    case LA_CUSTOM_LIST:case LA_CUSTOM_TASK:case LA_RENAME_LIST:case LA_RENAME_TASK:u->parent=u->page;u->edit_kind=action;u->key_layer=0;copy(u->draft,sizeof(u->draft),action==LA_RENAME_LIST&&l?l->name:action==LA_RENAME_TASK&&t?t->name:"");u->page=LISTS_NAME_EDIT;break;
+    case LA_CUSTOM_LIST:case LA_CUSTOM_TASK:case LA_RENAME_LIST:case LA_RENAME_TASK:
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+        u->text_retry=false;
+#endif
+        u->parent=u->page;u->edit_kind=action;u->key_layer=0;copy(u->draft,sizeof(u->draft),action==LA_RENAME_LIST&&l?l->name:action==LA_RENAME_TASK&&t?t->name:"");u->page=LISTS_NAME_EDIT;break;
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+    case LA_TEXT_RETRY:u->text_retry=false;break;
+#else
     case LA_KEY:{size_t length=strlen(u->draft);if(value==RISC_SCENE_KEY_DONE)return name_done(u);if(value==RISC_SCENE_KEY_CANCEL){u->page=u->parent;break;}if(value==RISC_SCENE_KEY_LAYER)u->key_layer=(u->key_layer+1)%4;else if(value==RISC_SCENE_KEY_BACKSPACE){if(length)u->draft[length-1]=0;}else if(value==RISC_SCENE_KEY_CLEAR)u->draft[0]=0;else{if(value==RISC_SCENE_KEY_SPACE)value=' ';if(value>=32&&value<=126&&length<LISTS_NAME-1){u->draft[length]=(char)value;u->draft[length+1]=0;}}break;}
+#endif
     case LA_TASK_LIST:if(t&&(unsigned)value<u->data.list_count){t->list_id=u->data.lists[value].id;return true;}break;
     case LA_DUE:if(t&&u->today>=0&&value<4){int32_t day=value==0?-1:value==3?week_end(u):u->today+(value==1?0:1);if(day>LISTS_LAST_DAY)return result(u,LISTS_INVALID,"");t->due_day=day;t->acknowledged=t->snooze=0;if(value==0){t->minute=-1;t->reminder=0;}return true;}break;
     case LA_TIME:if(t){u->time_value=t->minute<0?540:(unsigned)t->minute;u->page=LISTS_TIME;}break;
@@ -142,7 +158,11 @@ bool lists_ui_event(lists_ui *u,const risc_scene_event_v1 *e){
     if(!e->node){valid=e->kind==RISC_SCENE_ACTION_EVENT&&(action==u->document.routes[0].back_action||(u->document.flags&&action==u->document.cancel_action)||(u->undo_valid&&action==LA_UNDO));}
     else if(e->node<=u->document.node_count){const risc_scene_node_v1 *n=&u->document.nodes[e->node-1];const risc_component_detail_v1 *d=&u->document.details[e->node-1];if(!(n->flags&(RISC_SCENE_DISABLED|RISC_SCENE_HIDDEN))){
         bool value_node=n->kind==RISC_COMPONENT_CHECK_ROW||n->kind==RISC_COMPONENT_STEPPER||n->kind==RISC_COMPONENT_SEGMENTS||n->kind==RISC_COMPONENT_MARKERS||n->kind==RISC_COMPONENT_TIME_PICKER||n->kind==RISC_COMPONENT_SWITCH;
-        valid=(e->kind==RISC_SCENE_ACTION_EVENT&&((!value_node&&action==n->action)||(d->secondary_action&&action==d->secondary_action)))||(e->kind==RISC_SCENE_VALUE_EVENT&&action==n->action&&((value_node&&e->value>=n->minimum&&e->value<=n->maximum)||n->kind==RISC_SCENE_KEYBOARD_NODE));ref=u->refs[e->node-1];}}
+        valid=(e->kind==RISC_SCENE_ACTION_EVENT&&((!value_node&&action==n->action)||(d->secondary_action&&action==d->secondary_action)))||(e->kind==RISC_SCENE_VALUE_EVENT&&action==n->action&&((value_node&&e->value>=n->minimum&&e->value<=n->maximum)
+#ifndef PORTABLE_LISTS_SHARED_TEXT_INPUT
+        ||n->kind==RISC_SCENE_KEYBOARD_NODE
+#endif
+        ));ref=u->refs[e->node-1];}}
     if(!valid||!action)return false;
     u->last_event=e->sequence;
     if(u->readonly)return false;
@@ -150,6 +170,18 @@ bool lists_ui_event(lists_ui *u,const risc_scene_event_v1 *e){
     lists_model previous=u->data;uint32_t token=u->toast_token;bool changed=apply(u,action,e->value,ref);
     if(changed){u->undo=previous;u->undo_valid=true;if(token==u->toast_token)lists_ui_notice(u,"SAVED");}return changed;
 }
+#ifdef PORTABLE_LISTS_SHARED_TEXT_INPUT
+bool lists_ui_text_accept(lists_ui *u,const char *text){
+    if(u->readonly||u->page!=LISTS_NAME_EDIT||!text)return false;
+    unsigned length=0;for(;length<LISTS_NAME&&text[length];length++)if((unsigned char)text[length]<32||(unsigned char)text[length]>126)return false;
+    if(length==LISTS_NAME)return false;
+    copy(u->draft,sizeof(u->draft),text);
+    lists_model previous=u->data;uint32_t token=u->toast_token;bool changed=name_done(u);
+    if(changed){u->undo=previous;u->undo_valid=true;if(token==u->toast_token)lists_ui_notice(u,"SAVED");}
+    u->text_retry=u->page==LISTS_NAME_EDIT;return changed;
+}
+void lists_ui_text_cancel(lists_ui *u){if(u->page==LISTS_NAME_EDIT)back_page(u);u->text_retry=false;memset(u->draft,0,sizeof(u->draft));}
+#endif
 void lists_ui_clock(lists_ui *u,int32_t day,unsigned minute){
     u->today=day;u->minute=minute;
     if(day<0||u->readonly||u->page==LISTS_ALERT||u->page==LISTS_CONFIRM||u->page==LISTS_NAME_EDIT||u->page==LISTS_TIME)return;

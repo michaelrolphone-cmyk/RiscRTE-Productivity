@@ -1,0 +1,48 @@
+{
+  "schema": "lists.shared-input.sources.v1",
+  "source_baseline": "395c48de8fa10b672816c89c02dd9a5d4987a094",
+  "system_commit": "f4b30f8ebcc6d8cb905c8e90c91b1691acbe8165",
+  "runtime_commits": {
+    "watch": "64c8e52e46fd91e8fdafd636db04eed88f0c51a9",
+    "x4": "1c1ed8661ea30d47e7e9707c41d492ce3a2b4d70"
+  },
+  "selected_resident_bridge": {
+    "schema": "lists.selected-resident-profile.v1",
+    "repository": "michaelrolphone-cmyk/RiscRTE-System-Apps",
+    "commit": "eec748ca081fe59346be03180600c65013cc7298",
+    "path": "sdk/app/RiscSceneResidentV1.h",
+    "sha256": "a657fcd906217fdbb03894c15b10009b352d6a5b7466868afa603a03236b8851",
+    "bytes": 2812,
+    "purpose": "Preserve the exact selected Watch/X4 Lists resident helper while adding shared text input. This is a byte-identical frozen build input, not a new shared helper implementation."
+  },
+  "selected_versions": {
+    "watch": "0.1.2",
+    "x4": "0.1.2"
+  },
+  "predecessor_elf_sha256": {
+    "watch": "79dcedcce8ea351e9ae16d4745aee5311f72832e0d8d71841a14b7468185d9da",
+    "x4": "716458214fe30123c186d1972a6950332820f5922397a7a506b3802edffbb582"
+  },
+  "unchanged_model_storage_manifests": {
+    "lib/Lists/ListsModel.c": "58e889c834a1aeb31f080e9adbe43c1166c6f43290bee51fe180924e2afa6338",
+    "lib/Lists/ListsModel.h": "511c83ff9885566f63fe5bbe0486250934bef59e8f2776d9066470de176fc9a2",
+    "lib/Lists/ListsStore.c": "0bcd9d37bbfd38d855f8223bc116a1797c16fce7f5842c3e98c47b5ad535a8cb",
+    "lib/Lists/ListsStore.h": "af9bc7339cb94c9644348772068fdd6e113ac00f46740815b5130e4cea05ee2c",
+    "Apps/lists_scene.json": "6b7b22b8d54c32c4a2645f24f38da5c972a6ef57efde38d3ff28eb5a936ac562",
+    "deployment/lists/watch.json": "93a6a3af7a9eda0e76f4e0ac78ed27cc77eab91984be320bd70f318c174cb05a",
+    "deployment/lists/x4.json": "9c1c6f46aa4e23c4dc82c931a43cb907d98cf57cc8f872f28690432920c3437b"
+  },
+  "shared_library_changed": true,
+  "sd_settings_changes_included": false,
+  "hardware_verified": false,
+  "flashed": false,
+  "delivered": false,
+  "system_baseline_commit": "7fb13b09b4dac275a8111b224784f8a472f39264",
+  "shared_text_host_version": "0.1.7",
+  "checkpoint_extension_preserves_idle_policy": true,
+  "shared_scene_host_version": "0.4.6",
+  "routine_policy_input_continuity": true,
+  "unmarked_policy_releases_all_input": true,
+  "x4_native_owner_policy_marker": true,
+  "watch_native_owner_unchanged": true
+}

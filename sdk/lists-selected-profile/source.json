@@ -1,0 +1,9 @@
+{
+  "schema": "lists.selected-resident-profile.v1",
+  "repository": "michaelrolphone-cmyk/RiscRTE-System-Apps",
+  "commit": "eec748ca081fe59346be03180600c65013cc7298",
+  "path": "sdk/app/RiscSceneResidentV1.h",
+  "sha256": "a657fcd906217fdbb03894c15b10009b352d6a5b7466868afa603a03236b8851",
+  "bytes": 2812,
+  "purpose": "Preserve the exact selected Watch/X4 Lists resident helper while adding shared text input. This is a byte-identical frozen build input, not a new shared helper implementation."
+}

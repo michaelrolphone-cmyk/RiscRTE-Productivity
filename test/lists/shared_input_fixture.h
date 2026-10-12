@@ -1,0 +1,10 @@
+extern const risc_driver_v2*lists_text_driver_get(uint32_t);
+static bool text_active,text_granted,text_paused,text_usb_subscribed;
+static bool text_test_acquire(risc_runtime_capability_v1*);
+static bool text_test_is_grant(const risc_runtime_capability_v1*);
+static bool text_test_release(risc_runtime_capability_v1*);
+static bool text_test_exit_requested(void);
+static void text_test_yield(void);
+static void text_test_setup(void);
+static void text_test_finish(void);
+static void policy_boundary_input(void);
