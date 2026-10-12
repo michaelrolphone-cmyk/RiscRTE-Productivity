@@ -15,6 +15,11 @@ static const bool tcp_text_active=false;
 bool portable_app_before_home(void){return true;}
 #endif
 #include "SceneKeyboardV1.h"
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "timecard_policy_scene_fixture.h"
+#else
+#define timecard_policy_scene_api(s) (s)
+#endif
 const t5_app_api_v1 *__real_t5_app_get_api(uint32_t);
 const t5_app_manifest_t portable_catalog[1]={{.compatible=false}};
 const unsigned portable_catalog_count=0;
@@ -105,7 +110,7 @@ int main(int argc,char **argv){
  watch_display=display_api;watch_display.get_info=watch_display_info;watch_alarm=alarm_api;watch_alarm.status=watch_alarm_status;
  shared_runtime=runtime_api;shared_runtime.acquire=watch_acquire;shared_runtime.release=watch_release;shared_runtime.retain_invocation=watch_retain;
  text_driver=t5_driver_get(2);assert(text_driver);text_api=text_driver->capability;
- risc_provider_dependency_v1 dependency={RISC_SCENE_CAPABILITY,1,&scene_api};assert(text_driver->start(&dependency,1));
+ risc_provider_dependency_v1 dependency={RISC_SCENE_CAPABILITY,1,timecard_policy_scene_api(&scene_api)};assert(text_driver->start(&dependency,1));
  script_alarm=!strcmp(scenario,"alarm");script_home=!strcmp(scenario,"home");script_cancel=!strcmp(scenario,"cancel");script_invalid=!strcmp(scenario,"invalid");script_limit=!strcmp(scenario,"limit");host_busy=!strcmp(scenario,"busy");host_failure=!strcmp(scenario,"retained");open_missing=!strcmp(scenario,"unavailable");
  if(!strcmp(scenario,"raw-touch")){
   const unsigned at[]={5,15,25,45,55,65};

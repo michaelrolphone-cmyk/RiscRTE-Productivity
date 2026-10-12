@@ -3,13 +3,21 @@
 #include "RiscRuntimeV1.h"
 static risc_runtime_api_v1 shared_runtime;
 #define TIMECARD_TEST_RUNTIME (&shared_runtime)
+#pragma push_macro("main")
+#undef main
 #define main timecard_native_preservation_main
 #include "timecard_native_time_test.c"
 #undef main
+#pragma pop_macro("main")
 #include "RiscSceneV1.h"
 #include "RiscProviderV2.h"
 #include "RiscUsbHidV1.h"
 #include "SceneKeyboardV1.h"
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "timecard_policy_scene_fixture.h"
+#else
+#define timecard_policy_scene_api(s) (s)
+#endif
 
 static const risc_driver_v2 *text_driver;
 static const risc_text_entry_api_v1 *text_api;
@@ -85,7 +93,7 @@ static bool shared_release(risc_runtime_capability_v1 *g) {
 static void initialize(void) {
     shared_runtime=fx_runtime;shared_runtime.acquire=shared_acquire;shared_runtime.release=shared_release;
     text_driver=t5_driver_get(2);assert(text_driver);text_api=text_driver->capability;
-    risc_provider_dependency_v1 deps[]={{RISC_SCENE_CAPABILITY,1,&scene_api},{"usb.hid.keyboard",1,&usb_api}};
+    risc_provider_dependency_v1 deps[]={{RISC_SCENE_CAPABILITY,1,timecard_policy_scene_api(&scene_api)},{"usb.hid.keyboard",1,&usb_api}};
     assert(text_driver->start(deps,2));zone("UTC");start();
 }
 static void end(void) {

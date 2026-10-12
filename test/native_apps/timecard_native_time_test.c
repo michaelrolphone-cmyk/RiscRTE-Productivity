@@ -198,6 +198,10 @@ static bool fx_release(risc_runtime_capability_v1*g){fx_io();
 #else
 #define TEST_RESIDENT_BINDING
 #endif
+#ifdef TIMECARD_TEST_RESIDENT_GET
+#undef TEST_RESIDENT_BINDING
+#define TEST_RESIDENT_BINDING .resident_shell=TIMECARD_TEST_RESIDENT_GET,
+#endif
 static const risc_runtime_api_v1 fx_runtime={TEST_RESIDENT_BINDING .api_version=1,.struct_size=sizeof(fx_runtime),.health=fx_health,.yield_ms=fx_yield,.diagnostic=fx_diag,.request_launch=fx_launch,.acquire=fx_acquire,.release=fx_release,.retain_invocation=fx_retain};
 #ifndef TIMECARD_TEST_RUNTIME
 #define TIMECARD_TEST_RUNTIME (&fx_runtime)

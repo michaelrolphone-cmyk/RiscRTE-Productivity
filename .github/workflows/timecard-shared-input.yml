@@ -1,12 +1,13 @@
 name: Timecard shared input
 on:
   push:
-    branches: [work/timecard-shared-input-20261012]
+    branches: [work/timecard-shared-input-20261012, work/timecard-input-policy-20261012]
   pull_request:
     paths:
       - 'Apps/timecard*'
       - 'test/native_apps/timecard*'
       - 'scripts/test_timecard_shared_input.py'
+      - 'scripts/test_timecard_policy.py'
       - '.github/workflows/timecard-shared-input.yml'
   workflow_dispatch:
 permissions:
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelrolphone-cmyk/RiscRTE-System-Apps
-          ref: 7fb13b09b4dac275a8111b224784f8a472f39264
+          ref: fd4b1e52fe2a49c3c4c22f9ccd4c98a91f88afa0
           path: .dependencies/system
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -45,8 +46,17 @@ jobs:
           --system-apps .dependencies/system
           --utilities .dependencies/utilities
           --runtime .dependencies/runtime
+      - name: Modal policy through real app, adapter and host
+        run: >-
+          python scripts/test_timecard_policy.py
+          --system-apps .dependencies/system
+          --utilities .dependencies/utilities
+          --runtime .dependencies/runtime
+          --output build/timecard-policy
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: timecard-shared-input-evidence
-          path: build/timecard-shared-input/test-evidence.json
+          path: |
+            build/timecard-shared-input/test-evidence.json
+            build/timecard-policy/result.json

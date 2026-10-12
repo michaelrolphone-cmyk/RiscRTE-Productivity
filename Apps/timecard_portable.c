@@ -22,6 +22,11 @@
 #error "Shared Timecard input requires presenter handoff and explicit Home cleanup"
 #endif
 #include "PortableTextInputClient.h"
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "PortableTextInputPolicy.h"
+static portable_text_checkpoint_client tcp_text_checkpoint;
+static bool tcp_text_policy_continuity,tcp_text_policy_unavailable;
+#endif
 static portable_text_client tcp_text_client;
 static risc_text_entry_state_v1 tcp_text_state;
 static bool tcp_text_active,tcp_text_closing;
@@ -223,9 +228,19 @@ static bool tcp_text_begin(const char *label) {
     if(tcp_retained() || tcp_text_active)return false;
     tcp_text_state=(risc_text_entry_state_v1){.struct_size=sizeof(tcp_text_state)};
     tcp_text_closing=false;
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+    tcp_text_checkpoint=(portable_text_checkpoint_client){0};
+    tcp_text_policy_continuity=tcp_text_policy_unavailable=false;
+#endif
     int rc=portable_text_client_begin(&tcp_text_client,tcp_runtime,label,tcp_entry,sizeof(tcp_entry));
     if(rc!=RISC_TEXT_ENTRY_OK)return false;
-    tcp_text_active=true;tcp_reset_gesture();return true;
+    tcp_text_active=true;
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+    rc=portable_text_checkpoint_enable(&tcp_text_client,&tcp_text_checkpoint);
+    if(rc==RISC_TEXT_ENTRY_RETAINED)return false;
+    if(rc!=RISC_TEXT_ENTRY_OK){tcp_text_policy_unavailable=true;tcp_text_closing=true;}
+#endif
+    tcp_reset_gesture();return true;
 }
 #endif
 static bool tcp_keyboard_request(const char *title,const char *initial,size_t maximum,uint8_t type,uint64_t cookie) {
