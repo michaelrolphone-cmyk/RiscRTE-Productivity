@@ -6,7 +6,10 @@ static struct {
 } tcs_state;
 static void tcs_prepare(void) {
  __typeof__(tcs_state) state={0};state.screen=screen_id;state.week=week_offset;state.day=editing_ymd;
- state.week_start=sunday(week_offset);state.editor=tcp_editor;state.key_page=tcp_key_page;
+ state.week_start=sunday(week_offset);state.editor=tcp_editor;
+#ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+ state.key_page=tcp_key_page;
+#endif
  state.format=tcp_time_format;state.store=store_ready;state.clock=tcp_clock_valid;
  memcpy(state.entry,tcp_entry,sizeof(state.entry));
  if(screen_id==SCREEN_WEEK)for(unsigned i=0;i<DAY_COUNT;++i)state.rows[i]=get_day(add_days(state.week_start,(int)i));

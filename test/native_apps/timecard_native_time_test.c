@@ -199,7 +199,10 @@ static bool fx_release(risc_runtime_capability_v1*g){fx_io();
 #define TEST_RESIDENT_BINDING
 #endif
 static const risc_runtime_api_v1 fx_runtime={TEST_RESIDENT_BINDING .api_version=1,.struct_size=sizeof(fx_runtime),.health=fx_health,.yield_ms=fx_yield,.diagnostic=fx_diag,.request_launch=fx_launch,.acquire=fx_acquire,.release=fx_release,.retain_invocation=fx_retain};
-const risc_runtime_api_v1*risc_runtime_get_api(uint32_t v){return v==1?&fx_runtime:NULL;}
+#ifndef TIMECARD_TEST_RUNTIME
+#define TIMECARD_TEST_RUNTIME (&fx_runtime)
+#endif
+const risc_runtime_api_v1*risc_runtime_get_api(uint32_t v){return v==1?TIMECARD_TEST_RUNTIME:NULL;}
 static void zone(const char *id){
  risc_key_value_v1 seed=fx_prefs;seed.put=fx_seed_zone;
  /* Explicit UTC selection must be materialized, not a missing virtual default. */
@@ -207,6 +210,20 @@ static void zone(const char *id){
  int result=portable_timezone_preference_save(&seed,id,strlen(id)+1);assert(result==PORTABLE_TIMEZONE_SAVED||result==PORTABLE_TIMEZONE_UNCHANGED);
 }
 static int64_t instant(int date,int hour,int minute){return (int64_t)serial_day(date)*86400+hour*3600+minute*60;}
+#ifdef TEST_TIMECARD_SETTLE_DRAWS
+/* Raster snapshots keep presentation asynchronous. Drive the real adapter to
+ * settled state before assertions written for the historical synchronous fixture. */
+static void fixture_draw_and_settle(void){
+ tcp_draw();
+ for(unsigned i=0;i<200;i++){
+  if(tcp_retained())return;
+  if(paper_frame_ready()){if(!tcp_dirty)return;tcp_draw();}
+  t5_app_input_t input={0};if(!app->poll(&input,20)){assert(tcp_retained());return;}
+ }
+ assert(!"Timecard fixture did not settle");
+}
+#define tcp_draw fixture_draw_and_settle
+#endif
 static void start(void){
  assert(app_module_init()==0);app=t5_app_get_api(1);tcp_paper=paper_presentation_get();assert(tcp_paper&&tcp_paper->clock);
  tcp_dependencies_open();tcp_files=timecard_portable_file_storage();assert(tcp_files);

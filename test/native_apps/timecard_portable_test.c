@@ -12,8 +12,13 @@ static int width(void){return 240;}
 static int height(void){return 240;}
 static void clear_color(uint32_t color){assert(!color);for(unsigned y=0;y<240;y++)for(unsigned x=0;x<240;x++)test_pixels[y*244+x]=0;}
 #include "RiscDisplayOutputV1.h"
-static const uint32_t surface_format=RISC_DISPLAY_FORMAT_RGB565;
-static void np_pixel(int x,int y,uint32_t rgb,unsigned alpha){(void)x;(void)y;(void)rgb;(void)alpha;assert(!"Watch fixture must stay RGB565");}
+static const uint32_t surface_format __attribute__((unused))=RISC_DISPLAY_FORMAT_RGB565;
+static void __attribute__((unused)) np_pixel(int x,int y,uint32_t rgb,unsigned alpha){(void)x;(void)y;(void)rgb;(void)alpha;assert(!"Watch fixture must stay RGB565");}
+/* Older synchronous and selected cooperative NOVA renderers share this fixture. */
+static bool failed __attribute__((unused));
+static unsigned raster_pixels __attribute__((unused));
+static bool __attribute__((unused)) raster_checkpoint(void){return true;}
+static bool __attribute__((unused)) raster_surface_writable(void){return true;}
 #include "nova_ui.inc"
 static char persisted[JSON_CAPACITY];
 static bool file_present,read_ok=true,write_ok=true,write_then_error,rtc_ok=true,provide_files=true;
@@ -48,7 +53,10 @@ static const risc_runtime_api_v1 runtime={
 .yield_ms=fixture_broadcast_yield,
 #endif
 .api_version=1,.struct_size=sizeof(runtime),.request_launch=launch,.acquire=acquire,.release=release};
-const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t version){assert(version==1);return &runtime;}
+#ifndef TIMECARD_TEST_RUNTIME
+#define TIMECARD_TEST_RUNTIME (&runtime)
+#endif
+const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t version){assert(version==1);return TIMECARD_TEST_RUNTIME;}
 static bool back_exits=true;
 static int view_width=240,view_height=240;
 static int32_t api_width(void){return view_width;}
@@ -87,6 +95,7 @@ static void storage_tests(void){
  int32_t cleared=days[0].ymd;assert(tcp_mutate(cleared,0,-1));assert(day_count==399&&!find_day(cleared));
  assert(tcp_mutate(20261005,0,510)&&day_count==400);assert(tcp_reload()&&day_count==400);
 }
+#if !defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) && !defined(TIMECARD_FIXTURE_ONLY)
 static void editor_tests(void){
  init();assert(tcp_mutate(20261005,0,480));open_day(20261005);tcp_activate();assert(tcp_editor&&!strcmp(tcp_entry,"8:00 AM"));unsigned count=writes;
  strcpy(tcp_entry,"12:345");tcp_editor_done();assert(tcp_editor&&writes==count);strcpy(tcp_entry,"12:30 junk");tcp_editor_done();assert(tcp_editor&&writes==count);
@@ -124,3 +133,5 @@ static void ui_tests(const char *directory){
  clock_reads=0;tcp_draw();assert(clock_reads==1);unsigned count=writes;rtc_ok=false;tcp_punch(2);assert(writes==count&&!strcmp(status_text,"Clock unavailable"));tcp_draw();assert(!tcp_clock_valid);frame(directory,"clock-unavailable");rtc_ok=true;tcp_draw();assert(tcp_clock_valid);
 }
 int main(int argc,char **argv){storage_tests();editor_tests();ui_tests(argc>1?argv[1]:NULL);init();poll_count=launches=grants=0;app_main();assert(launches==1&&!grants&&back_exits);init();provide_files=false;poll_count=launches=grants=0;unsigned count=writes;app_main();assert(launches==1&&!grants&&writes==count);puts("Timecard portable model/storage/editor/navigation/real NOVA pixel tests passed");return 0;}
+
+#endif /* Legacy keyboard-only tests. */

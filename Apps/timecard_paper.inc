@@ -117,6 +117,7 @@ static void tcp_paper_table(const t5_ui_chrome_t *chrome,const t5_ui_table_colum
 static void tcp_paper_editor(void){
     tpp_header(tcp_editor_title,"DONE SAVES / CANCEL KEEPS ORIGINAL");
     tpp_text(32,144,416,tcp_entry,false,true,true);tpp_wrap(180,tcp_editor_status,2);
+#ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
     for(unsigned k=0;k<20;k++){
         unsigned ch=32+tcp_key_page*20+k;if(ch>126)break;
         int x=32+(int)(k%5)*84,y=242+(int)(k/5)*82;char s[2]={(char)ch,0};
@@ -124,7 +125,14 @@ static void tcp_paper_editor(void){
     }
     char page[32];snprintf(page,sizeof(page),"KEYS %u/5",tcp_key_page+1);
     tpp_button(32,590,200,82,page,NULL,false);tpp_button(248,590,200,82,"DELETE",NULL,false);
-    tpp_button(32,704,200,72,"CANCEL",NULL,false);tpp_button(248,704,200,72,"DONE",NULL,true);app->present(false);
+#endif
+    tpp_button(32,704,200,72,"CANCEL",NULL,false);
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    tpp_button(248,704,200,72,"RETRY",NULL,true);
+#else
+    tpp_button(248,704,200,72,"DONE",NULL,true);
+#endif
+    app->present(false);
 }
 static void tcp_paper_unavailable(void){
     tpp_header("TIME CARD","");
@@ -147,6 +155,9 @@ static void tpp_page(int direction){
 }
 static void tpp_tap(int x,int y){
     if(tcp_editor){
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(y>=704 && y<776){if(x>=32 && x<232)tcp_editor_cancel();else if(x>=248 && x<448)tcp_text_retry();}
+#else
         if(y>=704 && y<776){if(x>=32 && x<232)tcp_editor_cancel();else if(x>=248 && x<448)tcp_editor_done();}
         else if(y>=590 && y<672){if(x>=32 && x<232)tcp_key_page=(tcp_key_page+1)%5;else if(x>=248 && x<448){size_t n=slen(tcp_entry);if(n)tcp_entry[n-1]=0;}}
         else if(x>=32 && x<448 && y>=242 && y<570){
@@ -157,6 +168,7 @@ static void tpp_tap(int x,int y){
                 else if(ch<=126)scopy(tcp_editor_status,sizeof(tcp_editor_status),"Time entry is limited to 12 characters");
             }
         }
+        #endif
         tcp_dirty=true;return;
     }
     if(y>=704 && y<776){
@@ -185,10 +197,20 @@ static void tcp_paper_input(const t5_app_input_t *input){
     springboard_contact contact={0};tcp_paper->contact(&contact);
     if(contact.valid && !contact.cancelled && contact.released && contact.tap_eligible)
         tpp_tap(contact.x*480/app->screen_width(),contact.y*800/app->screen_height());
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_text_active || tcp_retained())return;
+    if(tcp_editor){if(input->buttons&T5_APP_BUTTON_CONFIRM)tcp_text_retry();return;}
+#endif
     if(input->buttons&(T5_APP_BUTTON_UP|T5_APP_BUTTON_LEFT)){
-        if(tcp_editor){tcp_key_page=(tcp_key_page+4)%5;tcp_dirty=true;}else tcp_move(-1);
+        #ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(tcp_editor){tcp_key_page=(tcp_key_page+4)%5;tcp_dirty=true;}else
+#endif
+        tcp_move(-1);
     }else if(input->buttons&(T5_APP_BUTTON_DOWN|T5_APP_BUTTON_RIGHT)){
-        if(tcp_editor){tcp_key_page=(tcp_key_page+1)%5;tcp_dirty=true;}else tcp_move(1);
+        #ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(tcp_editor){tcp_key_page=(tcp_key_page+1)%5;tcp_dirty=true;}else
+#endif
+        tcp_move(1);
     }else if(input->buttons&T5_APP_BUTTON_CONFIRM){if(tcp_editor)tcp_editor_done();else tcp_activate();tcp_dirty=true;}
 }
 

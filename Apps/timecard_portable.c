@@ -17,7 +17,34 @@
 
 #include "RiscRuntimeV1.h"
 #include "PortableNovaUi.h"
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+#if !defined(PORTABLE_TEXT_INPUT_CLIENT) || !defined(PORTABLE_APP_HOME_GUARD)
+#error "Shared Timecard input requires presenter handoff and explicit Home cleanup"
+#endif
+#include "PortableTextInputClient.h"
+static portable_text_client tcp_text_client;
+static risc_text_entry_state_v1 tcp_text_state;
+static bool tcp_text_active,tcp_text_closing;
+#ifndef TIMECARD_NATIVE_TIME
+#include "PortableBackgroundServices.h"
+static bool tcp_text_background_ready(void) {
+    if(!portable_text_client_live(&tcp_text_client))return false;
+#ifdef PORTABLE_CONTEXTS_CLIENT
+    bool contexts_stopped=portable_contexts_stop();
+    if(!portable_text_client_live(&tcp_text_client))return false;
+    if(!contexts_stopped){(void)portable_text_client_retain(&tcp_text_client);return false;}
+#endif
+#ifdef PORTABLE_BLE_BROADCAST
+    bool broadcast_stopped=portable_broadcast_stop();
+    if(!portable_text_client_live(&tcp_text_client))return false;
+    if(!broadcast_stopped){(void)portable_text_client_retain(&tcp_text_client);return false;}
+#endif
+    return true;
+}
+#endif
+#else
 #include "PortableWatchKeyboard.h"
+#endif
 #include "PortableRtcClock.h"
 #include "PortableTime.h"
 #include "PortableTimeFormat.h"
@@ -51,13 +78,21 @@ const t5_app_api_v1 *t5_app_get_api(uint32_t version);
 static tcp_appdata tcp_data;
 #ifdef PORTABLE_BLE_BROADCAST
 #include "PortableBroadcastAppData.h"
+#if !defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) || defined(TIMECARD_NATIVE_TIME)
 static portable_broadcast_app_data tcp_broadcast_data;
 #endif
+#endif
+#if defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) && !defined(TIMECARD_NATIVE_TIME)
+#include "timecard_shared_data.h"
+#endif
 static bool tcp_bind_data(const risc_app_data_v1 *api,const risc_runtime_api_v1 *runtime) {
-#ifdef PORTABLE_BLE_BROADCAST
+#if defined(PORTABLE_BLE_BROADCAST) && (!defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) || defined(TIMECARD_NATIVE_TIME))
     api=portable_broadcast_data_bind(&tcp_broadcast_data,api,runtime);
 #else
     (void)runtime;
+#endif
+#if defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) && !defined(TIMECARD_NATIVE_TIME)
+    api=tcp_checked_bind(api);
 #endif
     return tcp_appdata_bind(&tcp_data,api);
 }
@@ -76,6 +111,10 @@ const t5_storage_api_v1 *timecard_portable_file_storage(void);
 static bool tcp_storage_retained(void) { return false; }
 #endif
 static bool tcp_retained(void) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(!portable_text_client_live(&tcp_text_client))return true;
+    if(tcp_storage_retained()){(void)portable_text_client_retain(&tcp_text_client);return true;}
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(portable_adapter_retained())return true;
     if(tcp_storage_retained()){portable_adapter_retain();return true;}
@@ -107,7 +146,10 @@ static risc_runtime_capability_v1 tcp_grants[3];
 static unsigned tcp_grant_count,tcp_time_format;
 static bool tcp_home,tcp_editor,tcp_dirty,tcp_drag,tcp_armed,tcp_moved,tcp_external_exit;
 static int tcp_scroll,tcp_start_scroll,tcp_start_x,tcp_start_y,tcp_last_x,tcp_last_y;
-static unsigned tcp_axis,tcp_key_page,tcp_key_choice,tcp_draw_screen;
+static unsigned tcp_axis,tcp_draw_screen;
+#ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+static unsigned tcp_key_page,tcp_key_choice;
+#endif
 static int32_t tcp_draw_week,tcp_draw_day;
 static uint64_t tcp_cookie;
 static char tcp_entry[13],tcp_editor_title[32],tcp_editor_status[STATUS_CAP];
@@ -117,12 +159,17 @@ static unsigned tcp_render_rows,tcp_render_height;
 #include "timecard_native_time.h"
 #endif
 
-#ifdef PORTABLE_RESIDENT_SHELL_CLIENT
+#if defined(PORTABLE_RESIDENT_SHELL_CLIENT) || defined(PORTABLE_APP_LAUNCH_GUARD)
 __attribute__((visibility("hidden"))) bool portable_app_before_launch(const char *destination) {
     (void)destination;
     if(tcp_retained())return false;
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_text_active || tcp_text_client.active || tcp_text_client.acquired || tcp_text_client.suspended)return false;
+#endif
     if(tcp_editor){scopy(tcp_editor_status,sizeof(tcp_editor_status),"Finish or cancel the draft first");tcp_dirty=true;return false;}
+#ifdef TIMECARD_APP_DATA
     if(tcp_data.status==RISC_APP_DATA_COMMIT_UNKNOWN){set_status("Check save before leaving");tcp_dirty=true;return false;}
+#endif
     return true;
 }
 #endif
@@ -134,6 +181,9 @@ static bool tcp_view_position(int *x,int *y) {
 }
 static void tcp_reset_gesture(void) { tcp_drag=tcp_moved=false;tcp_axis=0;tcp_armed=false; }
 static bool tcp_read_datetime(t5_local_datetime_t *out) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return false;
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     twatch_rtc_time_v1 local;
     if(!out || tcp_retained() || !portable_app_native_local_time(&local) ||
@@ -141,6 +191,9 @@ static bool tcp_read_datetime(t5_local_datetime_t *out) {
 #else
     twatch_rtc_time_v1 raw,local;
     if(!out || !tcp_rtc || !tcp_rtc->read(tcp_rtc->context,&raw) || !portable_time_forward(&raw,&local))return false;
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return false;
+#endif
 #endif
     civil_t c={local.year,local.month,local.day};
     unsigned yd=local.day-1;for(unsigned m=1;m<local.month;m++)yd+=(unsigned)month_days(local.year,(int)m);
@@ -165,10 +218,26 @@ static bool tcp_store_write(const char *path,const void *data,size_t size) {
 static const t5_storage_api_v1 tcp_store={.api_version=T5_STORAGE_API_VERSION,.struct_size=sizeof(tcp_store),.exists=tcp_store_exists,.read_file=tcp_store_read,.write_file_atomic=tcp_store_write};
 static const t5_system_api_v1 tcp_clock={T5_SYSTEM_API_VERSION,sizeof(tcp_clock),tcp_local_datetime};
 static void tcp_home_request(void) { tcp_home=true; }
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+static bool tcp_text_begin(const char *label) {
+    if(tcp_retained() || tcp_text_active)return false;
+    tcp_text_state=(risc_text_entry_state_v1){.struct_size=sizeof(tcp_text_state)};
+    tcp_text_closing=false;
+    int rc=portable_text_client_begin(&tcp_text_client,tcp_runtime,label,tcp_entry,sizeof(tcp_entry));
+    if(rc!=RISC_TEXT_ENTRY_OK)return false;
+    tcp_text_active=true;tcp_reset_gesture();return true;
+}
+#endif
 static bool tcp_keyboard_request(const char *title,const char *initial,size_t maximum,uint8_t type,uint64_t cookie) {
     if(tcp_editor || type!=T5_SYSTEM_KEYBOARD_TEXT || !maximum || maximum>12 || !title || !initial || slen(initial)>maximum)return false;
     scopy(tcp_editor_title,sizeof(tcp_editor_title),title);scopy(tcp_entry,sizeof(tcp_entry),initial);
-    tcp_cookie=cookie;tcp_key_page=PWK_INITIAL_PAGE;tcp_key_choice=0;tcp_editor=true;
+    tcp_cookie=cookie;
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(!tcp_text_begin(tcp_editor_title)){memset(tcp_entry,0,sizeof(tcp_entry));return false;}
+#else
+    tcp_key_page=PWK_INITIAL_PAGE;tcp_key_choice=0;
+#endif
+    tcp_editor=true;
     scopy(tcp_editor_status,sizeof(tcp_editor_status),"DONE saves; Back cancels");tcp_reset_gesture();tcp_dirty=true;return true;
 }
 /* The portable controller owns the same-invocation keyboard workflow. There is
@@ -180,7 +249,7 @@ static bool tcp_no_keyboard_result(char *text,size_t capacity,bool *cancelled,ui
 static const t5_system_ui_api_v1 tcp_system_ui={.api_version=T5_SYSTEM_UI_API_VERSION,.struct_size=sizeof(tcp_system_ui),.keyboard_request=tcp_keyboard_request,.keyboard_take_result=tcp_no_keyboard_result,.navigate_home=tcp_home_request};
 
 static bool tcp_reload(void) {
-#ifdef TIMECARD_NATIVE_TIME
+#if defined(TIMECARD_NATIVE_TIME) || defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT)
     if(tcp_retained())return false;
 #endif
     store_ready=false;
@@ -197,7 +266,7 @@ static void tcp_compact_empty_days(void) {
     day_count=kept;
 }
 static bool tcp_mutate(int32_t date,uint8_t punch,int16_t minutes) {
-#ifdef TIMECARD_NATIVE_TIME
+#if defined(TIMECARD_NATIVE_TIME) || defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT)
     if(tcp_retained())return false;
 #endif
     if(!store_ready){set_status("History unavailable; Retry");return false;}
@@ -322,6 +391,12 @@ static void tcp_editor_draw(void) {
 #endif
     portable_nova_begin();portable_nova_text(0,12,24,216,tcp_editor_title,NOVA_CYAN);
     portable_nova_text(1,12,49,216,tcp_entry,NOVA_TEXT);
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    /* Only a cleanly unavailable host uses this retry screen. Text entry is
+     * never handled by the app; the existing draft and error remain visible. */
+    portable_nova_button(12,150,98,40,"CANCEL",false);
+    portable_nova_button(124,150,104,40,"RETRY",true);
+#else
     for(unsigned key=0;key<PWK_COUNT;key++) {
         portable_watch_key_rect r;portable_watch_key_bounds(key,&r);
         char caption[8]={0};unsigned ch=portable_watch_key_character(tcp_key_page,key);
@@ -331,6 +406,7 @@ static void tcp_editor_draw(void) {
         portable_nova_fill(r.x,r.y,r.w,1,NOVA_CYAN);
         portable_nova_text(2,r.x+5,r.y+7,r.w-10,caption,NOVA_CYAN);
     }
+#endif
     (void)portable_nova_wrap(3,12,210,216,12,2,tcp_editor_status,NOVA_CAP);app->present(false);
 }
 static void tcp_editor_cancel(void) {tcp_editor=false;memset(tcp_entry,0,sizeof(tcp_entry));tcp_reset_gesture();tcp_dirty=true;}
@@ -346,6 +422,7 @@ static void tcp_editor_done(void) {
     }
     week_offset=offset;editing_ymd=date;selected=punch;screen_id=SCREEN_DAY;tcp_editor_cancel();
 }
+#ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
 static void tcp_key(unsigned key) {
     tcp_key_choice=key;
     if(key==PWK_PAGE)tcp_key_page=(tcp_key_page+1)%PWK_PAGES;
@@ -354,7 +431,14 @@ static void tcp_key(unsigned key) {
     else {unsigned ch=portable_watch_key_character(tcp_key_page,key);size_t n=slen(tcp_entry);if(ch && n<12){tcp_entry[n]=(char)ch;tcp_entry[n+1]=0;}else if(ch)scopy(tcp_editor_status,sizeof(tcp_editor_status),"Time entry is limited to 12 characters");}
     tcp_dirty=true;
 }
+#endif
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+#include "timecard_shared_input.inc"
+#endif
 static void tcp_activate(void) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained() || tcp_editor || tcp_text_active)return;
+#endif
     if(!store_ready){tcp_reload();return;}
     if(!tcp_clock_valid){tcp_dirty=true;return;}
     if(screen_id==SCREEN_WEEK_LIST)open_week(-selected);
@@ -369,7 +453,11 @@ static void tcp_activate(void) {
 }
 static void tcp_back(void) {if(tcp_editor)tcp_editor_cancel();else go_back();tcp_dirty=true;}
 static void tcp_move(int direction) {
-    if(tcp_editor){tcp_key_choice=(tcp_key_choice+PWK_COUNT+(direction>0?1:PWK_COUNT-1))%PWK_COUNT;}
+    if(tcp_editor){
+#ifndef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        tcp_key_choice=(tcp_key_choice+PWK_COUNT+(direction>0?1:PWK_COUNT-1))%PWK_COUNT;
+#endif
+    }
     else {
         selected=direction>0?tcp_next(selected,(uint32_t)item_count()):tcp_previous(selected,(uint32_t)item_count());
         int y=selected*(int)tcp_render_height;
@@ -380,7 +468,15 @@ static void tcp_move(int direction) {
 }
 static void tcp_tap(int x,int y) {
     if(!tcp_files){if(portable_nova_hit(x,y,82,211,76,29))tcp_home=true;return;}
-    if(tcp_editor){int key=portable_watch_key_hit(x,y);if(key>=0)tcp_key((unsigned)key);return;}
+    if(tcp_editor){
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(portable_nova_hit(x,y,12,150,98,40))tcp_editor_cancel();
+        else if(portable_nova_hit(x,y,124,150,104,40))tcp_text_retry();
+#else
+        int key=portable_watch_key_hit(x,y);if(key>=0)tcp_key((unsigned)key);
+#endif
+        return;
+    }
     if(portable_nova_hit(x,y,12,211,76,29)){tcp_back();return;}
     if(portable_nova_hit(x,y,96,211,132,29)){tcp_activate();return;}
     int32_t hit=tcp_hit((int16_t)x,(int16_t)y);if(hit>=0){selected=hit;tcp_activate();}
@@ -389,6 +485,10 @@ static void tcp_tap(int x,int y) {
 #include "timecard_paper.inc"
 #endif
 static void tcp_input(const t5_app_input_t *input) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    /* The shared host exclusively owns input and display until close succeeds. */
+    if(tcp_text_active || tcp_retained())return;
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(tcp_retained())return;
 #endif
@@ -425,7 +525,13 @@ static void tcp_input(const t5_app_input_t *input) {
     if(!tcp_files)return;
     if(input->buttons&(T5_APP_BUTTON_UP|T5_APP_BUTTON_LEFT))tcp_move(-1);
     else if(input->buttons&(T5_APP_BUTTON_DOWN|T5_APP_BUTTON_RIGHT))tcp_move(1);
-    else if(input->buttons&T5_APP_BUTTON_CONFIRM){if(tcp_editor)tcp_key(tcp_key_choice);else tcp_activate();}
+    else if(input->buttons&T5_APP_BUTTON_CONFIRM){if(tcp_editor){
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        tcp_text_retry();
+#else
+        tcp_key(tcp_key_choice);
+#endif
+    }else tcp_activate();}
 }
 static void tcp_dependencies_close(void) {
     if(tcp_retained())return;
@@ -434,38 +540,97 @@ static void tcp_dependencies_close(void) {
         if(!tcp_native_release(&tcp_grants[tcp_grant_count-1]))return;
         --tcp_grant_count;
     }
+#elif defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT)
+    if(tcp_runtime)while(tcp_grant_count){
+        risc_runtime_capability_v1 released=tcp_grants[tcp_grant_count-1];
+        bool ok=tcp_runtime->release(&released);
+        if(tcp_retained())return;
+        if(!ok || released.struct_size!=sizeof(released) || released.api || released.slot || released.generation){(void)portable_text_client_retain(&tcp_text_client);return;}
+        tcp_grants[--tcp_grant_count]=released;
+    }
 #else
     if(tcp_runtime)while(tcp_grant_count)tcp_runtime->release(&tcp_grants[--tcp_grant_count]);
 #endif
     tcp_rtc=NULL;tcp_runtime=NULL;tcp_files=NULL;
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    tcp_text_client.runtime=NULL;
+#endif
 }
+#if defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT) && !defined(TIMECARD_NATIVE_TIME)
+static int32_t tcp_text_preference_get(void *context,const char *key,void *data,uint32_t capacity,uint32_t *size) {
+    if(!tcp_text_background_ready())return RISC_KEY_VALUE_CONTEXT;
+    const risc_key_value_v1 *source=context;
+    int32_t rc=source->get(source->context,key,data,capacity,size);
+    if(tcp_retained())return RISC_KEY_VALUE_CONTEXT;
+    switch(rc) {
+        case RISC_KEY_VALUE_OK:case RISC_KEY_VALUE_NOT_FOUND:case RISC_KEY_VALUE_BUFFER_SMALL:
+        case RISC_KEY_VALUE_INVALID:case RISC_KEY_VALUE_IO:case RISC_KEY_VALUE_BUSY:return rc;
+        default:(void)portable_text_client_retain(&tcp_text_client);return RISC_KEY_VALUE_CONTEXT;
+    }
+}
+#endif
+#ifndef TIMECARD_NATIVE_TIME
+static bool tcp_acquire(const char *name,uint32_t version,uint64_t instance,risc_runtime_capability_v1 *grant) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return false;
+#endif
+    bool acquired=tcp_runtime->acquire(name,version,instance,grant);
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return false;
+    if(grant->struct_size!=sizeof(*grant) || (acquired?(!grant->api || !grant->slot || !grant->generation):(grant->api || grant->slot || grant->generation))){(void)portable_text_client_retain(&tcp_text_client);return false;}
+#endif
+    return acquired;
+}
+#endif
 static void tcp_dependencies_open(void) {
 #ifdef TIMECARD_NATIVE_TIME
     tcp_native_open();
 #else
-    tcp_runtime=risc_runtime_get_api(1);tcp_grant_count=0;tcp_time_format=PORTABLE_TIME_FORMAT_12;tcp_rtc=NULL;
+    tcp_runtime=risc_runtime_get_api(1);
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    tcp_text_client.runtime=tcp_runtime;
+#endif
+    tcp_grant_count=0;tcp_time_format=PORTABLE_TIME_FORMAT_12;tcp_rtc=NULL;
 #ifdef TIMECARD_APP_DATA
     tcp_data=(tcp_appdata){0};
 #endif
     if(!tcp_runtime || tcp_runtime->api_version!=1 || tcp_runtime->struct_size<RISC_RUNTIME_CAPABILITIES_V1_SIZE || !tcp_runtime->acquire || !tcp_runtime->release || !tcp_runtime->request_launch){tcp_runtime=NULL;return;}
     tcp_grants[0]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[0])};
-    if(tcp_runtime->acquire("rtc.clock",2,0,&tcp_grants[0])) {
+    if(tcp_acquire("rtc.clock",2,0,&tcp_grants[0])) {
         tcp_grant_count=1;const twatch_rtc_api_v1 *p=tcp_grants[0].api;
         if(p && p->api_version==2 && p->struct_size>=sizeof(*p) && p->read)tcp_rtc=p;
     }
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return;
+#endif
     unsigned slot=tcp_grant_count;tcp_grants[slot]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[slot])};
-    if(tcp_runtime->acquire("storage.key-value",1,1,&tcp_grants[slot])) {
-        tcp_grant_count++;portable_time_format_load(tcp_grants[slot].api,&tcp_time_format);
+    if(tcp_acquire("storage.key-value",1,1,&tcp_grants[slot])) {
+        tcp_grant_count++;
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        const risc_key_value_v1 *source=tcp_grants[slot].api;
+        if(portable_time_format_api_valid(source)) {
+            const risc_key_value_v1 checked={.api_version=1,.struct_size=sizeof(checked),.context=(void *)source,.get=tcp_text_preference_get};
+            portable_time_format_load(&checked,&tcp_time_format);
+        }
+#else
+        portable_time_format_load(tcp_grants[slot].api,&tcp_time_format);
+#endif
     }
 #ifdef TIMECARD_APP_DATA
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return;
+#endif
     slot=tcp_grant_count;tcp_grants[slot]=(risc_runtime_capability_v1){.struct_size=sizeof(tcp_grants[slot])};
-    if(tcp_runtime->acquire(RISC_APP_DATA_CAPABILITY,RISC_APP_DATA_API_V1,TIMECARD_APP_DATA_INSTANCE,&tcp_grants[slot])) {
+    if(tcp_acquire(RISC_APP_DATA_CAPABILITY,RISC_APP_DATA_API_V1,TIMECARD_APP_DATA_INSTANCE,&tcp_grants[slot])) {
         tcp_grant_count++;(void)tcp_bind_data(tcp_grants[slot].api,tcp_runtime);
     }
 #endif
 #endif
 }
 static void tcp_draw(void) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_text_active || tcp_retained())return;
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(tcp_retained())return;
 #endif
@@ -478,7 +643,7 @@ static void tcp_draw(void) {
         if(tcp_editor)tcp_paper_editor();
         else {
             tcp_clock_valid=tcp_files && tcp_read_datetime(&tcp_snapshot);
-#ifdef TIMECARD_NATIVE_TIME
+#if defined(TIMECARD_NATIVE_TIME) || defined(PORTABLE_TIMECARD_SHARED_TEXT_INPUT)
             if(tcp_retained())return;
 #endif
             if(!tcp_clock_valid)tcp_paper_unavailable();else render();
@@ -497,6 +662,9 @@ static void tcp_draw(void) {
         portable_nova_button(82,211,76,29,"BACK",false);app->present(false);
     } else {
         tcp_clock_valid=tcp_read_datetime(&tcp_snapshot);
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(tcp_retained())return;
+#endif
         if(!tcp_clock_valid) {
             portable_nova_begin();portable_nova_text(0,20,49,200,"TIME CARD",NOVA_CYAN);
             portable_nova_wrap(1,20,88,200,22,3,"Clock unavailable. Retry when the clock is ready.",NOVA_TEXT);
@@ -506,6 +674,11 @@ static void tcp_draw(void) {
     tcp_dirty=false;
 }
 __attribute__((visibility("default"))) void app_main(void) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    if(tcp_retained())return;
+    tcp_text_client=(portable_text_client){0};tcp_text_state=(risc_text_entry_state_v1){0};
+    tcp_text_active=tcp_text_closing=false;
+#endif
     app=t5_app_get_api(T5_APP_ABI_VERSION);
     if(!app || app->abi_version!=T5_APP_ABI_VERSION || app->struct_size<offsetof(t5_app_api_v1,touch_contact)+sizeof(app->touch_contact) || !app->poll || !app->present || !app->set_back_exits_app || !app->touch_contact)return;
     if(!app->screen_width || !app->screen_height || app->screen_width()<240 || app->screen_height()<240)return;
@@ -517,7 +690,11 @@ __attribute__((visibility("default"))) void app_main(void) {
 #endif
     tcp_home=tcp_editor=tcp_external_exit=false;tcp_dirty=true;tcp_scroll=0;tcp_draw_screen=UINT32_MAX;tcp_reset_gesture();
     screen_id=SCREEN_WEEK_LIST;week_offset=selected=editing_ymd=day_count=0;store_ready=false;status_text[0]=0;
-    tcp_dependencies_open();tcp_files=timecard_portable_file_storage();
+    tcp_dependencies_open();
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+    tcp_text_client.runtime=tcp_runtime;if(tcp_retained())return;
+#endif
+    tcp_files=timecard_portable_file_storage();
     if(tcp_files && (tcp_files->api_version!=T5_STORAGE_API_VERSION || tcp_files->struct_size<offsetof(t5_storage_api_v1,write_file_atomic)+sizeof(tcp_files->write_file_atomic) || !tcp_files->exists || !tcp_files->read_file || !tcp_files->write_file_atomic))tcp_files=NULL;
     storage=&tcp_store;system_api=&tcp_clock;system_ui=&tcp_system_ui;fwui=&tcp_ui;
     app->set_back_exits_app(false);if(tcp_files)tcp_reload();
@@ -527,12 +704,27 @@ __attribute__((visibility("default"))) void app_main(void) {
     if(tcp_retained())return;
     tcp_draw();
     t5_app_input_t input;
-    while(!tcp_home && !tcp_external_exit && !tcp_retained() && app->poll(&input,20)) {
+    while(!tcp_home && !tcp_external_exit && !tcp_retained()) {
+#ifdef PORTABLE_TIMECARD_SHARED_TEXT_INPUT
+        if(tcp_text_active){
+            tcp_text_step();if(tcp_retained())return;
+            if(tcp_text_active && tcp_runtime->yield_ms)tcp_runtime->yield_ms(10);
+            if(tcp_dirty && !tcp_text_active && !tcp_home && !tcp_external_exit)tcp_draw();
+            continue;
+        }
+#endif
+        if(!app->poll(&input,20))break;
+        if(tcp_retained())return;
         tcp_input(&input);
         if(tcp_retained())return;
         if(tcp_dirty && !tcp_home && !tcp_external_exit)tcp_draw();
     }
     if(tcp_retained())return;
-    if(tcp_home && tcp_runtime && !tcp_runtime->request_launch(TIMECARD_RETURN_APP) && tcp_runtime->diagnostic)tcp_runtime->diagnostic("TIMECARD error=return-request");
+    if(tcp_home && tcp_runtime) {
+        bool launched=tcp_runtime->request_launch(TIMECARD_RETURN_APP);
+        if(tcp_retained())return;
+        if(!launched && tcp_runtime->diagnostic)tcp_runtime->diagnostic("TIMECARD error=return-request");
+    }
+    if(tcp_retained())return;
     tcp_editor=false;memset(tcp_entry,0,sizeof(tcp_entry));app->set_back_exits_app(true);tcp_dependencies_close();
 }
