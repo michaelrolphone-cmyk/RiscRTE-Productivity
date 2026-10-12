@@ -106,3 +106,37 @@ inspection does not prove maximum dynamic call-chain stack use.
 Generated evidence uses hashes and compact fixtures. Full flash images are not
 required for composition; full-initial flashing would erase internal saved data.
 No device was flashed. Binary delivery remains held until 2026-10-12 23:30 UTC.
+
+## Published qualification, 12 October 2026
+
+The compiled source is Productivity `f83d79a0753c2a451730000d2f553aa21fda7830`
+and System `f4b30f8ebcc6d8cb905c8e90c91b1691acbe8165`. The
+[compact qualification receipt](qualification/lists-shared-input-20261012.json)
+preserves the original local test commits and reconciles all 26 recorded source
+hashes against those published inputs: 24 are byte-identical, and two change
+only the System commit pin from its local qualification commit to the published
+commit. The public CI reruns the full matrix against that pin. This documentation-only successor does
+not change compiled sources or recipe pins.
+
+[Source CI](https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/actions/runs/38301311201)
+passed 1,954 scenario records and 73 inventory tests, normally and with
+ASan/UBSan plus platform-default leak detection. The local matrix includes
+1,952 actual app runs, 59 exact predecessor frame/storage matches per
+profile/flavor, and 750 reducer states per flavor. Independent review found no
+unresolved defect in the qualified scope.
+
+The tests cover Save/Cancel/Home, all four editor routes, name limits, storage
+failure/commit-unknown handling, layer/caps and held input, repeated same-key
+edges during routine policy, sleep admission, old-owner fallback, idle-deadline
+races, retained/lost custody and cleanup faults. Their transport doubles logged
+routine polling gaps of 15 ms, 65 ms with a 50 ms injected policy delay, and
+265 ms with a 250 ms injected delay. These are virtual fixture timings, not
+measured physical-device latency. Delivered queued edges remain intact within
+existing queue bounds; physical contacts entirely between driver polls cannot
+be recovered. Actual sleep retains the predecessor focus/wake semantics.
+
+Compiled device recipe pins are Watch
+`2cd9739a403d733a3b45d6925abd5220b1a1e743` and X4
+`e9adf95603d18b3a0c9f55c4c9276afe18a29d40`. The device repositories publish
+complete cohort, frozen-profile, source dependency, capacity and composition
+receipts separately. No test here substitutes for physical-device validation.

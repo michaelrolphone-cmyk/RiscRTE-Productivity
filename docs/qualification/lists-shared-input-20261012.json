@@ -1,0 +1,930 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "scope": "Lists app and shared-input integration on Watch240 and X4 portrait; full product receipts are maintained in the two device repositories",
+  "compiled_source": {
+    "productivity": "f83d79a0753c2a451730000d2f553aa21fda7830",
+    "system_apps": "f4b30f8ebcc6d8cb905c8e90c91b1691acbe8165"
+  },
+  "compiled_recipe": {
+    "watch": "2cd9739a403d733a3b45d6925abd5220b1a1e743",
+    "x4": "e9adf95603d18b3a0c9f55c4c9276afe18a29d40"
+  },
+  "original_local_qualification": {
+    "result": "PASS",
+    "actual_app_runs": 1952,
+    "evidence_records": 1954,
+    "profiles": [
+      "Watch240",
+      "X4 portrait (paper)"
+    ],
+    "flavors": [
+      "normal",
+      "ASan/UBSan"
+    ],
+    "sources": {
+      "system_apps": {
+        "commit": "87f7766e2dbfea16f46ad17310551c9a7c1a0552",
+        "tree": "3afea874cadc8d12977bae726c37a3f3b0685c71",
+        "working_tree_status": []
+      },
+      "runtime": {
+        "commit": "64c8e52e46fd91e8fdafd636db04eed88f0c51a9",
+        "tree": "b73e52ea3b6082f1d4aa9a2e67219eebb241ae33",
+        "working_tree_status": []
+      },
+      "x4_runtime": {
+        "commit": "1c1ed8661ea30d47e7e9707c41d492ce3a2b4d70",
+        "tree": "f5b403c185b18d2ac89f2e0d2d8783b9369a44b0",
+        "working_tree_status": []
+      },
+      "baseline_productivity": {
+        "commit": "395c48de8fa10b672816c89c02dd9a5d4987a094",
+        "tree": "4cf4c4b9c78eb1e6dedd5aa5da0a947759a2d0c6",
+        "working_tree_status": []
+      },
+      "productivity": {
+        "commit": "b8a926abfeda9fbd904931725da1d0c4fe46cd81",
+        "tree": "3c185348335012369a199809c75f2657d29bc139",
+        "working_tree_status": []
+      }
+    },
+    "compiled_input_hashes_rechecked_at_end": true,
+    "frame_and_storage_hashes_per_profile_flavor": {
+      "normal/watch": 59,
+      "normal/paper": 59,
+      "sanitized/watch": 59,
+      "sanitized/paper": 59
+    },
+    "reducer_states_per_flavor": {
+      "normal/reducer": 750,
+      "sanitized/reducer": 750
+    },
+    "source_inventory_tests": 73,
+    "sanitizer_options": "detect_leaks=0",
+    "CI_leak_detection": "default; local ptrace-only detect_leaks=0 was supplied by invocation",
+    "hardware_verified": false,
+    "timing": {
+      "scope": "Transport doubles only. Virtual poll gaps include fixture scheduling. Physical sampling pauses during synchronous policy. Callback wall time includes instrumentation and is not device latency.",
+      "group_key": "flavor/profile/implementation/routine-or-focus-change/intentional-sleep-ms/simulated-transport-delay-ms",
+      "groups": {
+        "normal/watch/legacy/routine/0/0": {
+          "samples": 36,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": null,
+          "fixture_wall_ns": {
+            "minimum": 176,
+            "maximum": 472
+          }
+        },
+        "normal/watch/shared/routine/0/0": {
+          "samples": 242,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "fixture_wall_ns": {
+            "minimum": 89,
+            "maximum": 319337
+          }
+        },
+        "normal/watch/shared/sleep/0/0": {
+          "samples": 264,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 10,
+            "maximum": 10
+          },
+          "fixture_wall_ns": {
+            "minimum": 103,
+            "maximum": 1253
+          }
+        },
+        "normal/watch/shared/sleep/1000/0": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 1015,
+            "maximum": 1015
+          },
+          "usb_gaps_ms": {
+            "minimum": 1010,
+            "maximum": 1010
+          },
+          "fixture_wall_ns": {
+            "minimum": 202,
+            "maximum": 800
+          }
+        },
+        "normal/watch/shared/routine/0/50": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "usb_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "fixture_wall_ns": {
+            "minimum": 178,
+            "maximum": 1119
+          }
+        },
+        "normal/watch/shared/routine/0/250": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "usb_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "fixture_wall_ns": {
+            "minimum": 171,
+            "maximum": 1327
+          }
+        },
+        "normal/paper/legacy/routine/0/0": {
+          "samples": 32,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": null,
+          "fixture_wall_ns": {
+            "minimum": 334,
+            "maximum": 628
+          }
+        },
+        "normal/paper/shared/routine/0/0": {
+          "samples": 162,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "fixture_wall_ns": {
+            "minimum": 406,
+            "maximum": 64465
+          }
+        },
+        "normal/paper/shared/sleep/0/0": {
+          "samples": 148,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 10,
+            "maximum": 10
+          },
+          "fixture_wall_ns": {
+            "minimum": 495,
+            "maximum": 1448
+          }
+        },
+        "normal/paper/shared/sleep/1000/0": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 1015,
+            "maximum": 1015
+          },
+          "usb_gaps_ms": {
+            "minimum": 1010,
+            "maximum": 1010
+          },
+          "fixture_wall_ns": {
+            "minimum": 556,
+            "maximum": 1050
+          }
+        },
+        "normal/paper/shared/routine/0/50": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "usb_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "fixture_wall_ns": {
+            "minimum": 486,
+            "maximum": 1318
+          }
+        },
+        "normal/paper/shared/routine/0/250": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "usb_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "fixture_wall_ns": {
+            "minimum": 463,
+            "maximum": 1285
+          }
+        },
+        "sanitized/watch/legacy/routine/0/0": {
+          "samples": 36,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": null,
+          "fixture_wall_ns": {
+            "minimum": 664,
+            "maximum": 83668
+          }
+        },
+        "sanitized/watch/shared/routine/0/0": {
+          "samples": 242,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "fixture_wall_ns": {
+            "minimum": 880,
+            "maximum": 38976
+          }
+        },
+        "sanitized/watch/shared/sleep/0/0": {
+          "samples": 264,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 10,
+            "maximum": 10
+          },
+          "fixture_wall_ns": {
+            "minimum": 914,
+            "maximum": 6731
+          }
+        },
+        "sanitized/watch/shared/sleep/1000/0": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 1015,
+            "maximum": 1015
+          },
+          "usb_gaps_ms": {
+            "minimum": 1010,
+            "maximum": 1010
+          },
+          "fixture_wall_ns": {
+            "minimum": 1046,
+            "maximum": 1747
+          }
+        },
+        "sanitized/watch/shared/routine/0/50": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "usb_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "fixture_wall_ns": {
+            "minimum": 1029,
+            "maximum": 5849
+          }
+        },
+        "sanitized/watch/shared/routine/0/250": {
+          "samples": 16,
+          "touch_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "usb_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "fixture_wall_ns": {
+            "minimum": 1162,
+            "maximum": 4441
+          }
+        },
+        "sanitized/paper/legacy/routine/0/0": {
+          "samples": 32,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": null,
+          "fixture_wall_ns": {
+            "minimum": 969,
+            "maximum": 2042
+          }
+        },
+        "sanitized/paper/shared/routine/0/0": {
+          "samples": 162,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "fixture_wall_ns": {
+            "minimum": 1361,
+            "maximum": 145570
+          }
+        },
+        "sanitized/paper/shared/sleep/0/0": {
+          "samples": 148,
+          "touch_gaps_ms": {
+            "minimum": 15,
+            "maximum": 15
+          },
+          "usb_gaps_ms": {
+            "minimum": 10,
+            "maximum": 10
+          },
+          "fixture_wall_ns": {
+            "minimum": 1354,
+            "maximum": 62864
+          }
+        },
+        "sanitized/paper/shared/sleep/1000/0": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 1015,
+            "maximum": 1015
+          },
+          "usb_gaps_ms": {
+            "minimum": 1010,
+            "maximum": 1010
+          },
+          "fixture_wall_ns": {
+            "minimum": 1660,
+            "maximum": 2077
+          }
+        },
+        "sanitized/paper/shared/routine/0/50": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "usb_gaps_ms": {
+            "minimum": 65,
+            "maximum": 65
+          },
+          "fixture_wall_ns": {
+            "minimum": 1864,
+            "maximum": 3501
+          }
+        },
+        "sanitized/paper/shared/routine/0/250": {
+          "samples": 8,
+          "touch_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "usb_gaps_ms": {
+            "minimum": 265,
+            "maximum": 265
+          },
+          "fixture_wall_ns": {
+            "minimum": 1486,
+            "maximum": 4385
+          }
+        }
+      }
+    },
+    "results_sha256": "a3cb4047612a6bfac6a3aa450f9f324e33060cbda5c3fe073c93b98a669f7cb9",
+    "host_log_sha256": "11f1e1bdeff9ed70b7c50d5bbbe06369543d12bb60780613be50e2dcdbcab23a",
+    "previous_evidence": "Original results.json and results-before-focus-policy.json remain unchanged and retain their original source provenance. This run is separate.",
+    "pngs": {
+      "normal/paper/legacy/paper-home.png": {
+        "sha256": "8f66171fb1d300761513323bc1200cabb0f14870fadefb424e7148cfe7460573",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/paper/legacy/paper-task.png": {
+        "sha256": "45a8de62d7f9861616b69e8000c332a5fcf1118257fe322e6bf12157fff16c8e",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/paper/shared/paper-home.png": {
+        "sha256": "8f66171fb1d300761513323bc1200cabb0f14870fadefb424e7148cfe7460573",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/paper/shared/paper-keyboard.png": {
+        "sha256": "ea9e5e141762f6278c3670ce3e6fd077621975f84ea963f358dce21bb09a7a4a",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/paper/shared/paper-task.png": {
+        "sha256": "45a8de62d7f9861616b69e8000c332a5fcf1118257fe322e6bf12157fff16c8e",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/paper/shared/paper-unavailable-text.png": {
+        "sha256": "e66833519fded4748a3e7d2b583137c68a39d9991f570d4cf1117ff6258a1646",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/legacy/watch-home.png": {
+        "sha256": "198d77679de20493dc8da3cb44291811645dd6bd3872e2e174fbbed9c24bcd12",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/legacy/watch-task.png": {
+        "sha256": "3e4e7c342ae790c589b42966ff0dcc6c0be8fdf6e3eead5959d685d31aca1ce1",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/shared/watch-home.png": {
+        "sha256": "198d77679de20493dc8da3cb44291811645dd6bd3872e2e174fbbed9c24bcd12",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/shared/watch-keyboard.png": {
+        "sha256": "f7bb4dc25ffeb5fa5df72e96f07d75a9905920094b173d2d964f84b1dd84e727",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/shared/watch-task.png": {
+        "sha256": "3e4e7c342ae790c589b42966ff0dcc6c0be8fdf6e3eead5959d685d31aca1ce1",
+        "matches_pre_focus_evidence": true
+      },
+      "normal/watch/shared/watch-unavailable-text.png": {
+        "sha256": "29e0ae45999f02dc421e027a60a08ea3dddc3a59c74b0f4330c68152a1a998d3",
+        "matches_pre_focus_evidence": true
+      }
+    }
+  },
+  "source_reconciliation": {
+    "result": "PASS",
+    "method": "Rehashed every recorded app/build/test and shared-host/header dependency in exact API-published source worktrees; original local source commits above remain unmodified provenance",
+    "matching_entries": [
+      {
+        "repository": "Productivity",
+        "path": "Apps/lists_scene.c",
+        "sha256": "eaded2e67e99f9131870e545fe062861cbda02196a80872cf0f22ef602bbe8e4"
+      },
+      {
+        "repository": "Productivity",
+        "path": "Apps/ListsScene.c",
+        "sha256": "3ebb607f71650ea8959979b33ac6c6f33c7cd39171de54c53f1a3a6ce22285fa"
+      },
+      {
+        "repository": "Productivity",
+        "path": "Apps/ListsScene.h",
+        "sha256": "cddd5d516f4fabf0c4c9cb7fa400dd25aeebde14be9c0f56fd8bf80fc044cb4b"
+      },
+      {
+        "repository": "Productivity",
+        "path": "Apps/lists_text_input.inc",
+        "sha256": "84f0003febd1701cb0d1f4278e204f43641dee268e79ea154cf598b4dfc58cbf"
+      },
+      {
+        "repository": "Productivity",
+        "path": "scripts/build_lists_scene.py",
+        "sha256": "7c59efb054426e2d2cd6ca95b322857276a9604dfa48235eb3e893a4570ec545"
+      },
+      {
+        "repository": "Productivity",
+        "path": "scripts/test_lists_shared_input.py",
+        "sha256": "d46250d6793db5e55d300362be254633eedaa4d93f0f169c5f27f28929d0a974"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/shared_input_app_test.c",
+        "sha256": "1755ea8cd7fe25284e27ae380c588369ea67b1d14db39cbb2246a498c0bb40ff"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/shared_input_fixture.h",
+        "sha256": "56d78268ffdc92f3f4e802bbb2fd0a093f6cf3bbabd39bf63b14c9ada829baf9"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/shared_input_fixture.inc",
+        "sha256": "b9d2ee490d75a0f1f92dd2f993c201867f988008f5f3f5b7f5cbde38c1a30600"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/shared_host_probe.c",
+        "sha256": "782a5b16440b6e77b226bd8d3977ee54768c72bdb4c577c6ea6bc0ce34b5a6a6"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/shared_reducer_test.c",
+        "sha256": "9460bfeefad4ae33bee2d70247599aebefd3fd0010c5ab0ce0b052fcd64c2955"
+      },
+      {
+        "repository": "Productivity",
+        "path": "test/lists/review_reducer_parity.c",
+        "sha256": "d16e806c9c6b02b5ad19aed04cca8091e6fed8c421e9df5a9ae57e9df87c5019"
+      },
+      {
+        "repository": "Productivity",
+        "path": "sdk/lists-selected-profile/RiscSceneResidentV1.h",
+        "sha256": "a657fcd906217fdbb03894c15b10009b352d6a5b7466868afa603a03236b8851"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "Services/text_input/host.c",
+        "sha256": "a35225f8afc149c55d2d15caf3671def4f0b631aecd267eb6c01085689556904"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "Services/text_input/checkpoint.inc",
+        "sha256": "4fc01913869da777c9f510f5639df69e20fa811906fd4ab96ec2c7f008294c57"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "Services/scene_host/host.c",
+        "sha256": "2110ecf4de15d299dfca0e12d461e48abddf9f43ae956df4c97a6a482d9516cf"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "sdk/app/RiscTextEntryV1.h",
+        "sha256": "a5733f06b1d8caf86f21d730abcd9ff833b603807c8b028a49544c997b6cdba3"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "sdk/app/RiscSceneCheckpointV1.h",
+        "sha256": "478ca88a15aeeb5a906623fb67482b29a0b5fa37dd933a5c9ca3a856ec967e44"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "sdk/app/RiscSceneLifecycleV1.h",
+        "sha256": "52a3d5dcfc6a9be8d598e0c93bf9bf6c6f824674280ef03ee0c0043a01eb31f5"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "lib/PortableApps/include/PortableTextInputClient.h",
+        "sha256": "f98564291d4b3685c429cdb96fd6edd0a4b5226b6bbde6ab3ea197a832f5746f"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "lib/PortableApps/include/PortableTextInputHandoff.h",
+        "sha256": "ef811b3b7cf805ccdab1fb330e09dd8c533e303d29b8b4693ae5089a85432c36"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "lib/PortableApps/include/PortableTextInputCheckpointClient.h",
+        "sha256": "1c5c1dd7c1e47cc9844d1838e85c09fdd8949c9c43006e99205d0cc4f2059de0"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "lib/PortableApps/include/PortableTextInputResidentCheckpoint.h",
+        "sha256": "827ef461207082700ef01dba563bd46e69394f7749d3694031016cf478fb390a"
+      },
+      {
+        "repository": "System-Apps",
+        "path": "lib/PortableApps/include/PortableResidentPolicyInput.h",
+        "sha256": "58063d5b10c848c09a1340e297c6aeb8fc7b9b4d7aed32e813d6c1904fbc5c0e"
+      }
+    ],
+    "publication_pin_only_changes": [
+      {
+        "path": ".github/workflows/lists-shared-input.yml",
+        "qualified_sha256": "ed97a32b4660923f696c13cab15b1f6ce4c21e2a7938ae5d6096801e30a6984c",
+        "published_sha256": "bddd9b37d6651be4c2cb30fa0f49a423b7d5cb6c002dd07ea28e4ed90c144483",
+        "only_change": "System source pin from qualified local 87f7766 to public f4b30f8"
+      },
+      {
+        "path": "sdk/lists-shared-input-sources.json",
+        "qualified_sha256": "b9d3d3aa81e1c0f142e3426f9d9bb6fd302af39028eb31ee5e4adc941b8ae934",
+        "published_sha256": "296d80c990aac160d65722528bbc3dde318a8ff7e90ea5bf0dda0849e2ea2f14",
+        "only_change": "System source pin from qualified local 87f7766 to public f4b30f8"
+      }
+    ]
+  },
+  "parity": {
+    "identical_normal_and_sanitized": true,
+    "normal/watch": {
+      "matched": [
+        "watch-alert-snoozed.ppm",
+        "watch-alert.ppm",
+        "watch-all.ppm",
+        "watch-confirm.ppm",
+        "watch-edit-0-cancel.bin",
+        "watch-edit-0-done.bin",
+        "watch-edit-0-empty.bin",
+        "watch-edit-0-layers.bin",
+        "watch-edit-0-limit.bin",
+        "watch-edit-0-policy-busy.bin",
+        "watch-edit-0-policy-repeat.bin",
+        "watch-edit-0-policy.bin",
+        "watch-edit-0-save-failure.bin",
+        "watch-edit-0-save-unknown.bin",
+        "watch-edit-1-cancel.bin",
+        "watch-edit-1-done.bin",
+        "watch-edit-1-empty.bin",
+        "watch-edit-1-layers.bin",
+        "watch-edit-1-limit.bin",
+        "watch-edit-1-policy-busy.bin",
+        "watch-edit-1-policy-repeat.bin",
+        "watch-edit-1-policy.bin",
+        "watch-edit-1-save-failure.bin",
+        "watch-edit-1-save-unknown.bin",
+        "watch-edit-2-cancel.bin",
+        "watch-edit-2-done.bin",
+        "watch-edit-2-empty.bin",
+        "watch-edit-2-layers.bin",
+        "watch-edit-2-limit.bin",
+        "watch-edit-2-policy-busy.bin",
+        "watch-edit-2-policy-repeat.bin",
+        "watch-edit-2-policy.bin",
+        "watch-edit-2-save-failure.bin",
+        "watch-edit-2-save-unknown.bin",
+        "watch-edit-3-cancel.bin",
+        "watch-edit-3-done.bin",
+        "watch-edit-3-empty.bin",
+        "watch-edit-3-layers.bin",
+        "watch-edit-3-limit.bin",
+        "watch-edit-3-policy-busy.bin",
+        "watch-edit-3-policy-repeat.bin",
+        "watch-edit-3-policy.bin",
+        "watch-edit-3-save-failure.bin",
+        "watch-edit-3-save-unknown.bin",
+        "watch-features.bin",
+        "watch-home.ppm",
+        "watch-list-all.ppm",
+        "watch-list.ppm",
+        "watch-new-list.ppm",
+        "watch-new-task.ppm",
+        "watch-options.ppm",
+        "watch-reminder-done.bin",
+        "watch-reminders.bin",
+        "watch-storage-retry.bin",
+        "watch-storage.bin",
+        "watch-task.ppm",
+        "watch-time.ppm",
+        "watch-today.ppm",
+        "watch-unavailable.ppm"
+      ],
+      "sha256": {
+        "watch-alert-snoozed.ppm": "a8ad188a748866fcd116d42446657db7dc7c08306518ea1dce0cfc5af0fe202e",
+        "watch-alert.ppm": "a8ad188a748866fcd116d42446657db7dc7c08306518ea1dce0cfc5af0fe202e",
+        "watch-all.ppm": "659d373ae6b4005c87c5dac1d4066c22de3acaa24fd7f7ddacfb40a1649b3a2f",
+        "watch-confirm.ppm": "50c923160dbc81e9eda1c7c53bd89143274f8be81eb5fc23e9a27aa7772bfb77",
+        "watch-edit-0-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-0-done.bin": "124dd85f39ccf0730850a33bdbd4a19c57acdcc8f4702a4bd7899f44b54e250c",
+        "watch-edit-0-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-0-layers.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "watch-edit-0-limit.bin": "801574e9b4213177cc31ed306176922f2e56166bd9bea7ea7be3ba7a3fa143cd",
+        "watch-edit-0-policy-busy.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "watch-edit-0-policy-repeat.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "watch-edit-0-policy.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "watch-edit-0-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-0-save-unknown.bin": "124dd85f39ccf0730850a33bdbd4a19c57acdcc8f4702a4bd7899f44b54e250c",
+        "watch-edit-1-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-1-done.bin": "0c7270b85319b711a14accc5e0eaf1c7e5ebe342c118b637a1bf0c6e01012849",
+        "watch-edit-1-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-1-layers.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "watch-edit-1-limit.bin": "cd0e8834691486650582dfd11855cbee019c67e381ccca9d3bde83118e525afa",
+        "watch-edit-1-policy-busy.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "watch-edit-1-policy-repeat.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "watch-edit-1-policy.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "watch-edit-1-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-1-save-unknown.bin": "0c7270b85319b711a14accc5e0eaf1c7e5ebe342c118b637a1bf0c6e01012849",
+        "watch-edit-2-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-2-done.bin": "5396729078b3016d954f84ac22a60ec365cfc0f40629c5ba188aa956e40f5cdb",
+        "watch-edit-2-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-2-layers.bin": "71d35617a07bf1cab9f9ca044cd274869670e82c1608adc18b645bcb9077f4ee",
+        "watch-edit-2-limit.bin": "924fd0edd2ed4d1b7cb8d2ecd9eac0cfdbfb03e779b6ba04bda0d3edfff84719",
+        "watch-edit-2-policy-busy.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "watch-edit-2-policy-repeat.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "watch-edit-2-policy.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "watch-edit-2-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-2-save-unknown.bin": "5396729078b3016d954f84ac22a60ec365cfc0f40629c5ba188aa956e40f5cdb",
+        "watch-edit-3-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-3-done.bin": "db582b04422e0b85c67f646986fd5652b3a6ce5e7cce2eb72ab99d242659c44c",
+        "watch-edit-3-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-3-layers.bin": "ff386d64e3ab791cc837fe31c44a61e6faa60761f3662490776724874fb01bc4",
+        "watch-edit-3-limit.bin": "93a7db4edff74f3cbece32cdea70383c4e85524fa80809731c41606c36246259",
+        "watch-edit-3-policy-busy.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "watch-edit-3-policy-repeat.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "watch-edit-3-policy.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "watch-edit-3-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-edit-3-save-unknown.bin": "db582b04422e0b85c67f646986fd5652b3a6ce5e7cce2eb72ab99d242659c44c",
+        "watch-features.bin": "53cfe742406f0f82b7d14ad3adde015b5ed4170f8280ebe7271721bf40a70dfd",
+        "watch-home.ppm": "8898348dff01062d31416dcb003abf197902b76ffe91d9b4663160175fc21366",
+        "watch-list-all.ppm": "7066e47c7d81ebd1214a2b421998fed3858c1273d90f2a37d90614246dcf6565",
+        "watch-list.ppm": "31ef584646b985b7095d58440809dbc1a9a1a2ab0f2fde7695c7447a5bafb912",
+        "watch-new-list.ppm": "409b130c546e7927565ae02aaff1065201e919d55678189b022290cd7273af42",
+        "watch-new-task.ppm": "9bf324c80fb23af9548ee05a74abd6d29a789376f7115a4dbce0e30c51f81513",
+        "watch-options.ppm": "a414a68da812f273a0754f6ab27779d12d02f48529612cb5cc7521f5baab8507",
+        "watch-reminder-done.bin": "3c6b3c290d5965927867d20a30bc11af8334b9dfdc383dee7cb94c63d09bfffd",
+        "watch-reminders.bin": "acfd3c9d7bc2ea2b48ae00f410d5d8141a4dd68e755e0267c23402bfc48566d2",
+        "watch-storage-retry.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-storage.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "watch-task.ppm": "bde704b9f92381e25943daa45b9d7a256ee066c2458cb627ef2155fa500a76e1",
+        "watch-time.ppm": "30765473b4345df05491b3ffcb41afef93369dfa174f0a4ca43841670f4e1359",
+        "watch-today.ppm": "b61ffc7e6188bbae1341665a8d3de504a193af4af17e27538218585c3f93f1b6",
+        "watch-unavailable.ppm": "02085c31cd25aec5a7c4ebc5cc052c2fc6e89637d40ef12e3f0e9de854aa80ab"
+      }
+    },
+    "normal/paper": {
+      "matched": [
+        "paper-alert-snoozed.ppm",
+        "paper-alert.ppm",
+        "paper-all.ppm",
+        "paper-confirm.ppm",
+        "paper-edit-0-cancel.bin",
+        "paper-edit-0-done.bin",
+        "paper-edit-0-empty.bin",
+        "paper-edit-0-layers.bin",
+        "paper-edit-0-limit.bin",
+        "paper-edit-0-policy-busy.bin",
+        "paper-edit-0-policy-repeat.bin",
+        "paper-edit-0-policy.bin",
+        "paper-edit-0-save-failure.bin",
+        "paper-edit-0-save-unknown.bin",
+        "paper-edit-1-cancel.bin",
+        "paper-edit-1-done.bin",
+        "paper-edit-1-empty.bin",
+        "paper-edit-1-layers.bin",
+        "paper-edit-1-limit.bin",
+        "paper-edit-1-policy-busy.bin",
+        "paper-edit-1-policy-repeat.bin",
+        "paper-edit-1-policy.bin",
+        "paper-edit-1-save-failure.bin",
+        "paper-edit-1-save-unknown.bin",
+        "paper-edit-2-cancel.bin",
+        "paper-edit-2-done.bin",
+        "paper-edit-2-empty.bin",
+        "paper-edit-2-layers.bin",
+        "paper-edit-2-limit.bin",
+        "paper-edit-2-policy-busy.bin",
+        "paper-edit-2-policy-repeat.bin",
+        "paper-edit-2-policy.bin",
+        "paper-edit-2-save-failure.bin",
+        "paper-edit-2-save-unknown.bin",
+        "paper-edit-3-cancel.bin",
+        "paper-edit-3-done.bin",
+        "paper-edit-3-empty.bin",
+        "paper-edit-3-layers.bin",
+        "paper-edit-3-limit.bin",
+        "paper-edit-3-policy-busy.bin",
+        "paper-edit-3-policy-repeat.bin",
+        "paper-edit-3-policy.bin",
+        "paper-edit-3-save-failure.bin",
+        "paper-edit-3-save-unknown.bin",
+        "paper-features.bin",
+        "paper-home.ppm",
+        "paper-list-all.ppm",
+        "paper-list.ppm",
+        "paper-new-list.ppm",
+        "paper-new-task.ppm",
+        "paper-options.ppm",
+        "paper-reminder-done.bin",
+        "paper-reminders.bin",
+        "paper-storage-retry.bin",
+        "paper-storage.bin",
+        "paper-task.ppm",
+        "paper-time.ppm",
+        "paper-today.ppm",
+        "paper-unavailable.ppm"
+      ],
+      "sha256": {
+        "paper-alert-snoozed.ppm": "d74f1c065e7e9d17a80bbfe756a8682f1be6e5ad4dc03fd6d34451f2dba13efe",
+        "paper-alert.ppm": "d74f1c065e7e9d17a80bbfe756a8682f1be6e5ad4dc03fd6d34451f2dba13efe",
+        "paper-all.ppm": "55e05e978270481800c9bb0b15624ae3b5fcb4bd34d21f63db598692efdee0af",
+        "paper-confirm.ppm": "0d44b168ce3a9cb2529a2e14cee9de027c3b500c059ae5b9ddbdbe3b6ce07b23",
+        "paper-edit-0-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-0-done.bin": "124dd85f39ccf0730850a33bdbd4a19c57acdcc8f4702a4bd7899f44b54e250c",
+        "paper-edit-0-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-0-layers.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "paper-edit-0-limit.bin": "801574e9b4213177cc31ed306176922f2e56166bd9bea7ea7be3ba7a3fa143cd",
+        "paper-edit-0-policy-busy.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "paper-edit-0-policy-repeat.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "paper-edit-0-policy.bin": "7e25e44e9d9f9cd306f082b0fc41ced66eeaf8c1b491493936958cbbdd98371a",
+        "paper-edit-0-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-0-save-unknown.bin": "124dd85f39ccf0730850a33bdbd4a19c57acdcc8f4702a4bd7899f44b54e250c",
+        "paper-edit-1-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-1-done.bin": "0c7270b85319b711a14accc5e0eaf1c7e5ebe342c118b637a1bf0c6e01012849",
+        "paper-edit-1-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-1-layers.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "paper-edit-1-limit.bin": "cd0e8834691486650582dfd11855cbee019c67e381ccca9d3bde83118e525afa",
+        "paper-edit-1-policy-busy.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "paper-edit-1-policy-repeat.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "paper-edit-1-policy.bin": "cc2c54fa51cfed9bdf8b6190951d59928bd201bc747482af313ba13942cfa496",
+        "paper-edit-1-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-1-save-unknown.bin": "0c7270b85319b711a14accc5e0eaf1c7e5ebe342c118b637a1bf0c6e01012849",
+        "paper-edit-2-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-2-done.bin": "5396729078b3016d954f84ac22a60ec365cfc0f40629c5ba188aa956e40f5cdb",
+        "paper-edit-2-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-2-layers.bin": "71d35617a07bf1cab9f9ca044cd274869670e82c1608adc18b645bcb9077f4ee",
+        "paper-edit-2-limit.bin": "924fd0edd2ed4d1b7cb8d2ecd9eac0cfdbfb03e779b6ba04bda0d3edfff84719",
+        "paper-edit-2-policy-busy.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "paper-edit-2-policy-repeat.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "paper-edit-2-policy.bin": "300b403826eeee52335a40f37f416105731169c70f544e9720c17a9e513a3ba4",
+        "paper-edit-2-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-2-save-unknown.bin": "5396729078b3016d954f84ac22a60ec365cfc0f40629c5ba188aa956e40f5cdb",
+        "paper-edit-3-cancel.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-3-done.bin": "db582b04422e0b85c67f646986fd5652b3a6ce5e7cce2eb72ab99d242659c44c",
+        "paper-edit-3-empty.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-3-layers.bin": "ff386d64e3ab791cc837fe31c44a61e6faa60761f3662490776724874fb01bc4",
+        "paper-edit-3-limit.bin": "93a7db4edff74f3cbece32cdea70383c4e85524fa80809731c41606c36246259",
+        "paper-edit-3-policy-busy.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "paper-edit-3-policy-repeat.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "paper-edit-3-policy.bin": "d81a67358f86e4bdea67c04dea23e4ccbc5ce26db58b3e7d8d35ca439d3cb8dd",
+        "paper-edit-3-save-failure.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-edit-3-save-unknown.bin": "db582b04422e0b85c67f646986fd5652b3a6ce5e7cce2eb72ab99d242659c44c",
+        "paper-features.bin": "53cfe742406f0f82b7d14ad3adde015b5ed4170f8280ebe7271721bf40a70dfd",
+        "paper-home.ppm": "6c5e2c81157bad349e07d2227ead33d43117541a3d4f5a1b3fd1470cb0a1d650",
+        "paper-list-all.ppm": "1cb82dc073bdbbe3e7ee2af4df46492aaac38f763acaf75105732011b687b259",
+        "paper-list.ppm": "5db087d15ba7ac2cb350ec6e96f7ac89e22d53a104ffadfc37b87566bf4014e1",
+        "paper-new-list.ppm": "d2d6327c26a0ea6765afee68c6962597dc644b7d1bb05395c5ad35a83aa6a1dd",
+        "paper-new-task.ppm": "a8170dfb78a22d859c41145d3f608f097166051b6af332ec0411ab710d8b67bd",
+        "paper-options.ppm": "48eca72506abfe062733765a025be73f932fc3750302f93c17d99f809e639d47",
+        "paper-reminder-done.bin": "3c6b3c290d5965927867d20a30bc11af8334b9dfdc383dee7cb94c63d09bfffd",
+        "paper-reminders.bin": "acfd3c9d7bc2ea2b48ae00f410d5d8141a4dd68e755e0267c23402bfc48566d2",
+        "paper-storage-retry.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-storage.bin": "3ac1d24a5d1f056a5a971a2c180b98f39e18a226dbdf42ffb2556951671c1cb4",
+        "paper-task.ppm": "8dcdf220481fae2871bad3c5c60b88dcd38a7abffef0460d70f111b1328a084e",
+        "paper-time.ppm": "0e006117be12d94b8bdc0bd572363fb19d026a687dffcb3d8dc00488ad6693b8",
+        "paper-today.ppm": "96d23332f4fd88480de70b418a65bf3bac9830d9216ab0a9e72bf64dad8743a7",
+        "paper-unavailable.ppm": "1a123f5e6fe740285e677d01464f8fb19933717438cfd7604d79dfd9e0772669"
+      }
+    },
+    "reducer": {
+      "states": 750,
+      "sha256": "f0288169a9951405056de33188054258a3c46595ce4b3e9b320211621a2e763d"
+    }
+  },
+  "github_actions": {
+    "run_id": 38301311201,
+    "job_id": 114984648383,
+    "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/actions/runs/38301311201",
+    "head_sha": "f83d79a0753c2a451730000d2f553aa21fda7830",
+    "conclusion": "success",
+    "log_sha256": "655b97a35ea910368e1d944950d5d2fa814395c22eeecbfe9d097c0aa2b6a989",
+    "evidence_artifacts": [
+      {
+        "id": 11771070677,
+        "name": "lists-shared-input-evidence",
+        "size_in_bytes": 94263,
+        "digest": "sha256:d392c598e7a67ab0db0c3230ffa65f4a6b77480d2a99b2bcc0731fac7333152e"
+      }
+    ],
+    "scenario_records": 1954,
+    "inventory_tests": 73,
+    "sanitizer_options": "platform default, including LeakSanitizer"
+  },
+  "independent_review": {
+    "status": "PASS_source_compatibility_app_matrix_and_device_recipe_review",
+    "sha256": "3b655d23829991e6ce85546ef1fbce3c365e6233aef62c2135cdd3490deaeb22",
+    "unresolved_findings": 0
+  },
+  "local_evidence": {
+    "focus-policy/results.json": {
+      "bytes": 1620936,
+      "sha256": "a3cb4047612a6bfac6a3aa450f9f324e33060cbda5c3fe073c93b98a669f7cb9"
+    },
+    "focus-policy/qualification-summary.json": {
+      "bytes": 12479,
+      "sha256": "7b35a9b1b8fd0b93b5f501a5d0e9cfe25673d76f07492f8ea1f3d34623918a10"
+    },
+    "focus-policy/host-suite.log": {
+      "bytes": 343124,
+      "sha256": "11f1e1bdeff9ed70b7c50d5bbbe06369543d12bb60780613be50e2dcdbcab23a"
+    },
+    "independent-review.json": {
+      "bytes": 37651,
+      "sha256": "3b655d23829991e6ce85546ef1fbce3c365e6233aef62c2135cdd3490deaeb22"
+    }
+  },
+  "constraints": {
+    "field_capacity_including_nul": 25,
+    "maximum_name_characters": 24,
+    "saved_data_migration": false,
+    "watch_namespace": 62,
+    "x4_namespace": 63,
+    "independent_input_and_presentation": true,
+    "home_cancels_draft": true,
+    "physical_device_testing": false,
+    "binary_delivery_not_before_utc": "2026-10-12T23:30:00Z",
+    "limitations": [
+      "Physical Watch/X4 execution not performed",
+      "Sanitizer runs disabled LeakSanitizer under local ptrace environment",
+      "Continuity guarantees only events delivered by native transports within queue bounds; it cannot guarantee reconstruction of physical press/release entirely between synchronous provider polls.",
+      "Scene raw transport FIFO is bounded at 64 edges. Native Watch ring holds 31 entries and X4 ring holds 32; GAP neutralizes ambiguous history and internal overflow retains custody safely."
+    ],
+    "policy_reply_redraw": "Historical attempted-idle marker, also set after early refusal or input-cancelled settling. Full detach preserves predecessor neutralization. A finer confirmed-focus signal is follow-up work."
+  }
+}
