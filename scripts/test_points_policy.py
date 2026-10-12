@@ -10,13 +10,13 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ['system-apps','utilities','runtime','watch','output']:p.add_argument('--'+n,type=Path,required=True)
- p.add_argument('--normal-only',action='store_true');p.add_argument('--policy-only',action='store_true');p.add_argument('--legacy-only',action='store_true');p.add_argument('--no-leak-checks',action='store_true');p.add_argument('--keep-binaries',action='store_true');a=p.parse_args()
+ p.add_argument('--provisional-system',action='store_true',help='Diagnostic only: allow tracked System edits at the pinned base');p.add_argument('--normal-only',action='store_true');p.add_argument('--policy-only',action='store_true');p.add_argument('--legacy-only',action='store_true');p.add_argument('--no-leak-checks',action='store_true');p.add_argument('--keep-binaries',action='store_true');a=p.parse_args()
  roots={'system-apps':a.system_apps.resolve(),'utilities':a.utilities.resolve(),'runtime':a.runtime.resolve(),'watch':a.watch.resolve(),'productivity':ROOT,'generated':ROOT/'test/native_apps/points_policy_profile'};out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
- pins={'system-apps':'66282802bb498590fcbab4eba871ff40cc3ddafd','utilities':'4cfe21248f1f81339072c39eba44dbaea3a444b6','runtime':'267aab6d9382ce4921a1536fab1620749b2f5301','watch':'089868395268b696c05651c33816345bfe0425df'}
+ pins={'system-apps':'9957e7c975f7b57ce9ea50d57b13c1d9bb75cf43','utilities':'4cfe21248f1f81339072c39eba44dbaea3a444b6','runtime':'267aab6d9382ce4921a1536fab1620749b2f5301','watch':'089868395268b696c05651c33816345bfe0425df'}
  for owner,pin in pins.items():
   root=roots[owner]
   assert subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip()==pin,owner
-  assert not subprocess.check_output(['git','-C',str(root),'status','--porcelain','--untracked-files=no'],text=True).strip(),owner
+  assert (a.provisional_system and owner=='system-apps') or not subprocess.check_output(['git','-C',str(root),'status','--porcelain','--untracked-files=no'],text=True).strip(),owner
  profile=json.loads((roots['generated']/'profile.json').read_text());mapped=lambda text:text.format(**{k:str(v) for k,v in roots.items()});s=roots['system-apps'];r=roots['runtime']
  defs=list(map(mapped,profile['defines']))+['-DPOINTS_TEST_ALARM_HEADER="'+str(roots['utilities']/'lib/Alarm/include/AlarmServiceV1.h')+'"'];incs=list(map(mapped,profile['includes']));fixture=ROOT/'test/native_apps/points_policy_watch_host_test.c'
  service=['-I'+str(s/'Services/text_input'),'-I'+str(s/'sdk/app'),'-I'+str(s/'lib/PortableApps/include'),'-I'+str(r/'sdk/driver'),'-I'+str(s/'Services/scene_profile')]
@@ -51,7 +51,7 @@ def main():
    if san:assert frame_sets.get(label)==frames_hash,(label,'normal/sanitized frame mismatch')
    else:frame_sets[label]=frames_hash
    records.append(dict(case=label,sanitized=san,exit_code=run.returncode,binary_sha256=binary_hash,frames=frames,stdout=run.stdout,stderr=run.stderr))
-   evidence=dict(schema='points.modal-policy.host.v1',runs=records,commands=commands,dependencies=dependencies,pins=pins,hardware_verified=False,target_instructions_executed=False,scope='Actual Watch Points app, PortableApps adapter, scene host, shared text host and scene profile; synthetic native transports, local sleep and bounded Contexts/broadcast provider')
+   evidence=dict(schema='points.modal-policy.host.v1',runs=records,commands=commands,dependencies=dependencies,pins=pins,provisional_system=a.provisional_system,hardware_verified=False,target_instructions_executed=False,scope='Actual Watch Points app, PortableApps adapter, scene host, shared text host and scene profile; synthetic native transports, local sleep and bounded Contexts/broadcast provider')
    (out/'result.json').write_text(json.dumps(evidence,indent=2)+'\n');print(('PASS' if run.returncode==0 else 'FAIL'),san,label,flush=True)
    if run.returncode:print(run.stdout+run.stderr,flush=True);raise SystemExit(1)
   if not a.keep_binaries:

@@ -360,8 +360,8 @@ int main(int argc,char**argv){
 scene_driver=points_scene_driver_get(2);text_driver=points_text_driver_get(2);assert(scene_driver&&text_driver);
 const risc_driver_v2 *profile_driver=points_profile_driver_get(2);assert(profile_driver&&profile_driver->start(NULL,0));
 const risc_scene_profile_v1 *profile=profile_driver->capability;
-risc_provider_dependency_v1 scene_deps[]={{"display.output",1,&display_api},{"input.touch.raw",1,&touch_api},{"platform.clock",1,&clock},{"ui.presentation-profile",1,profile},{"input.navigation",1,&nav_api}};
-assert(scene_driver->start(scene_deps,5));risc_provider_dependency_v1 text_deps[]={{RISC_SCENE_CAPABILITY,1,scene_driver->capability}};assert(text_driver->start(text_deps,1));policy_proxy_init();
+risc_provider_dependency_v1 scene_deps[]={{"display.output",1,&display_api},{"input.touch.raw",1,&touch_api},{"platform.clock",1,&clock},{"ui.presentation-profile",1,profile}};
+assert(scene_driver->start(scene_deps,4));risc_provider_dependency_v1 text_deps[]={{RISC_SCENE_CAPABILITY,1,scene_driver->capability}};assert(text_driver->start(text_deps,1));policy_proxy_init();
 int init=app_module_init();if(loss_case("panel-wide")||loss_case("panel-mono")){assert(init!=0);app_module_fini();assert(!grants&&!subs&&!frames);puts("Watch-only profile rejects incompatible display before presentation");return 0;}assert(init==0);app_main();
 app_module_fini();
 if(policy_case("pause-retained")||policy_case("resume-retained")||policy_case("resume-again")){
