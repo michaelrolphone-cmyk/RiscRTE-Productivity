@@ -56,6 +56,11 @@ jobs:
           sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime','Drivers','CrossPoint','png','jpeg']}
           Path('evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
           PY
+      - name: Generate exact pinned Scene telemetry font input
+        run: |
+          python -m pip install Pillow==12.3.0
+          (cd System && python scripts/generate_telemetry_fonts.py)
+          echo "2d7501e42d6223ebbc191817715431182c435fea944a1a02166a0748a577eaf1  System/Services/scene_host/fonts/telemetry.inc" | sha256sum --check
       - name: Test engine, retained lifecycle, GUI and production FatFs
         run: |
           set -euo pipefail
