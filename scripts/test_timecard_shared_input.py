@@ -14,7 +14,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = {
-    'system': 'ed74c6827b9c2d0283bd69949aa4b05570dd0f85',
+    'system': '21f640e460b4b8776f61207329f30e40adb41ec8',
     'utilities': 'fc0bdbbbc600ce891e60c44d091fce0586ade7d8',
     'runtime': '5561cc7bb09d1e2b03aafaecb8c95f0470f351f6',
 }
