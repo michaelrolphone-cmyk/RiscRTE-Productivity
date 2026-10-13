@@ -19,9 +19,9 @@ from test_lists_scene import verify_tabs
 
 ROOT = Path(__file__).resolve().parents[1]
 SELECTED = json.loads((ROOT/'sdk/lists-shared-input-sources.json').read_text())
-PINS = {'system_apps': SELECTED['system_commit'],
-        'runtime': SELECTED['runtime_commits']['watch'],
-        'x4_runtime': SELECTED['runtime_commits']['x4']}
+PINS = {'system_apps': '21f640e460b4b8776f61207329f30e40adb41ec8',
+        'runtime': '5561cc7bb09d1e2b03aafaecb8c95f0470f351f6',
+        'x4_runtime': '5561cc7bb09d1e2b03aafaecb8c95f0470f351f6'}
 COMMON = ['features', 'storage', 'storage-retry', 'reminders', 'reminder-done']
 PARITY_EDITS = ['policy', 'policy-repeat', 'policy-busy', 'done', 'cancel', 'limit', 'empty', 'layers', 'save-failure', 'save-unknown']
 EDITS = ['no-resident', 'back', 'header-back', 'home', 'header-home', 'native-home', 'delayed', 'frozen', 'frozen-home', 'frozen-back', 'hardware', 'stale', 'burst', 'frozen-burst']
