@@ -219,9 +219,13 @@ static int32_t text_close(void *c,uint64_t session){
     if(text_runtime_loss==4)runtime_lost=true;
     return RISC_TEXT_ENTRY_OK;
 }
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "points_policy_text_fixture.inc"
+#else
 static const risc_text_entry_api_v1_home_reason text_api={
     {1,sizeof(text_api),NULL,text_open,text_poll,text_close},
     RISC_TEXT_ENTRY_HOME_REASON_TAG,RISC_TEXT_ENTRY_HOME_REASON_VERSION};
+#endif
 static void text_complete(unsigned state,const char *value){
     assert(text_opened);text_state.state=state;if(value){memset(text_state.text,0,sizeof(text_state.text));strcpy(text_state.text,value);}pc_name_step();
     if(!name_client.active&&pc_live()){t5_app_input_t neutral={0};contact.contact_count=0;assert(render_app->poll(&neutral,20));}
@@ -270,7 +274,11 @@ static bool release(risc_runtime_capability_v1 *g){io();assert(live_grants&&g->a
     if(g->api==&text_api&&text_runtime_loss==5)runtime_lost=true;
     live_grants--;*g=(risc_runtime_capability_v1){.struct_size=sizeof(*g)};return true;}
 #ifdef TEST_RESIDENT_CLIENT
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "points_policy_resident_fixture.h"
+#else
 #include "resident_test_bridge.h"
+#endif
 #else
 #define TEST_RESIDENT_BINDING
 #endif
@@ -279,6 +287,11 @@ const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t v){return v==1&&!runtim
 static bool fixture_poll(t5_app_input_t *in,uint32_t delay) {
     bool ok=render_app->poll(in,delay);
     if(!ok)return false;
+#ifdef PORTABLE_RASTER_SNAPSHOT
+    /* Scripted page actions represent user input after the copied page has
+     * become visible. Do not consume the next action during sliced replay. */
+    if((script_mode==1||script_mode==3)&&paper&&(dirty||!paper_frame_idle()))return true;
+#endif
     if(script_mode==1){assert(script_at<script_count);*in=script[script_at++];}
     else if(script_mode==2){
         if(!script_at){assert(points_editor_begin_event(&editor,0));unknown_save=true;pc_save(false);assert(editor.store.uncertain);script_at++;nav_home=true;}
@@ -475,7 +488,11 @@ static int fault_test(const char *kind) {
     } else if(!strcmp(kind,"text-frame")) {
         assert(points_editor_begin_type(&editor,0));pc_page(PC_CUSTOM);paint();
 #ifdef ALARM_NATIVE_UTC
-        strcpy(editor.type.name,"Drain pending");dirty=true;hold_frame=true;frame_release_after=ticks+32;pc_draw();assert(display_inflight&&!paper_frame_idle());
+        strcpy(editor.type.name,"Drain pending");dirty=true;hold_frame=true;frame_release_after=ticks+100000;pc_draw();
+#ifdef PORTABLE_RASTER_SNAPSHOT
+        for(unsigned i=0;i<1000&&!display_inflight;i++){t5_app_input_t in={0};assert(render_app->poll(&in,1));}
+#endif
+        assert(display_inflight&&!paper_frame_idle());frame_release_after=ticks+32;
         pc_custom_action(0);assert(name_client.active&&!display_inflight&&!live_frames&&!live_subs);
 #else
         portable_nova_begin();assert(live_frames==1);pc_custom_action(0);assert(name_client.active&&!live_frames&&!live_subs);

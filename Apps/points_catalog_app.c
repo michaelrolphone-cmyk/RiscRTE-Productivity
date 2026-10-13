@@ -13,6 +13,12 @@
 #include "PortableTimeFormat.h"
 #include "PortableNovaUi.h"
 #include "PortableTextInputClient.h"
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+#include "PortableTextInputPolicy.h"
+#include "RiscRuntimeHostControlV1.h"
+static portable_text_checkpoint_client name_checkpoint;
+static bool name_policy_continuity,name_policy_exit;
+#endif
 #include "PortableAppSleep.h"
 #include "points_catalog_controller.h"
 #include "PointsServiceProjection.h"
@@ -278,6 +284,12 @@ static void pc_page(unsigned next) {
         if(rc==RISC_TEXT_ENTRY_RETAINED){pc_retain();return;}
         if(rc!=RISC_TEXT_ENTRY_OK){notice=rc==RISC_TEXT_ENTRY_BUSY?"Text input busy: retry":"Text input unavailable: draft kept";dirty=true;return;}
         name_finished=false;name_result=(risc_text_entry_state_v1){0};
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+        name_checkpoint=(portable_text_checkpoint_client){0};name_policy_continuity=name_policy_exit=false;
+        rc=portable_text_checkpoint_enable(&name_client,&name_checkpoint);
+        if(rc==RISC_TEXT_ENTRY_RETAINED){pc_retain();return;}
+        if(rc!=RISC_TEXT_ENTRY_OK){name_finished=true;name_result.state=RISC_TEXT_ENTRY_CANCELLED;notice="Text input unavailable: draft kept";}
+#endif
     }
 #ifdef ALARM_NATIVE_UTC
     paper_input_ready=false;pc_paper_page_reset();

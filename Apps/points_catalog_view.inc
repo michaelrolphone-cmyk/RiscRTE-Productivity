@@ -153,16 +153,61 @@ static void pc_days_view(void) {
     pc_footer("BACK","DONE");
 }
 static bool pc_name_nonempty(void){for(unsigned i=0;name_draft[i];i++)if(name_draft[i]!=' ')return true;return false;}
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+/* The shared editor owns input until it confirms a settled pause. Preserve
+ * the X4 catalog draft while the resident Home host services power policy. */
+static void pc_name_policy(void){
+    if(!name_checkpoint.pausing&&!name_checkpoint.paused){
+        risc_text_entry_checkpoint_state_v1 snapshot={.struct_size=sizeof(snapshot)};
+        int rc=portable_text_checkpoint_snapshot(&name_client,&name_checkpoint,&snapshot);
+        if(rc==RISC_TEXT_ENTRY_RETAINED){pc_retain();return;}
+        if(rc!=RISC_TEXT_ENTRY_OK)return;
+        rc=portable_text_adapter_policy_prepare(snapshot.flags,&name_policy_continuity);
+        if(rc<0){pc_retain();return;}
+        if(!rc)return;
+    }
+    int rc=portable_text_checkpoint_pause_mode(&name_client,&name_checkpoint,name_policy_continuity);
+    if(rc==RISC_TEXT_ENTRY_RETAINED){pc_retain();return;}
+    if(rc!=RISC_TEXT_ENTRY_OK)return;
+    uint32_t flags=0;int policy=portable_text_adapter_policy_apply(name_policy_continuity,&flags);
+    if(policy<0){pc_retain();return;}
+    if(policy>0){name_policy_exit=true;name_result.state=RISC_TEXT_ENTRY_CANCELLED;name_finished=true;return;}
+    if(portable_text_checkpoint_resume(&name_client,&name_checkpoint,flags)!=RISC_TEXT_ENTRY_OK)pc_retain();
+}
+#endif
 static void pc_name_step(void){
     if(!name_client.active||!pc_live())return;
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+    if(portable_text_adapter_policy_capture()<0){pc_retain();return;}
+    if(!name_finished&&(name_checkpoint.pausing||name_checkpoint.paused)){
+        int attention=portable_text_adapter_attention();
+        if(attention<0){pc_retain();return;}
+        if(!attention){pc_name_policy();return;}
+        name_result.state=RISC_TEXT_ENTRY_CANCELLED;name_finished=true;
+    }
+#endif
     if(!name_finished){
         int rc=portable_text_client_poll(&name_client,&name_result);
         if(rc==RISC_TEXT_ENTRY_AGAIN)return;
         if(rc!=RISC_TEXT_ENTRY_OK){pc_retain();return;}
-        if(name_result.state==RISC_TEXT_ENTRY_EDITING)return;
+        if(name_result.state==RISC_TEXT_ENTRY_EDITING){
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+            pc_name_policy();
+#endif
+            return;
+        }
         name_finished=true;
     }
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+    int pending_exit=portable_text_adapter_exit_pending();
+    if(pending_exit<0){pc_retain();return;}
+    name_policy_exit|=pending_exit>0;
+#endif
     if(!pc_name_close())return;
+#ifdef PORTABLE_TEXT_INPUT_POLICY
+    if(name_policy_exit){exit_app=true;return;}
+    if(!pc_live())return;
+#endif
 #ifdef PORTABLE_RESIDENT_SHELL_CLIENT
     /* Only a negotiated physical/root Home reason exits the child. Back and
      * Escape remain ordinary editor cancellation after the same clean close. */

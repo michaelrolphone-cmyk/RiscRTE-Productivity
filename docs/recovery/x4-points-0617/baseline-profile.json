@@ -1,0 +1,1924 @@
+{
+  "schema": 1,
+  "app": "points_in_time",
+  "version": "0.6.12",
+  "source_revision": "53e0a82bca754a3d302c2cefd26cb596a8734bab",
+  "source_dirty": false,
+  "system_source_revision": "c336b776c869029ecd9f096aa5e6497759581440",
+  "system_dirty": false,
+  "runtime_source_revision": "615fb236b591bc6974a35ae23c7b2b785c0a5016",
+  "compiler": "xtensa-esp32s3-elf-gcc (crosstool-NG esp-2021r2-patch5) 8.4.0",
+  "resident_shell": {
+    "api": 1,
+    "role": "foreground",
+    "descriptor": "risc_resident_app_descriptor_v1",
+    "runtime_sdk": "/workspace/shared/runtime-keyboard-native-01100-source/sdk/app",
+    "sdk_sha256": {
+      "RiscRuntimeV1.h": "0171988c0b4cb7ff1146e871fab17e408ad352a1220f5851abef4c152473e8ad",
+      "RiscResidentShellV1.h": "1a84715c03fcc7fae7f75cb72c0daf875e761567dda5d1b39ec0dc8b14fba8bd",
+      "RiscFailureEvidenceV1.h": "f2b024c21780155bacf78bd67a279d8959365c1d25ff1ba421449dd5d3b35265"
+    },
+    "failure_evidence": false,
+    "quick_renderer": false,
+    "legacy_handoff": false,
+    "host_power_policy": true,
+    "checkpoint": "explicit-settled-poll",
+    "child_home": "clean-return",
+    "hardware_verified": false,
+    "source_sha256": {
+      "lib/PortableApps/src/resident_adapter.inc": "574c91615f8ae28f060195f97c2b8b253d287754df610d32bb3096c4cf32b01c",
+      "lib/PortableApps/src/resident_shell.inc": "d29f7fe46a00fd7599738415cecd7405a2f781d4ba371adf4bac4416ceb85061",
+      "lib/PortableApps/src/resident_failure.inc": "b2b0f9cd238226a289dca6cf84c149e0c9ac173e04dfb9cb73564317ed8a1982",
+      "lib/PortableApps/src/failure_evidence.inc": "34d9dc902637d1bbcc26ea60a5c3fe9db7ed9062261d2aa5bdfd2c5c7eb6650c",
+      "lib/PortableApps/src/resident_policy.inc": "7944cc633be5230014c16d5070ab7eae3fdeacb83ebd66bf6a6dd24b48632d25",
+      "lib/PortableApps/include/PortableResidentShell.h": "1468438dedba1b80c9ccfddda5d4b0656aab2673ec75e01a6784d246f3449830"
+    }
+  },
+  "build_defines": [
+    "-DPORTABLE_STAGE_LOGS",
+    "-DPORTABLE_NOVA_UI",
+    "-DPORTABLE_ALARM_CLIENT",
+    "-DALARM_SERVICE_TAGGED_V2",
+    "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+    "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+    "-DPORTABLE_INPUT_NAVIGATION",
+    "-DPORTABLE_DISPLAY_ROTATION=90",
+    "-DPORTABLE_HOME_APP=\"default.elf\"",
+    "-DPORTABLE_APP_LAUNCH_GUARD",
+    "-DPORTABLE_BLE_BROADCAST",
+    "-DPORTABLE_BLE_BROADCAST_DEFAULT_OFF",
+    "-DPORTABLE_PAPER_PREFERENCES",
+    "-DPORTABLE_UNPADDED_HOURS",
+    "-DALARM_NATIVE_UTC",
+    "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+    "-DPORTABLE_RESIDENT_SHELL_CLIENT",
+    "-DPORTABLE_ALARM_TERMINAL_RETENTION",
+    "-DPORTABLE_RESIDENT_POLICY",
+    "-DPORTABLE_TEXT_INPUT_CLIENT"
+  ],
+  "compile_command": [
+    "/workspace/scratch/c744abbbbd60/watch-build-tools/platformio-core/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc",
+    "-std=c11",
+    "-Os",
+    "-fPIC",
+    "-mtext-section-literals",
+    "-mlongcalls",
+    "-fvisibility=hidden",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fstack-usage",
+    "-nostdlib",
+    "-nostartfiles",
+    "-shared",
+    "-Wl,--no-relax",
+    "-Wl,--hash-style=sysv",
+    "-Wl,--version-script=/workspace/shared/x4-shared-keyboard-051/points-target/points_in_time/exports.map",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-DPORTABLE_STAGE_LOGS",
+    "-DPORTABLE_NOVA_UI",
+    "-DPORTABLE_ALARM_CLIENT",
+    "-DALARM_SERVICE_TAGGED_V2",
+    "-DPORTABLE_NATIVE_CUSTODY_FENCE",
+    "-DPORTABLE_NATIVE_TIME_TOOLBAR",
+    "-DPORTABLE_INPUT_NAVIGATION",
+    "-DPORTABLE_DISPLAY_ROTATION=90",
+    "-DPORTABLE_HOME_APP=\"default.elf\"",
+    "-DPORTABLE_APP_LAUNCH_GUARD",
+    "-DPORTABLE_BLE_BROADCAST",
+    "-DPORTABLE_BLE_BROADCAST_DEFAULT_OFF",
+    "-DPORTABLE_PAPER_PREFERENCES",
+    "-DPORTABLE_UNPADDED_HOURS",
+    "-DALARM_NATIVE_UTC",
+    "-DPOINTS_RETURN_APP=\"springboard.elf\"",
+    "-DPORTABLE_RESIDENT_SHELL_CLIENT",
+    "-DPORTABLE_ALARM_TERMINAL_RETENTION",
+    "-DPORTABLE_RESIDENT_POLICY",
+    "-DPORTABLE_TEXT_INPUT_CLIENT",
+    "-I/workspace/shared/x4-shared-keyboard-051/points-target/sdk/include",
+    "-I/workspace/shared/system-shared-text-terminal-051/lib/NativeApps/include",
+    "-I/workspace/shared/x4-shared-keyboard-051/points-source/lib/NativeApps/include",
+    "-I/workspace/shared/x4-shared-keyboard-051/points-source/lib/Bluetooth/include",
+    "-I/workspace/shared/x4-shared-keyboard-051/points-source/lib/Contexts/include",
+    "-I/workspace/shared/x4-shared-keyboard-051/points-source/Apps",
+    "-I/workspace/shared/system-shared-text-terminal-051/Apps",
+    "/workspace/shared/x4-shared-keyboard-051/points-source/Apps/points_catalog_app.c",
+    "/workspace/shared/system-shared-text-terminal-051/lib/PortableApps/src/adapter.c",
+    "/workspace/shared/system-shared-text-terminal-051/lib/PortableApps/src/PortableRealtimeClient.c",
+    "/workspace/shared/system-shared-text-terminal-051/lib/PortableApps/src/PortableTimeZone.c",
+    "/workspace/shared/system-shared-text-terminal-051/lib/PortableApps/src/PortableTimeZoneCatalog.c",
+    "/workspace/shared/system-shared-text-terminal-051/lib/PortableApps/src/PortableTimeZonePreference.c",
+    "/workspace/shared/x4-shared-keyboard-051/points-target/points_in_time/catalog.c",
+    "-lgcc",
+    "-o",
+    "/workspace/shared/x4-shared-keyboard-051/points-target/points_in_time/points_in_time.elf"
+  ],
+  "imports": [
+    "free",
+    "malloc",
+    "memchr",
+    "memcmp",
+    "memcpy",
+    "memmove",
+    "memset",
+    "risc_runtime_get_api",
+    "snprintf",
+    "strcmp",
+    "strcpy",
+    "strlen"
+  ],
+  "exports": [
+    "app_main",
+    "app_module_fini",
+    "app_module_init",
+    "risc_resident_app_descriptor_v1"
+  ],
+  "elf_sha256": "f43cfccce58958cd1019e0efe07b1b9ee519ee6f55f8510909dd75b133f6a685",
+  "elf_bytes": 383276,
+  "quick_render_definitions": 0,
+  "requires": [
+    {
+      "capability": "display.output",
+      "api": 1
+    },
+    {
+      "capability": "input.touch.raw",
+      "api": 1
+    },
+    {
+      "capability": "input.navigation",
+      "api": 1
+    },
+    {
+      "capability": "runtime.realtime",
+      "api": 1
+    },
+    {
+      "capability": "storage.key-value",
+      "api": 1
+    },
+    {
+      "capability": "alarm.service",
+      "api": 2
+    },
+    {
+      "capability": "board.battery",
+      "api": 1
+    },
+    {
+      "capability": "telemetry.broadcast",
+      "api": 1
+    },
+    {
+      "capability": "storage.app-data",
+      "api": 1
+    },
+    {
+      "capability": "ui.text-input",
+      "api": 1
+    }
+  ],
+  "required_grants": [
+    {
+      "capability": "display.output",
+      "api": 1,
+      "instance_id": 3
+    },
+    {
+      "capability": "input.touch.raw",
+      "api": 1,
+      "instance_id": 4
+    },
+    {
+      "capability": "input.navigation",
+      "api": 1,
+      "instance_id": 6
+    },
+    {
+      "capability": "runtime.realtime",
+      "api": 1,
+      "instance_id": 0
+    },
+    {
+      "capability": "storage.key-value",
+      "api": 1,
+      "instance_id": 1
+    },
+    {
+      "capability": "alarm.service",
+      "api": 2,
+      "instance_id": 0
+    },
+    {
+      "capability": "board.battery",
+      "api": 1,
+      "instance_id": 7
+    },
+    {
+      "capability": "telemetry.broadcast",
+      "api": 1,
+      "instance_id": 0
+    },
+    {
+      "capability": "storage.key-value",
+      "api": 1,
+      "instance_id": 5
+    },
+    {
+      "capability": "storage.app-data",
+      "api": 1,
+      "instance_id": 5
+    },
+    {
+      "capability": "ui.text-input",
+      "api": 1,
+      "instance_id": 0
+    }
+  ],
+  "features": {
+    "app_source": "Apps/points_catalog_app.c",
+    "idle_policy": "resident-host",
+    "native_time": true,
+    "scrolling": "completed-frame paper lists",
+    "storage": "points.catalog namespace5",
+    "telemetry_default": "off",
+    "shared_text_input": "ui.text-input@1 instance0; no local fallback"
+  },
+  "compiled_dependencies_sha256": {
+    "Source/Apps/points_catalog_app.c": "8276e0bab8b7ff7105e29efb7f04e7834d01a4b0b19ed44329478890644d6ed7",
+    "System/lib/NativeApps/include/T5AppApi.h": "eb0acebe0b1a151916b9f05afd98025e8e516c251337b8fe48fd3961bd58a981",
+    "System/Apps/SpringboardPresentation.h": "af80cd3f66de0ca0ca7077a926e196a14de2c79263d449f90e501090aa55031b",
+    "System/Apps/PaperPresentation.h": "8d13a8c73187d1e35f67c3208f861b95ceac143b6401e6572c2b4356ef409747",
+    "System/Apps/PaperFrame.h": "3155ebec9e635cf027a943af693f863533706f164ccad4be8a632c86811ca402",
+    "CompiledSDK/RiscRuntimeV1.h": "0171988c0b4cb7ff1146e871fab17e408ad352a1220f5851abef4c152473e8ad",
+    "CompiledSDK/PortableRtcClock.h": "43508db1cd392606cf37a7e55ad15e3770de1284af13a431876fd5d7785b838c",
+    "CompiledSDK/PortableTimeFormat.h": "8eb4d0f850c974da910a516c0f13ed9302ad3928849aa85d7641bdbcf3bd1867",
+    "CompiledSDK/RiscKeyValueV1.h": "5d5524ffd27b164f31505c5f538f528b39b35e356922e03e2eb59a9c68677b56",
+    "CompiledSDK/PortableNovaUi.h": "7301c01a0bdeee5888b518bfb19aefeec65403caf52c589b41eb4e1dfc628291",
+    "CompiledSDK/PortableTextInputClient.h": "37f0f0e69a4d38b7af4299d8e3085e13f316b3262ffcf210f10af2cae4f4a814",
+    "CompiledSDK/RiscTextEntryV1.h": "607443945989e70a6a84f6ab1d35f129bc7e1e1c68c5bb250904c09d77b45440",
+    "CompiledSDK/PortableTextInputHandoff.h": "ef811b3b7cf805ccdab1fb330e09dd8c533e303d29b8b4693ae5089a85432c36",
+    "CompiledSDK/PortableAppSleep.h": "027f70965663bc86e7f3bbf2733002870e2254ec92d39037def5f42c52fedc62",
+    "CompiledSDK/RiscDisplayOutputV1.h": "99b682ba34f07e7868dec8e78dfb816c067fdc184e647033bc6ed8d489b9c9a2",
+    "CompiledSDK/RiscBatteryGaugeV1.h": "03d2f2b78e8f261cfb10f5c44bcabc1495bfecb17d7953586a58c27dce151b86",
+    "CompiledSDK/RiscProviderV2.h": "2935d83493a411e19ee98b8c7e805b86f4adf98c6bde66fd031df7cc379bdc17",
+    "CompiledSDK/RiscStreamProviderV1.h": "0fe306e060321387c816bb70ec4370a501a423f4fe19a20c9be80aa1b98f3432",
+    "CompiledSDK/AlarmServiceV2.h": "d7e750a8093e1b5e698483254edc38533b7242a3446d0bca5866c9dfd6ad07a1",
+    "CompiledSDK/AlarmServiceV1.h": "c70c087550306c123255e1ace41aeb504809e16b0193e382ec8dfbd7cb5531f5",
+    "Source/Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
+    "CompiledSDK/PointsCatalogStorage.h": "46e03ffebc97df202422627bdcb67ec76401dc1a37a1cf6faa47a2f5b394c195",
+    "CompiledSDK/PointsCatalog.h": "1805d9c0480a4e23b49d5dfed1b3aedb24723f22516689f8c6d2dea5816ef3a0",
+    "CompiledSDK/PointsRecords.h": "ee59148062a39b2973e70c9c4816c1109686df0440d0ffd0d56ef0bff8820332",
+    "CompiledSDK/AlarmRecords.h": "e04d9cfa6c32a70125ef618b85d048936afad2204fb97d459cda8c36fd0b2066",
+    "CompiledSDK/RiscAppDataV1.h": "49ced12bd617ce9e29626f97ee21d824edcf5f8272524a7da8780c60979df201",
+    "CompiledSDK/PointsServiceProjection.h": "42710361e60a6f644377302d1492ef24bbfd392aebe72acac3b8c5414702977a",
+    "CompiledSDK/PointsCatalogProjection.h": "df15444df2afdb7e202be1feee03154353523fd12ab781417ada4a3f0661bfea",
+    "CompiledSDK/PortableRealtimeClient.h": "9a366511975762ab7124931e9124756319acfe586ba9f3881a9f710129290b0a",
+    "CompiledSDK/RiscRealtimeV1.h": "639781f728841cda6d40c3033877436b9e5d59519a4b15e11a9bc99b2365395d",
+    "CompiledSDK/PortableRtcBasis.h": "89bd6751cf29c78e0eb3b76b3fe1862d5ebe733b9da0de4688e95150885496f9",
+    "CompiledSDK/PortableTimeZone.h": "3cfb6687d8f3675beb020a059b8cd3b3d8beffd42c11c6fd61d14b48af729c54",
+    "CompiledSDK/PortableTimeZonePreference.h": "0674f99eebc20d8665dc63915019c39b0dd7171e0ea8b6a284150b2eb473d7b0",
+    "CompiledSDK/PointsUtcSchedule.h": "b1ff4460410ec793d2fe7711562412c0e735e80c7fc4b881d761dab4e973e188",
+    "CompiledSDK/PointsSchedule.h": "9e34d32dbf989ee28f287813744748ab2d3193857a71bcab66e1f9b41749306c",
+    "CompiledSDK/PortableTime.h": "350b8c5255dafa9e25c4a20cfb458cdcda3439da929dab05e0de0c82e981ff6e",
+    "CompiledSDK/PortableTouchScroll.h": "d19aba992818d60477ef0fea7882b73dd6c9c1bd1db76d4d0faf9acc2e64aebd",
+    "CompiledSDK/PortableTouch.h": "b1fdc4c6a7dd54fb7d7a74617a2946a863d04ffa0868437192eeeed88f4e4341",
+    "CompiledSDK/RiscTouchV1.h": "fe18fab3ac20fda95747388f1428408b7795e5da3511c7a9fff07c16ddfd2c7d",
+    "CompiledSDK/PortableNativeCustody.h": "9dc7d0fb89bbab8304d829fa63e5baed3c6c348fdf37cc4166f5e8117a2594b6",
+    "Source/Apps/points_catalog_view.inc": "c15a4fed111b1f5cfbec70740bf17cee44739fbcb76e38a76752f6c4c3190f30",
+    "Source/Apps/points_catalog_paper.inc": "de93a981d8c6b58728bc0c20ddd7975691c1348aed25c4d27347bcb41e0d5d82",
+    "Source/lib/PointsCatalog/fonts/text.inc": "0150d2c13eaa00178903e44ec4e00ec7f082f4167eea76cd41ab3e20a45b41b1",
+    "System/lib/PortableApps/src/adapter.c": "44c3cad1cd0727d03b69c33f28f1559e786a330ec80c579d9ec37c26dbda99c5",
+    "CompiledSDK/RiscResidentShellV1.h": "1a84715c03fcc7fae7f75cb72c0daf875e761567dda5d1b39ec0dc8b14fba8bd",
+    "CompiledSDK/PortableApps.h": "d8fc1fae3669c439fda7af94568a93bc1d1f35ddc6fe05615eac1cb41ea4a78e",
+    "CompiledSDK/PortablePerformance.h": "4242d93019235138f6d0a80cd1edc58e55b9c591157d5f90b0d6c2992ce0672e",
+    "CompiledSDK/PortableStageLog.h": "b347496d8bbb70cbbc19bd85d4a4a214f57b660d90cfb1ccaab9138fac787f02",
+    "CompiledSDK/PortableReaderPreferences.h": "3f0b7b12b1ddf6bf9c45c9598dab5488feadde0e9f5879b5e12c9f4eff8d4eda",
+    "CompiledSDK/PortableSleepPolicy.h": "70fa8ff8f63270b2a04d591bdbc61cd7e16d6483421121a96fe22f2855966d9d",
+    "CompiledSDK/T5BatteryApi.h": "f939c924102099de4ed746519791ce2b68eb2bac79bc212caeaad1366dc8c9a5",
+    "System/lib/NativeApps/include/T5StorageApi.h": "be0d63a89943a75a58723b703284992e8c6e95956c7cb39a9b3523af2c5d23ba",
+    "System/lib/NativeApps/include/T5UiApi.h": "88dbfde2a45ab385c69ee0b8192e8025446c9872711e4810f799251479b1057a",
+    "System/lib/NativeApps/include/T5VideoApi.h": "af3f2318e53e20efb4e8e9e98d93abae11f1788fe14640c7b02392c22d08c6a4",
+    "CompiledSDK/PortableBackgroundServices.h": "f1291afed98c321a81550e7648234d478652f81299cbad9c44814218a384e5b8",
+    "CompiledSDK/PortableAppLaunchGuard.h": "ddd3bd1650986e4c5f77687e9c52ecdfce6ee7114f6628ad2c5c02b47df6c144",
+    "System/lib/PortableApps/src/performance.inc": "547a1f1902f60b816b8dc25a28821fb0a4c84c21e219c460a6dbb760a8c71db9",
+    "CompiledSDK/PortableAlarmClient.h": "587a85823462e36a2819fe22227b029bcd687fee6d4484a86063b03b4e420aa1",
+    "CompiledSDK/PortableAlarmTerminalClient.h": "1aa14ef12171b849c63ad002e9c3b7988379a6fc01f7687da8c1190b3bc79635",
+    "System/lib/PortableApps/src/native_custody_adapter.inc": "282ac88efba966f82ff6b1ab4b5f4db9728eddb1990969bffc7caee4e9e82a33",
+    "CompiledSDK/PortableBroadcastClient.h": "51ed76a5fac542fb2d5ae039797806fd8b1d31f69a072340c0ce91e628cbff2d",
+    "CompiledSDK/TelemetryBroadcastV1.h": "986a52b5a3ddd361189d204e33624ce6275d953bca6a94a6e6dd5c136a89e2d5",
+    "CompiledSDK/RiscTelemetryV1.h": "8ef64c586e8392c1d7521498c25cfdaccefd53242530e2dda9116e9cc12a5d48",
+    "CompiledSDK/PortableRadioPolicy.h": "2b6ca371fafe5dac5d30145d40e72d88b2fe04bba52a43efae3bff9ead58b3b5",
+    "CompiledSDK/PortableQuickPreferences.h": "b3f72b03bee30e9acec34d1aab5d0c7e86bc3315d8ecc99b6bb99cf09ea08eee",
+    "System/lib/PortableApps/src/broadcast_adapter.inc": "5ae10c1fe8885f5f7b6f006d1be528d3d3d141cdbacddcf97251d64b1b5de96d",
+    "CompiledSDK/PortableNavigation.h": "f3b9623d1e97d6a18df565aef0d9c934f18a1b97b701fbbc208de3bf0a344e6d",
+    "CompiledSDK/RiscInputNavigationV1.h": "2644754feb7238d066908658ac9d4fe25537d4d5e424a6aef1365fabea600a26",
+    "System/lib/PortableApps/src/native_toolbar.inc": "0ecab2af95aab850734d9a13482a9e3177d4a6cddf5499435ae746fe7a21151f",
+    "CompiledSDK/PortableNativeTimeToolbar.h": "940454536d845d560b734eb8e887e789f4d32fadff7e5d132dc259eb69106b3b",
+    "System/lib/PortableApps/src/nova.inc": "e77c6d92ce0b19f0aa0eb1483763aea927d1ca9d61a791611d209d2721aa0b65",
+    "System/lib/PortableApps/fonts/icons.inc": "fbfee54e9dd3fd331bdfc6babf60427ccffa93c4e8956ceb0129d2b6111d411d",
+    "System/lib/PortableApps/fonts/text.inc": "88aad3c3002381190ba5fc584fb2177b623cbeb30bc6cf7bfde10b0399d20c42",
+    "System/lib/PortableApps/src/nova_ui.inc": "93415d4dfacc9bfe04cc0a99af13d031e78d1069ab9cdd6f77b2427cdf3d7253",
+    "System/lib/PortableApps/settings_fonts/text.inc": "8453a3f7c123799354a0ff4246dba420de2a612f421d6d9de9bf4c976073b449",
+    "System/lib/PortableApps/src/paper.inc": "cd3cf01c5cd454bedccc14e61ada2e75d4f4143959ece4912dbe6dd68335735c",
+    "System/lib/PortableApps/paper_fonts/text.inc": "9ee273df1c27df92d8ab2a985fb474d15b715770984894da4fee40b8cd9f2e4a",
+    "System/lib/PortableApps/src/resident_adapter.inc": "574c91615f8ae28f060195f97c2b8b253d287754df610d32bb3096c4cf32b01c",
+    "System/lib/PortableApps/src/resident_shell.inc": "d29f7fe46a00fd7599738415cecd7405a2f781d4ba371adf4bac4416ceb85061",
+    "System/lib/PortableApps/src/alarm.inc": "d376d94a254fd625f10941179d3ee0c42e4d1c9375fa4f533478ac80aa6027c3",
+    "System/lib/PortableApps/src/text_input_handoff.inc": "0ef2e8afd0de6d2bbc4a0d6563be33699a1b0a65db224aad4a632f0df103a43d",
+    "System/lib/PortableApps/src/foreground_adapter_open.inc": "bef743cc1148af6f40ee34efa77aa696323afa5befc2d6df29f7f1f3b8b764a2",
+    "System/lib/PortableApps/src/PortableRealtimeClient.c": "a8115817eb490bb51f3e338fde4dce2542cb82dceefe476beae21a91c14ceade",
+    "System/lib/PortableApps/src/PortableTimeZone.c": "28c0fecf7a4d83bde07d2b72cb591122cf3c49c3219c8344b97b82a90625c5e7",
+    "System/lib/PortableApps/src/PortableTimeZoneCatalog.c": "29d4c86037f7554c94a4404d5e39e28091430a1f9c23b5e35224aed3df826f20",
+    "System/lib/PortableApps/src/PortableTimeZonePreference.c": "b54e455d587ba2ecda8f59dd899b59b767214aee807b92d79d18c5e9d30b6bb7"
+  },
+  "build_helper_sha256": "1f7209b1f74d8f706b7b5f73be9aaf52061ce5679bbb99dea79f8aa7bd0779de",
+  "sdk_sha256": {
+    "PortableRtcClock.h": "43508db1cd392606cf37a7e55ad15e3770de1284af13a431876fd5d7785b838c",
+    "RiscSpiBusV1.h": "f6c972e5dedb44e55422754d6b43af9b15cad039caac64f7a59266cc9ce6913a",
+    "AlarmOutputV1.h": "b19cbe20602aa4fd3b184910e781e944c28fe30e72dcf919701d9b8eeab750c2",
+    "PortableWifiView.h": "53e65deeabecb8a770cc3c3a3da8706222489d3972142d4701fa1fec9adcce4b",
+    "PortableTimeZone.h": "3cfb6687d8f3675beb020a059b8cd3b3d8beffd42c11c6fd61d14b48af729c54",
+    "RiscI2cBusV1.h": "651d470d29618654dc59af98feae504ff135c37324a11e650c966cd79b151fb5",
+    "PortableNovaKeyboard.h": "388cdc97e48b6e3378f1cf80b1b5dc3b0e116dd1e30a061697ae56bfb15ec0eb",
+    "PortablePowerStatus.h": "957925504f2032963d1f2411bc676f2f6b493b41db3f9317182c2cca1a3067e4",
+    "PortableTimeZonePreference.h": "0674f99eebc20d8665dc63915019c39b0dd7171e0ea8b6a284150b2eb473d7b0",
+    "RiscCpuWorkerV2.h": "96c76f4d26bfc148686d5d5ad1ef99542798ec6ae4f2afd8ea99a504de80d102",
+    "PortableTouch.h": "b1fdc4c6a7dd54fb7d7a74617a2946a863d04ffa0868437192eeeed88f4e4341",
+    "PortableStageLog.h": "b347496d8bbb70cbbc19bd85d4a4a214f57b660d90cfb1ccaab9138fac787f02",
+    "RiscPerformanceV1.h": "c1e52e2e257a057dbbbc371fb8d83d9262bcea674f28f6ce9c56725b0d6dd14d",
+    "AlarmServiceV1.h": "c70c087550306c123255e1ace41aeb504809e16b0193e382ec8dfbd7cb5531f5",
+    "RiscHciControllerStatusV1.h": "235b388d91ed7e0becbb44dd476a29ef526fb2f7d9bf44b1072b86cbe5860e0e",
+    "RiscUsbInterruptV1.h": "bfdd4644feaf3f4dc5d06070f052104579d3fb902e27e707f27943d7bf22815e",
+    "AlarmServiceV2.h": "d7e750a8093e1b5e698483254edc38533b7242a3446d0bca5866c9dfd6ad07a1",
+    "RiscArchiveZipV1.h": "5909fdfe34a457895e4e4112b80bf0fbba98cc01a405fa62ee0171387b84ca05",
+    "PortableSleepPolicy.h": "70fa8ff8f63270b2a04d591bdbc61cd7e16d6483421121a96fe22f2855966d9d",
+    "PortableSetTime.h": "1b5b89512ca1c670adacb1ea759e22a8305bd3648b860f5bc898cfd1fbaeb5cc",
+    "PortableWifiCredentials.h": "87a85e23aaf2d7859dab07db8bd1e2439afe730be969f5e82553777879c3021c",
+    "AlarmRecords.h": "e04d9cfa6c32a70125ef618b85d048936afad2204fb97d459cda8c36fd0b2066",
+    "RiscStreamResultV1.h": "af140ee9ca4f6286c5f1beeecb0a0952264b14eb40d3ba4f313ff952e8824a6f",
+    "RiscTouchV1.h": "fe18fab3ac20fda95747388f1428408b7795e5da3511c7a9fff07c16ddfd2c7d",
+    "PortableRadioPolicy.h": "2b6ca371fafe5dac5d30145d40e72d88b2fe04bba52a43efae3bff9ead58b3b5",
+    "RiscBatteryGaugeV1.h": "03d2f2b78e8f261cfb10f5c44bcabc1495bfecb17d7953586a58c27dce151b86",
+    "PortableDeskClockApp.h": "3ffdc1ae309e95bfaaf3ac67bd91d6a2c9eeb8b0c5ec22c3e40afa65e8e2b1ee",
+    "RiscFailureEvidenceV1.h": "f2b024c21780155bacf78bd67a279d8959365c1d25ff1ba421449dd5d3b35265",
+    "T5DisplayProviderV1.h": "e16678232c244043656f00d152da2f5abd8dbf06a53d125edd0f7b090d7cb64f",
+    "PortableContextPreferences.h": "1fb5e6d3cc796892f15c15162bd38b64d4b4508756de5f0c77b2015fbe388826",
+    "PortableAlarmTerminalClient.h": "1aa14ef12171b849c63ad002e9c3b7988379a6fc01f7687da8c1190b3bc79635",
+    "PortableTransition.h": "627e00b7c8143d946556f67a61803a56335f747dd8f6489bbfcabaef015542d2",
+    "PortableUpdate.h": "344344762bfc0430285ecf8a781b64fb3789949cca7a517ad0b0684bf7fa6b76",
+    "AlarmDnd.h": "719233156a13d08ec0113670a2a5a6d8cddf7fca120a36244a95575127bebd95",
+    "PortableDeskClockSettings.h": "ca26111d67474f7664d9fac748708c25f0bc0454c0ffe647e6199d689059af0d",
+    "RiscBluetoothTelemetryV1.h": "f98aaff4165ee3816846cfe9ba110e8bafce403342a870162eb1089a03d935a6",
+    "RiscStorageVolumeV1.h": "96902eb6cca4356d44066798d0edb1260e32ae23721a401404450cdb191cd7e7",
+    "RiscDisplayOutputMetricsV1.h": "5be17adbae2ec26a855894e0d6443ac29572002c21efe53b2a913a5a0f0c642d",
+    "PortablePaperTransition.h": "2f1b60dddeeae8111287fc0aa13d0d15fcc37fcdaa5da3ae6fb96edb85847328",
+    "PortableAppLaunchGuard.h": "ddd3bd1650986e4c5f77687e9c52ecdfce6ee7114f6628ad2c5c02b47df6c144",
+    "RiscKeyValueV1.h": "5d5524ffd27b164f31505c5f538f528b39b35e356922e03e2eb59a9c68677b56",
+    "PortablePerformance.h": "4242d93019235138f6d0a80cd1edc58e55b9c591157d5f90b0d6c2992ce0672e",
+    "RiscGpioExpanderV1.h": "110f0b141842e7cdc6798519cc5cd61c371cfe0d3e0af59a3f19c12598242f55",
+    "RiscGpioBankV1.h": "58cb736872a689413f6ffcf24cc5cc1bce5187e7d7cfb6fcffe10ad854e7a35c",
+    "RiscMspFetV1.h": "883879ee0ce2ac3ff5df42eb549a856557132a4da5a1dfe22edff8ad8c4e015b",
+    "PortableQuickSession.h": "8ad2d781d59cb890f36f0d01a00a3ed97f4ca4ba7838381fa2a94ab9a9dc12c0",
+    "PortableQuickRadios.h": "676fbb46d0eae28fef515672a20c380088f69b3389a14ae44b5a67b9f014c44b",
+    "RiscDisplayPowerV1.h": "097c226f2e9f5a222115dd226b30b303231cd009a8401acf6d311a61a000d027",
+    "PortableTextInputClient.h": "37f0f0e69a4d38b7af4299d8e3085e13f316b3262ffcf210f10af2cae4f4a814",
+    "PortableNavigation.h": "f3b9623d1e97d6a18df565aef0d9c934f18a1b97b701fbbc208de3bf0a344e6d",
+    "RiscProviderSyncV1.h": "c0981bde804b20c1b963323f91c4e9804c144c56535160bfd467be7e93028f45",
+    "PointsCatalogLedger.h": "7ef0280b2b9d28db56dc77931336a6386255b6e1481f3b2dad469418b7c5a1d1",
+    "PortableSpringboardCatalog.h": "c5d0ef941090cb68a3d355989d6fedb27546a7d8b1fe16d30c702c326f3056ef",
+    "PortableBroadcastClient.h": "51ed76a5fac542fb2d5ae039797806fd8b1d31f69a072340c0ce91e628cbff2d",
+    "RiscHttpClientV1.h": "e966177d426d3fadcb420f5fa9dd7226d3450a208f7ed333808d6466ba7bf8d6",
+    "PortableDeskPointsSnapshot.h": "7d3a6816c86d029b9900e7af56e878cea814ed94d637a031031cc8fe928157eb",
+    "T5FileOpenApi.h": "c1b873e364dba81ce39d8c8a62668db618735407a6291dca87b9795ce4accc30",
+    "PortableAppCustody.h": "a4188562f44d12bdf9ca0b616fcb24dc8f67fbcb2b334f16e55530393e035c24",
+    "RiscBq25896ProfileV1.h": "04e33c1b5a3385c2bedf275b85aa62a5dbfbec8cb38c2f3879ebb413e70a0c98",
+    "RiscPackageResourcesV1.h": "8aff53415cf68a46e8e492dd02d12bde802ce2a1d69629dd4f3b0aad5794e459",
+    "RiscUsbVbusV1.h": "9936cde4d585e7ff6ae2d5441d746b47e14cf800806ce49c5a269d37eb84e110",
+    "AlarmVolume.h": "7010a97ce2b2d21ac35d50e52e1f419e14c46e06fe9c73151efb7c4ae651fdf6",
+    "RiscStreamClientV1.h": "ef5deb9a3bf8d20c0af9859a83977b93acfb8e480a851d0dcf96caf2795babcb",
+    "PortablePointsCatalogView.h": "0350a2d42d1befc07b838ef4386458d876cabc0820a2b773d9eb1b383dd2bead",
+    "RiscDisplayOutputV1.h": "99b682ba34f07e7868dec8e78dfb816c067fdc184e647033bc6ed8d489b9c9a2",
+    "PointsCatalogStorage.h": "46e03ffebc97df202422627bdcb67ec76401dc1a37a1cf6faa47a2f5b394c195",
+    "TelemetryBroadcastV1.h": "986a52b5a3ddd361189d204e33624ce6275d953bca6a94a6e6dd5c136a89e2d5",
+    "PortableWatchKeyboard.h": "f006ff13fe70236433ec6c37fb8cf5c4efe018d24393a9035c446e1f3554f4dd",
+    "PortableRtcBasis.h": "89bd6751cf29c78e0eb3b76b3fe1862d5ebe733b9da0de4688e95150885496f9",
+    "RiscRuntimeV1.h": "0171988c0b4cb7ff1146e871fab17e408ad352a1220f5851abef4c152473e8ad",
+    "PortableFileBrowser.h": "0f0119b91d7c66818fe1d3f977dc37562edb1da5455096eb3a821c97ac49f006",
+    "RiscProviderPromotionV1.h": "751585fed0336bf068cdde488d65b2e0191f113184e48eecbfb4f80861512c51",
+    "PortableNativeCustody.h": "9dc7d0fb89bbab8304d829fa63e5baed3c6c348fdf37cc4166f5e8117a2594b6",
+    "PortableRealtimeClient.h": "9a366511975762ab7124931e9124756319acfe586ba9f3881a9f710129290b0a",
+    "PortableNativeTimeToolbar.h": "940454536d845d560b734eb8e887e789f4d32fadff7e5d132dc259eb69106b3b",
+    "PortableAppSleep.h": "027f70965663bc86e7f3bbf2733002870e2254ec92d39037def5f42c52fedc62",
+    "WifiApi.h": "aca1437adcbe8a99bd6a76332a4543657b6440d98f622972c9f599fa21c5322a",
+    "RiscWakeSetV1.h": "0b5a4914ac67d37b420e1ea19b591a71440f6e4c20149ca4324e1049517ba375",
+    "RiscBankStoreV1.h": "4c20c21500f1c0724221f30cb5664e99b8316e3d0a9594319f63a206ed0e25a8",
+    "RiscLightSleepV1.h": "43cbd671265959ec2db7904bf6185e97a87c4cde9d389cdccf6fbb7c916f3b94",
+    "PortableQuickRender.h": "b5c18019df08ccb3c866d7cd72ba6eeb139c1cf8c8b82708929357d5744ec5e4",
+    "PortableDeskClock.h": "603609b28ee7d891de2743d0f86417c3b00ca4201be28eb42ac257194e594bb4",
+    "RiscRtcCalendarV2.h": "4cc86a4faa64a268908c1a073caadeddd205c2eca28f4e2658fde9b8f2ea865f",
+    "PointsUtcSchedule.h": "b1ff4460410ec793d2fe7711562412c0e735e80c7fc4b881d761dab4e973e188",
+    "TWatchHardwareV1.h": "ca48ca21a944565ae185f7c4e8cc0e73bcc18871d79b966f7e7da916e7ab2c99",
+    "RiscProviderV2.h": "2935d83493a411e19ee98b8c7e805b86f4adf98c6bde66fd031df7cc379bdc17",
+    "PortableResidentShell.h": "1468438dedba1b80c9ccfddda5d4b0656aab2673ec75e01a6784d246f3449830",
+    "PortableAlarmSettings.h": "cf4fb88bfeabb99282b02a871963858a9d20c8985e7da80d57341c33c5250284",
+    "T5GnssProvider.h": "f093ed0f5707b1cbe12caa5086f248e884fb5f69c7fbcf1f6f6a3ce911747116",
+    "RiscSerialPortV1.h": "7f00311161a071c6575be8b65e7aba30ebef7a8f1a45f9c0bf9168bc25e05700",
+    "RiscTextEntryV1.h": "607443945989e70a6a84f6ab1d35f129bc7e1e1c68c5bb250904c09d77b45440",
+    "RiscProgramMspV1.h": "fd1a7c6ebdfdaeb951c3b82abf2baca6f84f4a4e533841c12d2eb81ff2e0166f",
+    "RiscTimedSleepV1.h": "475ba9bfaf6c7497ace7baeb93f2bd9a6abe1e3a91f62eed24862a88d60dbf34",
+    "ContextsServiceV1.h": "ade2f40d01c7c384c6a71b4ee2a3b077c140ac6af06d7cc69350f02f7be6643d",
+    "PointsCatalogLedgerStorage.h": "7c4155384fdbdc79a7d34ba05113187bb1b9bbff03a0c5d723be27f1b314c60b",
+    "RiscStreamProviderV1.h": "0fe306e060321387c816bb70ec4370a501a423f4fe19a20c9be80aa1b98f3432",
+    "RiscRtcClockV2.h": "7c5d0b540c681e70875abec1eefc4f412a47d020033cf54f3556a1abf5cd3af7",
+    "RiscInputNavigationV1.h": "2644754feb7238d066908658ac9d4fe25537d4d5e424a6aef1365fabea600a26",
+    "PortableTime.h": "350b8c5255dafa9e25c4a20cfb458cdcda3439da929dab05e0de0c82e981ff6e",
+    "PortableQuickActions.h": "efe62edd6ca94e5882915e258a27758e394e0d129a96140d27865e328ccee01b",
+    "PortableContextsClient.h": "be53a3639e2de93a939c575814bc8183bf37ac7d5663cd2cbc33c26d4054a9de",
+    "RiscCameraCaptureV1.h": "7ad066a782e017361093f4a32780b7f2d7b720c72989ed1aa6babb2872170d88",
+    "RiscRadioIqResourceV1.h": "dd6a9684d5be6203846b5ee06f685ca3dae6835d1e3b95821c336a48b5fa3827",
+    "T5UsbClassDriver.h": "64a6a3a8081509ce9ab8e15c15095578174d9d7afb4343672576b89b4f65300d",
+    "PortableAlarmClient.h": "587a85823462e36a2819fe22227b029bcd687fee6d4484a86063b03b4e420aa1",
+    "RiscHardwareConfigV1.h": "47fa4cd7d4f09f571a5aedc87376d2f57520ad7873f5556af0a932011633e240",
+    "PortableRadioSession.h": "8b09b402a8235dbf48826b890a04dbcabe2f7ac6c600b90b42f71ac5997356b2",
+    "RiscUsbHidV1.h": "5b5549c4cb718dec55f2aca8bc93f401b2d5a703d30aaa1a78d1bcdd26755b5c",
+    "PortableNovaUi.h": "7301c01a0bdeee5888b518bfb19aefeec65403caf52c589b41eb4e1dfc628291",
+    "RiscUsbGamepadDiagnosticsV1.h": "b58df5e7618f8a0e3e58ae023fd034c96ff9f7d04b6c35080a4b6661a064ae0a",
+    "RiscReaderTypographyV1.h": "74505fcfb76664d076c1562ed91f0c63d503595f5ea86b6d19e9fda49d9ec6c4",
+    "RiscFirmwareI2cCompatV1.h": "4abe4c6d4b83432bd76ca8fdbf9502dfbab25f5579ae0acd6de367cc133bb0ef",
+    "PortableTextInputHandoff.h": "ef811b3b7cf805ccdab1fb330e09dd8c533e303d29b8b4693ae5089a85432c36",
+    "PortableQuickPreferences.h": "b3f72b03bee30e9acec34d1aab5d0c7e86bc3315d8ecc99b6bb99cf09ea08eee",
+    "PointsRecords.h": "ee59148062a39b2973e70c9c4816c1109686df0440d0ffd0d56ef0bff8820332",
+    "PortableBroadcastAppData.h": "39623ec4ebb2a1c576398b60be8cceef084ff7d0809d4f8903aaa6b7873bd30d",
+    "PortableBackgroundServices.h": "f1291afed98c321a81550e7648234d478652f81299cbad9c44814218a384e5b8",
+    "RiscSerialStreamSessionV1.h": "66d328c2a201625a7be348507c8dbedcaa937dfb46f86b05ecd04d60e3fba0b7",
+    "PortableWifiSavedNetwork.h": "9d61ddb8d6f5741e731c4b78123afeaf904a6447103b7231bc1d70842dd7e9ea",
+    "RiscTouchI2cV2.h": "78179bc7a8d2dbbb5fb738d1ffabe02b31312173e70c9573941d1c8a4fcad3cf",
+    "PointsCatalogSchedule.h": "cef89783a87ac52fbb81d8e146dd126a0c823a8b18a35e90836b7e9745bf3aa9",
+    "PortableTimeFormat.h": "8eb4d0f850c974da910a516c0f13ed9302ad3928849aa85d7641bdbcf3bd1867",
+    "RiscTextInputV1.h": "32f2a6cda3b7a4fef8487cc046ceb891261e483feafed32908cbd924112a1a77",
+    "RiscRealtimeV1.h": "639781f728841cda6d40c3033877436b9e5d59519a4b15e11a9bc99b2365395d",
+    "T5BatteryApi.h": "f939c924102099de4ed746519791ce2b68eb2bac79bc212caeaad1366dc8c9a5",
+    "RiscUsbProviderV1.h": "65bbde81bf4159918392d9525dc0dfd5a075bf028a693d9a4d9981b1cecf516e",
+    "RiscDeepSleepV1.h": "0949cf9591ef0f07b61c1306897287ea2eb1533755b5e569bfe1cb2c9b236161",
+    "RiscStreamSessionProviderV1.h": "fe463661530c43ae7d1dd8b9c8227fdc6a7e4380bca3f5c8a13287cb0db9e873",
+    "RiscUsbDiscoveryDiagnosticsV1.h": "b0a2652e3724f5cb3003485397fae860a6f49a38092d5f30345573ec8931c4d7",
+    "RiscPlatformRealtimeV1.h": "ed642c0f37350f7f1402342c7710564019db9c4750f3572f153d2ef1e37eca98",
+    "RiscResidentShellV1.h": "1a84715c03fcc7fae7f75cb72c0daf875e761567dda5d1b39ec0dc8b14fba8bd",
+    "PortableReaderPreferences.h": "3f0b7b12b1ddf6bf9c45c9598dab5488feadde0e9f5879b5e12c9f4eff8d4eda",
+    "PointsServiceProjection.h": "42710361e60a6f644377302d1492ef24bbfd392aebe72acac3b8c5414702977a",
+    "RiscRadioScanV1.h": "696227eecfd124f941023673680e0a15917d5b03c8f769756ed12ec34f7ccc9b",
+    "TWatchPlatformV1.h": "88457c6cd36a8d2550c964ede1060b4006b72be5d290cff7cd108087bacc16dd",
+    "RiscCameraEsp32s3ProfileV1.h": "4a47e72f77a5c44d77f83a1e00fa4f3528c4263147d8d1a539f504eb77cbdcbc",
+    "RiscAppDataV1.h": "49ced12bd617ce9e29626f97ee21d824edcf5f8272524a7da8780c60979df201",
+    "RiscStlinkV1.h": "1261bd3a8ed77646d03a686cb13b72461ca9ca040ef81d48329e92228461ed8d",
+    "PointsCatalog.h": "1805d9c0480a4e23b49d5dfed1b3aedb24723f22516689f8c6d2dea5816ef3a0",
+    "RiscDisplayOutputSnapshotV1.h": "b835fd1a3600551d54efb2806cbe8dd3ecc512a538572dc853aaf11f4e2490b6",
+    "GardenPlatformV1.h": "2e8e32f52554b706fafce1af27a5fbaf99187f67ecb55dc0cf333144b48ef9d2",
+    "T5DriverApi.h": "e0960f0b2e2579d7b7245734b593182841806c5eb7b7d67af4194ac8eb0c4b55",
+    "PortableAudioSession.h": "2f3d9cdd59005d44201f52005c7c88c8a9b2d9e816853338e4254196fad36f47",
+    "RiscBoundKeyValueV2.h": "f9c6589a346e6a79e784c37862228cc0c3ad3fe0c4cd8d6664800605f239b606",
+    "RiscPlatformClockV1.h": "41a12f6529f38731ee874f8bc166e1cf89fe376a1448fe5a4dd4c9abac90e5e2",
+    "RiscCpuCacheV2.h": "dc575f444775e3b3523ed7b330e6f6c8a9d7a8c37e02921a4f78ae59008ee572",
+    "RiscUsbControllerV1.h": "226f083493085ecdcaa21a7c3bf1c269640b7d1ebaa099e7217fb64124f1dbed",
+    "SoftwareUpdateV1.h": "25c1851c3c61f7d699d166c230cc561961c7e6f0fb5dcad5db8e24eb6bcf93ca",
+    "PortableTouchScroll.h": "d19aba992818d60477ef0fea7882b73dd6c9c1bd1db76d4d0faf9acc2e64aebd",
+    "PortableDeskClockFaces.h": "6864b07c69edcdc20e473d9716db2d9ce19edf2fbfafc379566c1990c78ac5a2",
+    "RiscTouchPowerV1.h": "82c6faed9b7e26788e3a226cd3532b1d2c3b59447c8abdc25b5e407ef0399dd0",
+    "RiscFirmwareSpiCompatV1.h": "8556e7dea8d6f83dbc47c68a363cc785182ef78343589e3c9573ad2fd08f2942",
+    "PortableLowBattery.h": "c83b663b1d5676c7eb7a8ec59157f0efc561802cfe2a3b6eb63937e28b0acca3",
+    "RiscFrontlightV1.h": "86272e0189dc5329d1ace67dfd64e2ee71768f1685e004faac6b4252bf6ba3f6",
+    "RiscCpuDmaV3.h": "99312ac098d645ccff4493cc169573e398015fd6dc34458a3d39d7c6e11acd50",
+    "RiscRetainedWakeV1.h": "7c7b6f0d56631f3aab521a43499d2ea840d075084536e4afa654a74c52e1e511",
+    "PointsSchedule.h": "9e34d32dbf989ee28f287813744748ab2d3193857a71bcab66e1f9b41749306c",
+    "RiscBoundKeyValueV1.h": "0d77dffef1e6513cbf9b3cf38266f7c9ebcc25d000605838821241ba742cd672",
+    "PortablePaperScroll.h": "6575d6618628f5e195b06d9034acea20be9a5d84cee1210c1c248546c27d4347",
+    "PortableUsbTransfer.h": "f1351bb4ca5d5af029f6427e814e77c2eca4baa410ca00e9be51a5bce794a2b3",
+    "RiscDisplayOutputPowerV1.h": "e9c7d3bd3ddf9bce128503aafb5669734db09424149f45b3a6f735cd5a7c8667",
+    "PointsCatalogProjection.h": "df15444df2afdb7e202be1feee03154353523fd12ab781417ada4a3f0661bfea",
+    "PortablePointsState.h": "69dd5c45cea14991a06b397b800de7006aee8509d6ffa905a905f40d8a40baaa",
+    "RiscKeyValueV2.h": "c66337a93c6f5fff6dac9507e011655f4827c3d0ec06b3e6d9d039084b3ec4d3",
+    "PortableHomePointsCatalog.h": "d3c46fef226e626c0732c190108d016caf7bfbdfa0ac15c120e3ce281ca9181b",
+    "RiscTelemetryV1.h": "8ef64c586e8392c1d7521498c25cfdaccefd53242530e2dda9116e9cc12a5d48",
+    "PortableApps.h": "d8fc1fae3669c439fda7af94568a93bc1d1f35ddc6fe05615eac1cb41ea4a78e",
+    "PortableBluetoothControl.h": "777f0c7f92092d05a428c04255b6df1b3e9510a36c7425fc95092b3321e67a2c"
+  },
+  "utilities_source_revision": "bda1c2ec01d2c18e39f822fbcf6cc8ac3b12aa9e",
+  "target_validation": "passed",
+  "hardware_verified": false,
+  "installable": false,
+  "profile_custody": {
+    "baseline_version": "0.6.11",
+    "baseline_elf_sha256": "60c279ae6cbe1329dd5c1a14a50b33ec3e058a187131c32182b13175199b46f2",
+    "baseline_custody_sha256": "e5bee9f27d01a13ccb847aeed1d506d4f9ff8f8e1c5436f33d2d84aea32b5d1e",
+    "baseline_receipt_sha256": "e1da680904d05dc1c8a68f2d91cd1b629dc45c4a3af3f870a144afbbe8f0a50c",
+    "added_defines": [
+      "-DPORTABLE_TEXT_INPUT_CLIENT"
+    ],
+    "added_grants": [
+      {
+        "capability": "ui.text-input",
+        "api": 1,
+        "instance_id": 0
+      }
+    ],
+    "removed_defines": [],
+    "removed_grants": [],
+    "native_time": true,
+    "tagged_alarm_api": 2,
+    "telemetry_default": "off",
+    "resident_policy": true,
+    "local_keyboard_fallback": false
+  },
+  "selected_manifest_sha256": "ef124be9a0fc698589de6b28809ce8b58d2bd7b1838c01b0b83a5ba2a24621c6",
+  "selected_build_helper_sha256": "7ea55b0eb3a852714193c07051c83b8b2acc8d3093a5e1f06467a2f26cc0a7b1",
+  "reservation_sha256": "d01fbc30a5702ddd30de50d5953780968f8a1f2285c3ccd1d8e0ba531afa8816",
+  "stack_frames": [
+    {
+      "function": "PortableStageLog.h:8:20:portable_stage_log",
+      "bytes": 400,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:54:23:points_editor_load.constprop",
+      "bytes": 352,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:188:13:pc_draw",
+      "bytes": 320,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:973:13:present",
+      "bytes": 224,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:97:6:portable_nova_wrap",
+      "bytes": 208,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1847:13:poll",
+      "bytes": 208,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:361:6:app_main",
+      "bytes": 192,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:274:13:pc_page",
+      "bytes": 176,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:307:13:pc_save",
+      "bytes": 176,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZonePreference.c:44:5:portable_timezone_preference_save",
+      "bytes": 176,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:394:17:millis_now",
+      "bytes": 160,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:4:6:portable_adapter_touch_issue",
+      "bytes": 160,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:506:13:input_service",
+      "bytes": 144,
+      "kind": "static"
+    },
+    {
+      "function": "alarm.inc:214:13:alarm_foreground",
+      "bytes": 144,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZonePreference.c:25:5:portable_timezone_preference_load",
+      "bytes": 144,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:239:5:portable_timezone_interpret_rtc",
+      "bytes": 128,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:112:13:np_caption",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:145:13:pc_sample",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:179:13:pc_open",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:151:19:points_catalog_decode",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:79:13:pcp_text",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:158:5:portable_realtime_recover_rtc",
+      "bytes": 112,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:201:5:portable_timezone_utc_to_local",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:216:5:portable_timezone_local_to_utc",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:23:13:pp_text",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "resident_adapter.inc:115:12:resident_checkpoint",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:27:6:portable_nova_text",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalogStorage.h:32:23:points_catalog_read_document.constprop",
+      "bytes": 96,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:106:5:portable_timezone_parse",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:823:13:text_color$part$8",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:49:13:np_icon",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:868:13:icon",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalogStorage.h:77:23:points_catalog_storage_resolve.constprop",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:68:5:portable_realtime_open",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:106:5:portable_realtime_read",
+      "bytes": 80,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:151:13:np_clock",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:674:13:fill",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:787:13:rounded",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:42:6:portable_broadcast_enable",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:71:6:portable_nova_button$part$50",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:59:6:portable_nova_round",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2490:44:app_module_init",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2056:13:list",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:23:13:pcp_round",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:205:13:pcp_days_inline",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:17:13:pc_button",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:39:13:pcp_stroke.constprop",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:196:13:pcp_edit_row",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:191:19:points_catalog_clone.constprop",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:102:23:points_editor_publish.constprop",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:34:13:pc_row",
+      "bytes": 64,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:78:12:clock_seconds",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:89:12:transition",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:27:10:portable_timezone_region_count",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:33:5:portable_timezone_city_index",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:67:13:pp_battery",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableBroadcastClient.h:23:20:portable_broadcast_control_load",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:5:13:pp_circle$part$13",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2034:13:read_battery",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:26:13:np_pixel",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:70:13:np_circle",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:17:13:nu_rect",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:180:13:custody_release",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:119:13:custody_acquire_for$part$30",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:916:13:paper_present_progress",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "resident_adapter.inc:35:13:resident_focus$part$35",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:28:6:portable_broadcast_stop",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:36:6:portable_broadcast_status",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:82:6:portable_nova_row",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:134:5:portable_text_adapter_resume",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:92:5:portable_text_adapter_suspend",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1996:13:launch",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:100:20:points_catalog_item_valid",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:111:20:points_catalog_valid",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:93:13:pc_storage_ready",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:112:16:pc_read",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:36:13:pcp_disk",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:32:13:pcp_box",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:159:20:points_editor_days",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:13:13:pc_text",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:24:13:pc_header",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:202:13:pcp_action_button.constprop",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:192:13:pcp_check",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:32:20:points_editor_sift.constprop",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:78:20:points_editor_begin_event.constprop",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTextInputClient.h:25:19:portable_text_client_release.constprop",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:128:13:pcp_header",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:218:13:pc_close",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:228:13:pc_load",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:322:13:pc_retry",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:265:13:pc_tap",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:162:44:portable_app_native_local_time",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:29:12:acquire",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:38:12:release",
+      "bytes": 48,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZoneCatalog.c:427:10:portable_timezone_count",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZoneCatalog.c:428:32:portable_timezone_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:10:12:equal",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:53:12:consume",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:57:12:number",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:97:12:valid_transition",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:140:16:civil_days",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:4:15:text_length",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:101:12:valid_rule",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:67:12:abbreviation",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:177:16:transition_epoch",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:14:5:portable_timezone_find",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:22:13:portable_timezone_region_name",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:38:5:portable_timezone_display_name",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:126:5:portable_timezone_resolve",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:152:5:portable_timezone_civil_to_epoch",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZone.c:159:5:portable_timezone_epoch_to_civil",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableSleepPolicy.h:18:20:portable_sleep_api_valid",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:201:13:custody_diagnostic",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:656:16:width",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:657:16:height",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:19:17:np_root",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:150:13:np_contact",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:75:13:pp_enabled",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1557:13:clear_contact_snapshots",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "resident_adapter.inc:94:17:resident_policy_flags",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "resident_adapter.inc:110:13:resident_policy_ready",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:79:13:text_input_neutral",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1986:13:refresh",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1987:17:count",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2106:16:next",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2109:16:prev",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "AlarmServiceV2.h:18:50:alarm_service_descriptor$part$0",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:200:13:custody_yield",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:668:13:native_point",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:784:13:rect",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:5:13:pp_circle",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:10:12:pp_measure",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:1990:13:get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2092:16:hit",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:17:13:portable_adapter_retain_inner",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "alarm.inc:131:20:alarm_title.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTouch.h:46:20:portable_touch_open$isra$22.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableAlarmTerminalClient.h:116:20:portable_alarm_owned.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableBroadcastClient.h:37:20:portable_broadcast_release_storage.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableBroadcastClient.h:42:20:portable_broadcast_pause.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:851:13:label",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableAlarmTerminalClient.h:72:20:portable_alarm_callable.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:848:13:text",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:5:13:nu_pixel",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:339:6:portable_app_sleep_retained",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTouch.h:59:20:portable_touch_close$isra$26.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:37:6:portable_adapter_retain",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:232:13:app_custody_release",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:177:13:custody_acquire",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:215:13:app_custody_acquire",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:8:13:broadcast_open",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:20:13:broadcast_release",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:702:13:display_failure",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "alarm.inc:18:13:alarm_cancel_input",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:195:13:custody_health",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:38:6:portable_adapter_retain_silent",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableAlarmTerminalClient.h:60:20:portable_alarm_result.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableAlarmTerminalClient.h:93:20:portable_alarm_status.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:41:6:portable_adapter_retained",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:244:28:portable_app_custody_runtime",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "broadcast_adapter.inc:88:13:broadcast_before_storage",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:74:16:custody_kv_put",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:57:16:custody_kv_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableBackgroundServices.h:11:20:portable_background_stop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "alarm.inc:28:13:alarm_failure",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "alarm.inc:112:13:alarm_audio_pump",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:177:33:springboard_presentation_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:21:5:portable_nova_measure",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:48:6:portable_nova_center",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:53:6:portable_nova_right",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:58:6:portable_nova_fill",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:70:6:portable_nova_rule",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:71:6:portable_nova_button",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:88:6:portable_nova_header",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:93:6:portable_nova_hit",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:86:27:paper_presentation_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:905:6:portable_paper_frame_ready",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:5:6:portable_text_adapter_retained",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:14:6:portable_text_adapter_retain",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:39:13:text_input_alive",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:70:13:text_input_navigation",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "text_input_handoff.inc:121:5:portable_text_adapter_attention",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2155:22:t5_app_get_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2168:21:t5_ui_get_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2174:26:t5_battery_get_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2180:26:t5_storage_get_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2184:24:t5_video_get_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "stdlib.h:74:5:abs",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:953:6:portable_paper_frame_drain",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:780:13:clear_color",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova.inc:69:13:np_begin",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "nova_ui.inc:69:6:portable_nova_begin",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "paper.inc:4:13:pp_begin",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:783:13:clear",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:2387:45:app_module_fini",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "native_custody_adapter.inc:202:13:custody_launch",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "adapter.c:630:13:input_take",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeFormat.h:14:20:portable_time_format_api_valid",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "AlarmRecords.h:31:24:alarm_read32",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "AlarmRecords.h:34:20:alarm_write32",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:58:20:points_catalog_zero",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:67:20:points_catalog_size",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:73:42:points_catalog_find_type",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:80:42:points_catalog_find_event",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:87:20:points_catalog_type_valid",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:315:19:points_catalog_apply_type",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalogStorage.h:21:20:points_catalog_storage_api",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:289:13:pc_duration",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:6:12:pc_width",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:7:12:pc_height",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:8:12:pc_left",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:48:17:pc_count",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:62:17:pcp_char",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:63:12:pcp_kern",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:73:13:pcp_bit",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:284:13:pcp_days_tap",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:135:13:pcp_time_text",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "AlarmServiceV2.h:18:50:alarm_service_descriptor",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:235:13:pc_visual_only",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsRecords.h:75:20:points_config_valid$part$1",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsRecords.h:113:20:points_meta_valid$part$2",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:27:20:points_editor_order_less$isra$4",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:242:20:pc_error",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:11:17:pc_rows",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:12:12:pc_footer_top",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:56:13:pc_scroll",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:81:13:pc_retain",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:74:13:pc_live",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:140:12:pc_phase",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:141:13:pc_clock_result",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:104:16:pc_file_status",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:126:13:pc_service_result",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:120:16:pc_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:116:16:pc_replace",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:108:16:pc_stat",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:15:13:pcp_fill",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:43:13:pcp_rule",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:112:13:pcp_fade",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:49:13:pcp_symbol",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalog.h:47:20:points_catalog_dispose$part$22",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:155:20:points_editor_time",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:30:13:pc_footer",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:8:13:pcp_types_configure",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:44:13:pcp_chevron",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:45:13:pcp_plus",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:130:13:pc_status",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:24:20:points_editor_editable.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PointsCatalogStorage.h:24:23:points_catalog_storage_result.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:40:23:points_editor_reindex.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:98:20:points_editor_cancel_type.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:94:20:points_editor_cancel_event.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTextInputClient.h:19:20:portable_text_client_live.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:267:13:pc_name_close",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:343:13:pc_back",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:290:13:pc_saved",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:283:13:pcp_done",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:75:42:points_editor_at.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_controller.h:20:20:points_editor_dispose$part$23.constprop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:287:20:pc_name",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_paper.inc:134:20:pcp_type_name",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTouchScroll.h:51:19:portable_scroll_row",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:230:13:pc_edit_action",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:244:13:pc_custom_action",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:223:13:pc_select_type",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_view.inc:258:13:pc_activate",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:50:49:paper_presentation_get",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "points_catalog_app.c:333:44:portable_app_before_launch",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:10:12:safe",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:19:12:live",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:48:12:snapshot_status",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:58:12:native_status",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:115:5:portable_realtime_seed_confirmed",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:212:5:portable_realtime_close",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:223:6:portable_realtime_stop",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableRealtimeClient.c:227:5:portable_realtime_project",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZonePreference.c:6:13:copy_id",
+      "bytes": 32,
+      "kind": "static"
+    },
+    {
+      "function": "PortableTimeZonePreference.c:16:13:encode",
+      "bytes": 32,
+      "kind": "static"
+    }
+  ]
+}
