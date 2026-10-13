@@ -37,11 +37,11 @@ static uint64_t frame_hash=UINT64_C(1469598103934665603);
 static void watch_frame(void){
  const char *frames_path=getenv("TIMECARD_RETRY_FRAMES");
  if(frames_path&&tcp_editor&&!tcp_text_active&&strstr(tcp_editor_status,"unavailable")){
-  char path[1024];snprintf(path,sizeof(path),"%s/watch-retry-%s.ppm",frames_path,script_limit?"limit":"invalid");FILE *file=fopen(path,"wb");assert(file);fprintf(file,"P6\n240 240\n255\n");
-  for(unsigned y=0;y<240;y++)for(unsigned x=0;x<240;x++){uint16_t pixel=pixels[y*244+x];unsigned char rgb[]={(pixel>>11)*255/31,((pixel>>5)&63)*255/63,(pixel&31)*255/31};assert(fwrite(rgb,1,3,file)==3);}assert(!fclose(file));
+  char path[1024];snprintf(path,sizeof(path),"%s/watch-retry-%s.ppm",frames_path,script_limit?"limit":"invalid");FILE *file=fopen(path,"wb");assert(file);fprintf(file,"P6\n%d %d\n255\n",TIMECARD_TEST_WIDTH,TIMECARD_TEST_HEIGHT);
+  for(unsigned y=0;y<TIMECARD_TEST_HEIGHT;y++)for(unsigned x=0;x<TIMECARD_TEST_WIDTH;x++){uint16_t pixel=pixels[y*TIMECARD_TEST_STRIDE+x];unsigned char rgb[]={(pixel>>11)*255/31,((pixel>>5)&63)*255/63,(pixel&31)*255/31};assert(fwrite(rgb,1,3,file)==3);}assert(!fclose(file));
  }
- for(unsigned y=0;y<240;y++)for(unsigned x=0;x<244;x++){
-  uint16_t value=pixels[y*244+x];if(x>=240)assert(value==0xa5a5);
+ for(unsigned y=0;y<TIMECARD_TEST_HEIGHT;y++)for(unsigned x=0;x<TIMECARD_TEST_STRIDE;x++){
+  uint16_t value=pixels[y*TIMECARD_TEST_STRIDE+x];if(x>=TIMECARD_TEST_WIDTH)assert(value==0xa5a5);
   else {frame_hash=(frame_hash^(value&255))*UINT64_C(1099511628211);frame_hash=(frame_hash^(value>>8))*UINT64_C(1099511628211);}
  }
 }

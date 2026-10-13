@@ -14,7 +14,9 @@ def main():
  inc=[ROOT/'test/native_apps',s/'lib/PortableApps/include',s/'lib/NativeApps/include',s/'lib/PortableApps/src',s/'Apps',s/'sdk/app',u/'lib/Alarm/include',u/'lib/Contexts/include',u/'Apps',u/'test/native_apps',r/'sdk/app',ROOT/'lib/NativeApps/include',ROOT/'lib/PortableTimecard/include',s/'Services/text_input']
  watch=json.loads((ROOT/'test/native_apps/timecard_watch_product_defines.json').read_text())+['-DPORTABLE_TEXT_INPUT_POLICY','-DTIMECARD_TEST_ALARM_HEADER="'+str(u/'lib/Alarm/include/AlarmServiceV1.h')+'"','-Wl,--wrap=t5_app_get_api','-include',str(ROOT/'test/native_apps/timecard_watch_alarm_profile.h')]
  x4=json.loads((ROOT/'test/native_apps/timecard_x4_product_defines.json').read_text())+['-DPORTABLE_TEXT_INPUT_POLICY','-DPORTABLE_TIMECARD_SHARED_TEXT_INPUT','-DPORTABLE_TEXT_INPUT_CLIENT','-DPORTABLE_CHECKED_STORAGE_RUNTIME','-DPORTABLE_APP_HOME_GUARD','-DTEST_RESIDENT_CLIENT','-DTEST_PRODUCTIVITY_SCROLL_FIXTURE','-DTEST_TIMECARD_SETTLE_DRAWS']
- if a.native_height:watch+=['-DTIMECARD_TEST_WIDTH=410','-DTIMECARD_TEST_HEIGHT=502','-DPORTABLE_WATCH_NATIVE_HEIGHT']
+ if a.native_height:
+  watch=[f for f in watch if f not in ('-DPORTABLE_WATCH_COLOR_ONLY','-DPORTABLE_WATCH_FROZEN_ICONS')]
+  watch+=['-DTIMECARD_TEST_WIDTH=410','-DTIMECARD_TEST_HEIGHT=502','-DPORTABLE_WATCH_NATIVE_HEIGHT']
  cases={'watch':['idle','low-battery','pause-again','pause-retained','resume-retained','unsupported','background','background-busy','background-message','background-retained'],'x4':['idle','continuity','activity','queue','continuity-queue','pause-again','pause-busy','continuity-latched','pause-retained','resume-retained','retained','continuity-invalid-redraw','exit']}
  sources={'watch':['adapter.c','quick_actions.c','quick_render.c','quick_session.c','quick_radios.c'],'x4':['adapter.c','PortableRealtimeClient.c','PortableTimeZone.c','PortableTimeZoneCatalog.c','PortableTimeZonePreference.c','PortableNativeTimeSource.c']}
  records=[];env={**os.environ,'UBSAN_OPTIONS':'halt_on_error=1'}
