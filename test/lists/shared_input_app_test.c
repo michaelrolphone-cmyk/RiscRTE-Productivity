@@ -367,6 +367,9 @@ int main(int argc,char**argv){
  if(edit_case){assert(scenario[5]>='0'&&scenario[5]<='3'&&scenario[6]=='-');reason=(unsigned)(scenario[5]-'0');}
  storage_bad=is_mode("storage")||is_mode("storage-retry");write_bad=is_mode("save-failure");write_unknown=is_mode("save-unknown");write_loss=is_mode("save-loss");
  if(!strcmp(device,"paper")){w=800;h=480;format=1;prof=(risc_scene_profile_v1){1,sizeof(prof),1,3,88,20,0,65535,0,270,0,0};}
+#ifdef LISTS_TEST_NATIVE_HEIGHT
+ if(!strcmp(device,"watch")){w=410;h=502;}
+#endif
  observed_startup();assert(!api->close(NULL,transport_session));expected_intent=RISC_DISPLAY_PRESENT_LOW_LATENCY;
  real_components=risc_scene_components_get_v1(api);assert(real_components);app_scene=*real_components;app_scene.open=scene_open;app_scene.update=scene_update;app_scene.lifecycle.base.next=scene_next;app_scene.lifecycle.base.close=scene_close;app_scene.lifecycle.base.snapshot=scene_snapshot;app_scene.lifecycle.configure=scene_configure;
  lists_init(&initial_model);assert(!lists_add_list(&initial_model,"WORK",1,&work_id));assert(!lists_add_list(&initial_model,"HOME",2,&home_id));

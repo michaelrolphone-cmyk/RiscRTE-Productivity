@@ -64,14 +64,15 @@ def pin(path):
             'working_tree_status': subprocess.check_output(['git', '-C', str(path), 'status', '--porcelain'], text=True).splitlines()}
 
 
-def build(runtime, system, tmp, profile, shared, sanitized, baseline=None):
+def build(runtime, system, tmp, profile, shared, sanitized, baseline=None, native_height=False):
     include = stage(runtime, system, tmp / 'sdk', shared_input=True)
     flags = ['-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-I'+str(include),
              '-I'+str(system/'test/scene'), '-I'+str(system/'Services/text_input')]
     if sanitized:
         flags += ['-fsanitize=address,undefined', '-fno-sanitize-recover=all', '-fno-omit-frame-pointer', '-no-pie']
     if profile == 'watch':
-        flags += ['-DSCENE_HOST_TELEMETRY=0', '-DSCENE_HOST_WATCH_240=1']
+        flags += ['-DSCENE_HOST_TELEMETRY=0', '-DSCENE_HOST_WATCH_240='+('0' if native_height else '1')]
+        if native_height: flags += ['-DLISTS_TEST_NATIVE_HEIGHT']
     else:
         generated = tmp / 'font-generation'
         font_dir = generated / 'Services/scene_host/fonts'
@@ -217,7 +218,7 @@ def run(args):
                 with tempfile.TemporaryDirectory(prefix='lists-shared-') as directory:
                     tmp = Path(directory)
                     runtime = paths['x4_runtime' if profile == 'paper' else 'runtime']
-                    exe = build(runtime, paths['system_apps'], tmp, profile, shared, sanitized, baseline)
+                    exe = build(runtime, paths['system_apps'], tmp, profile, shared, sanitized, baseline, args.native_height)
                     frames = out/flavor/profile/kind
                     frames.mkdir(parents=True, exist_ok=True)
                     cases = list(common)
@@ -270,6 +271,7 @@ if __name__ == '__main__':
     for name in ('runtime', 'x4-runtime', 'system-apps', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
     parser.add_argument('--baseline-productivity', type=Path, help='Exact predecessor checkout for flag-off comparisons')
+    parser.add_argument('--native-height', action='store_true', help='Qualify Watch workflows at 410x502 with the native-size scene profile')
     parser.add_argument('--sanitize', action='store_true', help='Run both normal and ASan/UBSan suites')
     parser.add_argument('--only', nargs='+', help='Selected shared cases for development')
     parser.add_argument('--profiles', nargs='+', choices=('watch', 'paper'), default=['watch', 'paper'])
