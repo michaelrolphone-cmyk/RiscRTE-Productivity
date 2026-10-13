@@ -1,0 +1,64 @@
+name: X4 Points exact source and modal policy
+on:
+  push:
+    branches: [fix/x4-points-modal-policy-20261013]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  points:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: c4579cdb14f4ce185aed32d5de86f44a25733007
+          path: .deps/system
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 5b28172e979b5f008da19e9a00a3b98e35937974
+          path: .deps/baseline-system
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: a91edf3fada6a559ec107186dd163d0c8da10d29
+          path: .deps/runtime
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: b25b1d467a557e8d693211cff2eff959eb9c79de
+          path: .deps/baseline-runtime
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: 35c2141c68668971dc524d98702109b00c740815
+          path: .deps/utilities
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Productivity
+          ref: d6a9657378fedcdb61d1cea83f2108799e57ccae
+          path: .deps/baseline-app
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned compiler and ELF parser
+        run: |
+          pip install platformio==6.1.19 pyelftools==0.32
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+      - name: Reproduce deployed X4 Points and qualify modal successor
+        run: |
+          python scripts/qualify_x4_points_policy.py --system .deps/system --baseline-system .deps/baseline-system --runtime .deps/runtime --baseline-runtime .deps/baseline-runtime --utilities .deps/utilities --baseline-app .deps/baseline-app --compiler "$HOME/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc" --output build/x4-points
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: x4-points-target-and-policy-evidence
+          path: |
+            build/x4-points/qualification.json
+            build/x4-points/*/points_in_time/*.elf
+            build/x4-points/*/points_in_time/*.json
+            build/x4-points/*/qualification.json
+            build/x4-points/*/*.log
+          retention-days: 14
