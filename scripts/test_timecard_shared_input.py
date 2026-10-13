@@ -14,9 +14,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = {
-    'system': 'fd4b1e52fe2a49c3c4c22f9ccd4c98a91f88afa0',
-    'utilities': '4beb9778d300ec9f6b18448e1ec86317e063c98c',
-    'runtime': '1c1ed8661ea30d47e7e9707c41d492ce3a2b4d70',
+    'system': 'ed74c6827b9c2d0283bd69949aa4b05570dd0f85',
+    'utilities': 'fc0bdbbbc600ce891e60c44d091fce0586ade7d8',
+    'runtime': '5561cc7bb09d1e2b03aafaecb8c95f0470f351f6',
 }
 SHARED = ['-DPORTABLE_TIMECARD_SHARED_TEXT_INPUT', '-DPORTABLE_TEXT_INPUT_CLIENT',
           '-DPORTABLE_CHECKED_STORAGE_RUNTIME', '-DPORTABLE_APP_HOME_GUARD']

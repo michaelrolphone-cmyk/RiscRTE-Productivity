@@ -20,7 +20,12 @@ static unsigned ticks,polls,grants,frames,subs,presents;
 static unsigned stop_poll=120;
 static unsigned crown_at,home_at,primary_at,launch_count,launch_at;
 static const char *expected_launch="springboard.elf";
-static uint16_t pixels[240*244];
+#ifndef TIMECARD_TEST_WIDTH
+#define TIMECARD_TEST_WIDTH 240
+#define TIMECARD_TEST_HEIGHT 240
+#endif
+#define TIMECARD_TEST_STRIDE (TIMECARD_TEST_WIDTH+4)
+static uint16_t pixels[TIMECARD_TEST_HEIGHT*TIMECARD_TEST_STRIDE];
 static const char *directory;
 static struct {unsigned at;int x,y;} actions[256];static unsigned action_count;
 static struct {char key[16];unsigned char bytes[64];uint32_t size;} cells[32];
@@ -29,16 +34,16 @@ static void save_frame(void) {
  TIMECARD_TEST_FRAME_CALLBACK();return;
 #endif
  char path[1024];snprintf(path,sizeof(path),"%s/frame-%03u.ppm",directory,presents);
- FILE*f=fopen(path,"wb");assert(f);fprintf(f,"P6\n240 240\n255\n");
- for(unsigned y=0;y<240;y++){for(unsigned x=0;x<240;x++){uint16_t v=pixels[y*244+x];unsigned char rgb[]={(v>>11)*255/31,((v>>5)&63)*255/63,(v&31)*255/31};assert(fwrite(rgb,1,3,f)==3);}for(unsigned x=240;x<244;x++)assert(pixels[y*244+x]==0xa5a5);}
+ FILE*f=fopen(path,"wb");assert(f);fprintf(f,"P6\n%d %d\n255\n",TIMECARD_TEST_WIDTH,TIMECARD_TEST_HEIGHT);
+ for(unsigned y=0;y<TIMECARD_TEST_HEIGHT;y++){for(unsigned x=0;x<TIMECARD_TEST_WIDTH;x++){uint16_t v=pixels[y*TIMECARD_TEST_STRIDE+x];unsigned char rgb[]={(v>>11)*255/31,((v>>5)&63)*255/63,(v&31)*255/31};assert(fwrite(rgb,1,3,f)==3);}for(unsigned x=TIMECARD_TEST_WIDTH;x<TIMECARD_TEST_STRIDE;x++)assert(pixels[y*TIMECARD_TEST_STRIDE+x]==0xa5a5);}
  assert(!fclose(f));
 }
 static bool fake_health(risc_runtime_health_v1*h){h->uptime_ms=ticks;return polls<stop_poll;}
 static void fake_yield(uint32_t n){ticks+=n;}
 static bool fake_diag(const char*s){fprintf(stderr,"%s\n",s);return true;}
 static bool fake_launch(const char*s){assert(!strcmp(s,expected_launch));launch_at=polls;launch_count++;printf("launch=%s\n",s);stop_poll=polls;return true;}
-static bool fake_info(void*c,risc_display_info_v1*s){(void)c;*s=(risc_display_info_v1){.width=240,.height=240,.nominal_refresh_millihz=60000,.typical_present_latency_us=16000,.supported_formats=RISC_DISPLAY_FORMAT_BIT(RISC_DISPLAY_FORMAT_RGB565)};return true;}
-static bool fake_frame(void*c,uint32_t f,risc_display_surface_v1*s){(void)c;assert(!frames);frames=1;*s=(risc_display_surface_v1){.frame=1,.pixels=pixels,.width=240,.height=240,.stride_bytes=488,.size_bytes=sizeof(pixels),.pixel_format=f};return true;}
+static bool fake_info(void*c,risc_display_info_v1*s){(void)c;*s=(risc_display_info_v1){.width=TIMECARD_TEST_WIDTH,.height=TIMECARD_TEST_HEIGHT,.nominal_refresh_millihz=60000,.typical_present_latency_us=16000,.supported_formats=RISC_DISPLAY_FORMAT_BIT(RISC_DISPLAY_FORMAT_RGB565)};return true;}
+static bool fake_frame(void*c,uint32_t f,risc_display_surface_v1*s){(void)c;assert(!frames);frames=1;*s=(risc_display_surface_v1){.frame=1,.pixels=pixels,.width=TIMECARD_TEST_WIDTH,.height=TIMECARD_TEST_HEIGHT,.stride_bytes=TIMECARD_TEST_STRIDE*2,.size_bytes=sizeof(pixels),.pixel_format=f};return true;}
 static void fake_frame_release(void*c,risc_display_frame_v1 f){(void)c;assert(frames&&f==1);frames=0;}
 static bool fake_submit(void*c,risc_display_frame_v1 f,const risc_display_rect_v1*r,size_t n,const risc_display_present_options_v1*o,risc_display_present_token_v1*t){(void)c;(void)r;(void)n;(void)o;assert(frames&&f==1);frames=0;*t=++presents;save_frame();return true;}
 static bool fake_present(void*c,risc_display_present_token_v1 t,risc_display_present_status_v1*s){(void)c;assert(t);s->state=RISC_DISPLAY_PRESENT_COMPLETE;return true;}
@@ -47,7 +52,7 @@ static uint64_t fake_sub(void*c){(void)c;subs++;return 1;}
 static bool fake_unsub(void*c,uint64_t n){(void)c;assert(n==1&&subs);subs--;return true;}
 static bool fake_touch_poll(void*c,size_t n){(void)c;assert(n==1);polls++;return true;}
 static int32_t fake_next(void*c,uint64_t n,risc_touch_event_v1*e){(void)c;(void)n;(void)e;return 0;}
-static bool fake_snapshot(void*c,risc_touch_snapshot_v1*s){(void)c;*s=(risc_touch_snapshot_v1){.width=240,.height=240,.buttons=polls==primary_at?RISC_TOUCH_BUTTON_PRIMARY:0};for(unsigned i=0;i<action_count;i++)if(actions[i].at==polls){s->contact_count=1;s->contacts[0]=(risc_touch_contact_v1){.id=1,.x=actions[i].x,.y=actions[i].y};}return true;}
+static bool fake_snapshot(void*c,risc_touch_snapshot_v1*s){(void)c;*s=(risc_touch_snapshot_v1){.width=TIMECARD_TEST_WIDTH,.height=TIMECARD_TEST_HEIGHT,.buttons=polls==primary_at?RISC_TOUCH_BUTTON_PRIMARY:0};for(unsigned i=0;i<action_count;i++)if(actions[i].at==polls){s->contact_count=1;s->contacts[0]=(risc_touch_contact_v1){.id=1,.x=actions[i].x+(TIMECARD_TEST_WIDTH-240)/2,.y=actions[i].y+(TIMECARD_TEST_HEIGHT-240)/2};}return true;}
 static const risc_touch_api_v1 touch_api={1,sizeof(touch_api),NULL,fake_sub,fake_unsub,fake_touch_poll,fake_next,fake_snapshot};
 static bool fake_battery(void*c,risc_battery_sample_v1*s){
 #ifdef TIMECARD_TEST_BATTERY_CALLBACK
