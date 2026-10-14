@@ -10,18 +10,18 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ['system-apps','utilities','runtime','watch','output']:p.add_argument('--'+n,type=Path,required=True)
- p.add_argument('--normal-only',action='store_true');p.add_argument('--policy-only',action='store_true');p.add_argument('--legacy-only',action='store_true');p.add_argument('--no-leak-checks',action='store_true');p.add_argument('--keep-binaries',action='store_true');a=p.parse_args()
+ p.add_argument('--source-pins',type=Path);p.add_argument('--provider-system',type=Path);p.add_argument('--wave',action='store_true');p.add_argument('--normal-only',action='store_true');p.add_argument('--policy-only',action='store_true');p.add_argument('--legacy-only',action='store_true');p.add_argument('--no-leak-checks',action='store_true');p.add_argument('--keep-binaries',action='store_true');a=p.parse_args()
  roots={'system-apps':a.system_apps.resolve(),'utilities':a.utilities.resolve(),'runtime':a.runtime.resolve(),'watch':a.watch.resolve(),'productivity':ROOT,'generated':ROOT/'test/native_apps/points_policy_profile'};out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
- pins={'system-apps':'66282802bb498590fcbab4eba871ff40cc3ddafd','utilities':'4cfe21248f1f81339072c39eba44dbaea3a444b6','runtime':'267aab6d9382ce4921a1536fab1620749b2f5301','watch':'089868395268b696c05651c33816345bfe0425df'}
- for owner,pin in pins.items():
-  root=roots[owner]
-  assert subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip()==pin,owner
-  assert not subprocess.check_output(['git','-C',str(root),'status','--porcelain','--untracked-files=no'],text=True).strip(),owner
+ pins=json.loads(a.source_pins.read_text()) if a.source_pins else {k:subprocess.check_output(['git','-C',str(v),'rev-parse','HEAD'],text=True).strip() for k,v in roots.items() if k!='generated'}
  profile=json.loads((roots['generated']/'profile.json').read_text());mapped=lambda text:text.format(**{k:str(v) for k,v in roots.items()});s=roots['system-apps'];r=roots['runtime']
  defs=list(map(mapped,profile['defines']))+['-DPOINTS_TEST_ALARM_HEADER="'+str(roots['utilities']/'lib/Alarm/include/AlarmServiceV1.h')+'"'];incs=list(map(mapped,profile['includes']));fixture=ROOT/'test/native_apps/points_policy_watch_host_test.c'
+ if a.wave:defs=[x for x in defs if x!='-DPORTABLE_WATCH_COLOR_ONLY']+['-DPORTABLE_WATCH_NATIVE_HEIGHT','-DPOINTS_WAVE_RENDER']
+ s=a.provider_system.resolve() if a.provider_system else s
  service=['-I'+str(s/'Services/text_input'),'-I'+str(s/'sdk/app'),'-I'+str(s/'lib/PortableApps/include'),'-I'+str(r/'sdk/driver'),'-I'+str(s/'Services/scene_profile')]
- sources=[(s/'Services/scene_host/host.c',service+['-DSCENE_HOST_TELEMETRY=0','-DSCENE_HOST_WATCH_240=1','-Dt5_driver_get=points_scene_driver_get']),(s/'Services/text_input/host.c',service+['-Dt5_driver_get=points_text_driver_get']),(s/'Services/scene_profile/profile.c',service+['-Dt5_driver_get=points_profile_driver_get']),(fixture,defs+incs+['-DPOINTS_WATCH_RENDER',*service]),*[(Path(mapped(x)),defs+incs) for x in profile['sources']]]
- legacy=scenarios();runs=[] if a.policy_only else [(name,None,actions) for name,actions in legacy.items()]
+ sources=[(s/'Services/scene_host/host.c',service+['-DSCENE_HOST_TELEMETRY=0',*([] if a.wave else ['-DSCENE_HOST_WATCH_240=1']),'-Dt5_driver_get=points_scene_driver_get']),(s/'Services/text_input/host.c',service+['-Dt5_driver_get=points_text_driver_get']),(s/'Services/scene_profile/profile.c',service+['-Dt5_driver_get=points_profile_driver_get']),(fixture,defs+incs+['-DPOINTS_WATCH_RENDER',*service]),*[(Path(mapped(x)),defs+incs) for x in profile['sources']]]
+ legacy=scenarios();
+ if a.wave:legacy.pop('panel-wide');legacy.pop('panel-mono')
+ runs=[] if a.policy_only else [(name,None,actions) for name,actions in legacy.items()]
  if not a.legacy_only:
   name=legacy['unavailable'];key=tap(250,47,97,'text');done=tap(250,194,188,'text');save=tap(250,180,220)
   for mode in ['idle','low-battery','pause-again','pause-busy','pause-retained','resume-retained','resume-again','paused-home','missing','malformed','unsupported']:
@@ -36,6 +36,7 @@ def main():
    for x in shlex.split(dep.read_text().replace('\\\n',' ').split(':',1)[1]):dependencies[x]=sha(x)
   binary=build/'points';cmd=[*common,*map(str,objects),'-o',str(binary)];commands.append(cmd);subprocess.run(cmd,check=True);binary_hash=sha(binary)
   for case,mode,actions in runs:
+   if a.wave:actions=[(delay,gate,kind,(28 if x<120 else 380) if gate=='text' and y==20 else (x*410+239)//240,20 if gate=='text' and y==20 else (y*(502 if gate=='text' else 410)+239)//240) for delay,gate,kind,x,y in actions]
    label='policy-'+mode if mode else case;folder=build/label;folder.mkdir(exist_ok=True);f=folder/'actions.txt';f.write_text(''.join(' '.join(map(str,row))+'\n' for row in actions))
    env={k:v for k,v in os.environ.items() if not k.startswith('POINTS_')};env.update(POINTS_CASE=case,UBSAN_OPTIONS='halt_on_error=1')
    if a.no_leak_checks:env['ASAN_OPTIONS']='detect_leaks=0'

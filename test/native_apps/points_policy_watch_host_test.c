@@ -80,6 +80,14 @@ static unsigned radio_state,launches,radio_control_calls;static bool radio_owned
 #define PIXEL_FORMAT RISC_DISPLAY_FORMAT_MONO1
 #define ROW_BYTES 100
 #define STRIDE_BYTES 104
+#elif defined(POINTS_WAVE_RENDER)
+#define PANEL_W 410
+#define PANEL_H 502
+#define TOUCH_W 410
+#define TOUCH_H 502
+#define PIXEL_FORMAT RISC_DISPLAY_FORMAT_RGB565
+#define ROW_BYTES 820
+#define STRIDE_BYTES 824
 #else
 #define PANEL_W 240
 #define PANEL_H 240
@@ -180,7 +188,7 @@ static bool fake_touch_poll(void*c,size_t n){CHECK_IO();
   touch_events[(touch_head+touch_count++)%TOUCH_QUEUE_CAPACITY]=(risc_touch_event_v1){
    .sequence=++touch_sequence,.timestamp_ms=ticks,.kind=event_kind,.id=1,
    .x=(uint16_t)touch_x,.y=(uint16_t)touch_y};touch_edges++;
-  if(getenv("POINTS_CASE")&&!strcmp(getenv("POINTS_CASE"),"rapid-repeat")&&text_granted&&touch_x==47&&touch_y==97){
+  if(getenv("POINTS_CASE")&&!strcmp(getenv("POINTS_CASE"),"rapid-repeat")&&text_granted&&touch_x==(47*TOUCH_W+239)/240&&touch_y==(97*TOUCH_H+239)/240){
    assert(present_pending);if(!rapid_edges)rapid_frame=host_frames;assert(host_frames==rapid_frame);rapid_edges++;
   }
  }
@@ -394,7 +402,7 @@ if(!strcmp(mode,"schedule-save")||!strcmp(mode,"delete-point")){
  points_config changed;assert(points_config_decode(&changed,current,size)&&point_writes==1);
  for(unsigned i=1;i<POINTS_MAX;i++)assert(!memcmp(&changed.points[i],&cfg.points[i],sizeof(points_item)));
  if(!strcmp(mode,"delete-point")){points_item empty={0};assert(!memcmp(&changed.points[0],&empty,sizeof(empty)));}
- else {points_item wanted={.kind=POINTS_CUSTOM_1,.enabled=1,.mode=2,.weekdays=127,.hour=1,.minute=1,.duration_minutes=64,.notify_end=1,.warn3=1};assert(!memcmp(&changed.points[0],&wanted,sizeof(wanted)));}
+ else {points_item wanted={.kind=POINTS_CUSTOM_1,.enabled=1,.mode=2,.weekdays=127,.hour=1,.minute=1,.duration_minutes=64,.notify_end=1,.warn3=1};for(unsigned z=0;z<sizeof(wanted);z++)if(((unsigned char*)&changed.points[0])[z]!=((unsigned char*)&wanted)[z])fprintf(stderr,"schedule byte %u got %u wanted %u\n",z,((unsigned char*)&changed.points[0])[z],((unsigned char*)&wanted)[z]);assert(!memcmp(&changed.points[0],&wanted,sizeof(wanted)));}
 }else assert(!point_writes&&!memcmp(current,seed_points,sizeof(current)));
 assert(fake_get(NULL,POINTS_META_KEY,current,sizeof(current),&size)==0&&size==sizeof(current));
 points_meta saved;assert(points_meta_decode(&saved,current,size));

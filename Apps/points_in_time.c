@@ -884,7 +884,13 @@ void app_main(void) {
     paper=paper_presentation_get();
     if(paper&&(paper->struct_size<sizeof(*paper)||!paper->begin||!paper->text||!paper->measure||!paper->circle||!paper->contact))paper=NULL;
 #endif
+#ifdef PORTABLE_WATCH_NATIVE_HEIGHT
+    /* The native-height adapter maps the inherited logical NOVA canvas and
+     * contacts together; the shared keyboard owns the full physical display. */
+    if(!paper&&(app->screen_width()<240||app->screen_height()<240))return;
+#else
     if(!paper&&(app->screen_width()!=240||app->screen_height()!=240))return;
+#endif
     if(app->set_back_exits_app)app->set_back_exits_app(false);
 #ifdef PORTABLE_NOVA_UI
     p7_picker_reset();p7_contact_active=p7_contact_moved=false;
@@ -950,6 +956,9 @@ void app_main(void) {
 #ifdef ALARM_NATIVE_UTC
         status_changed|=old_clock_valid!=clock_valid||old_zone_index!=points_zone_index;
 #endif
+#ifdef PORTABLE_WATCH_NATIVE_HEIGHT
+        if(input.tapped){input.touch_x=(uint32_t)input.touch_x*240u/(unsigned)app->screen_width();input.touch_y=(uint32_t)input.touch_y*240u/(unsigned)app->screen_width();}
+#endif
         bool back=(input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
         if(back){if(on_back())break;if(paper)pe_reset_page();draw();if(!points_live())return;last_draw=app->millis();continue;}
         bool interacted=false;
@@ -959,6 +968,9 @@ void app_main(void) {
         if(!p7_picker_active()&&!p7_contact_active)interacted|=nova7_buttons(input.buttons);
         if(nova&&nova->contact) {
             springboard_contact contact={0};nova->contact(&contact);
+#ifdef PORTABLE_WATCH_NATIVE_HEIGHT
+            contact.x=(int32_t)contact.x*240/app->screen_width();contact.y=(int32_t)contact.y*240/app->screen_width();
+#endif
             interacted|=nova7_contact_update(&contact);
             if(contact.released&&contact.tap_eligible&&!p7_contact_moved&&!p7_picker_dragged()&&!contact.cancelled){nova7_tap(contact.x,contact.y);interacted=true;}
         } else if(input.tapped){nova7_tap(input.touch_x,input.touch_y);interacted=true;}
@@ -966,6 +978,9 @@ void app_main(void) {
 #else
         if(nova) {
             springboard_contact contact={0};nova->contact(&contact);
+#ifdef PORTABLE_WATCH_NATIVE_HEIGHT
+            contact.x=(int32_t)contact.x*240/app->screen_width();contact.y=(int32_t)contact.y*240/app->screen_width();
+#endif
             interacted|=nova_buttons(input.buttons);
             interacted|=nova_contact_update(&contact);
             if(contact.released&&contact.tap_eligible){nova_tap(contact.x,contact.y);interacted=true;}
