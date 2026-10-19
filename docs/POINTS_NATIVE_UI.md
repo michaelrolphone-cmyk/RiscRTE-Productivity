@@ -32,8 +32,8 @@ is `Apps/native/points_native_ui.json`. It selects:
 Runtime `64c8e52e46fd91e8fdafd636db04eed88f0c51a9` and Utilities
 `2d0e03a58d1d78cec10033dfa384368281156a46` must be exact clean checkouts.
 System is source-frozen at
-`bae723f090a74c78cd567f1c4502386a1fbf34fa`, based on
-`c94f367f6ca3677954b580833f222ae16775c964`. The exact revision, file inventory
+`c980898dc62749df5c9e15dc4e167bafe2dd638f`, composed on
+`b98875eb0226eb209b4ec572343bcd68d5fcf373`. The exact revision, file inventory
 and SHA-256 values are checked through the new profile. A matching base revision alone does not authorize different source.
 There is no general `--allow-dirty`, dependency-pin override or warning waiver.
 
@@ -171,7 +171,11 @@ they do not replace hardware acceptance.
 Run `System-Apps/scripts/test_points_native_input.py` for the owner-12 reducer
 and production direct/snapshot/Quick adapter tests (normal and sanitized), and
 `System-Apps/scripts/test_points_native_optout.py` for exact selector-off token
-parity with the pinned System base. Foreign owners 0, 8, 9 and 10 are controls.
+parity with the pinned System base. Foreign owners 0, 8, 9, 10 and 11 are controls.
+`System-Apps/scripts/test_points_native_composition.py` compares 68 Points-off
+compositions against the merged Updater/LoRa base, including all combinations
+of Files, Frequency and LoRa selectors. Their private source remains unchanged.
+Host sanitizer runs disable LeakSanitizer; ASan/UBSan success is not LSan coverage.
 
 In Productivity, `test_points_native_ui_parity.py --system ... --utilities ...`
 checks eight exact selector-off app token profiles and eight legacy MONO1 scenes
