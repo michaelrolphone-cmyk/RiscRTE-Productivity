@@ -4,8 +4,8 @@
   "scope": "software-only; no product recipe, release or physical qualification",
   "system": {
     "repository": "michaelrolphone-cmyk/RiscRTE-System-Apps",
-    "commit": "b34c9a07e41aed30dc294705303ee6901e8029a3",
-    "tree": "2ba3130f0eb6e3fd0caaabfa544656760933da98"
+    "commit": "b6cac6d1227e8a9323b561b8846a24b672c42e38",
+    "tree": "2959b32426a5246392bdee49acc3656b68756f9d"
   },
   "runtime": {
     "repository": "michaelrolphone-cmyk/RiscRTE",
