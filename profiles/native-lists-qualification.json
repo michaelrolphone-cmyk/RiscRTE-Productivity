@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "id": "native-lists-qualification",
+  "scope": "software-only; no product recipe, release or physical qualification",
+  "system": {
+    "repository": "michaelrolphone-cmyk/RiscRTE-System-Apps",
+    "commit": "b6cac6d1227e8a9323b561b8846a24b672c42e38",
+    "tree": "2959b32426a5246392bdee49acc3656b68756f9d"
+  },
+  "runtime": {
+    "repository": "michaelrolphone-cmyk/RiscRTE",
+    "commit": "13eca114cb58469cf6004fafc3da84fbd9d29beb",
+    "tree": "8c18029d7d845b35a447fc6a871a529f65d4c647"
+  },
+  "host_profile": "color-dynamic",
+  "compiler": "esp-15.2.0_20251204",
+  "sizes": [
+    "160x160",
+    "240x240",
+    "320x180",
+    "410x502",
+    "502x410"
+  ],
+  "preserved_source_sha256": {
+    "Apps/lists_scene.c": "e9d2d135695db9e45ec08d19dd4f15abb69ddad72cba291e980fbe8ea4c63649",
+    "Apps/ListsScene.c": "ba5c6d0cff142119c58de48434100dcf0fefc9196e68b250e26a1d1f32cab26c",
+    "Apps/ListsScene.h": "8dc4caf2e17c77e3559dd662030f2c369d9e1db6b9240ed34e942a188974b84c",
+    "Apps/lists_scene.json": "6b7b22b8d54c32c4a2645f24f38da5c972a6ef57efde38d3ff28eb5a936ac562",
+    "lib/Lists/ListsModel.c": "58e889c834a1aeb31f080e9adbe43c1166c6f43290bee51fe180924e2afa6338",
+    "lib/Lists/ListsModel.h": "511c83ff9885566f63fe5bbe0486250934bef59e8f2776d9066470de176fc9a2",
+    "lib/Lists/ListsStore.c": "0bcd9d37bbfd38d855f8223bc116a1797c16fce7f5842c3e98c47b5ad535a8cb",
+    "lib/Lists/ListsStore.h": "af9bc7339cb94c9644348772068fdd6e113ac00f46740815b5130e4cea05ee2c",
+    "deployment/lists/watch.json": "93a6a3af7a9eda0e76f4e0ac78ed27cc77eab91984be320bd70f318c174cb05a",
+    "deployment/lists/x4.json": "9c1c6f46aa4e23c4dc82c931a43cb907d98cf57cc8f872f28690432920c3437b"
+  },
+  "capabilities": [
+    "storage.app-data@1",
+    "time.civil@1",
+    "ui.scene@1"
+  ],
+  "text_surface": "shared ui.scene embedded SceneKeyboardV1; no new text-input capability"
+}

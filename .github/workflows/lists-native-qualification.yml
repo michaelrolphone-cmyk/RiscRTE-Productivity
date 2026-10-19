@@ -1,0 +1,86 @@
+name: Lists native software qualification
+on:
+  pull_request:
+    paths:
+      - 'Apps/ListsScene.*'
+      - 'Apps/lists_scene.*'
+      - 'lib/Lists/**'
+      - 'test/lists/**'
+      - 'tests/test_lists_native_qualification.py'
+      - 'scripts/*lists*'
+      - 'profiles/native-lists-qualification.json'
+      - '.github/workflows/lists-native-qualification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-lists:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: b6cac6d1227e8a9323b561b8846a24b672c42e38
+          path: .deps/system
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 13eca114cb58469cf6004fafc3da84fbd9d29beb
+          path: .deps/runtime
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install host image-check dependency
+        run: python -m pip install Pillow==11.3.0
+      - name: Verify exact dependency pins, semantics and qualification profile
+        run: |
+          python -m unittest discover -s tests -v
+          python scripts/build_lists_native_qualification.py --runtime .deps/runtime --system-apps .deps/system --output dist/unused --verify-only
+      - name: Actual Lists renderer, hit targets, text and native custody
+        run: python scripts/test_lists_native.py --runtime .deps/runtime --system-apps .deps/system --output dist/renderer --sanitize
+      - name: Actual application, storage, resident handoff and terminal failures
+        run: |
+          python scripts/test_lists_native_app.py --runtime .deps/runtime --system-apps .deps/system --output dist/app-normal
+          python scripts/test_lists_native_app.py --runtime .deps/runtime --system-apps .deps/system --output dist/app-sanitized --sanitize
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('dist')
+          assert json.loads((root/'app-normal/results.json').read_text())['scenarios']==json.loads((root/'app-sanitized/results.json').read_text())['scenarios']
+          PY
+      - name: Existing Lists Watch/paper and shared presenter regression tests
+        run: |
+          python scripts/test_lists_scene.py --runtime .deps/runtime --system-apps .deps/system --frames dist/legacy
+          python .deps/system/scripts/test_scene_host.py --runtime .deps/runtime
+          python .deps/system/scripts/test_scene_host.py --runtime .deps/runtime --sanitize
+          python .deps/system/scripts/test_scene_components.py --runtime .deps/runtime
+      - name: Install exact SDK 6.1 compiler only
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/xtensa-esp-elf.tar.xz"
+          curl --fail --location --retry 3 -o "$archive" https://github.com/espressif/crosstool-NG/releases/download/esp-15.2.0_20251204/xtensa-esp-elf-15.2.0_20251204-x86_64-linux-gnu.tar.xz
+          echo "3d50f5cd5f173acfd524e07c1cd69bc99585731a415ca2e5bce879997fe602b8  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/native-sdk61"
+          tar -xJf "$archive" -C "$RUNNER_TEMP/native-sdk61"
+          echo "$RUNNER_TEMP/native-sdk61/xtensa-esp-elf/bin" >> "$GITHUB_PATH"
+      - name: Build reproducible app and exact scene/profile/civil closure
+        run: python scripts/build_lists_native_qualification.py --runtime .deps/runtime --system-apps .deps/system --output dist/target
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lists-native-software-${{ github.event.pull_request.head.sha || github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
