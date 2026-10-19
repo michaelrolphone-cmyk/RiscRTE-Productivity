@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Build and validate the same declarative Lists application for Watch and X4."""
-import argparse,hashlib,importlib.util,json,os,subprocess,tempfile
+import argparse,hashlib,importlib.util,json,os,subprocess,sys,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def load(name,path):
- spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+ # Selected System builders import their sibling native-toolchain helper.
+ # Keep lookup local to that source tree; callers need no PYTHONPATH setup.
+ sys.path.insert(0,str(path.parent))
+ try:
+  spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+ finally:sys.path.pop(0)
 
 def run(runtime,system,output):
  if output.exists():raise FileExistsError('Choose a new output directory')
