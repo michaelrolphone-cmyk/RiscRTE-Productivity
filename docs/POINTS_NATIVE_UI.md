@@ -30,7 +30,7 @@ is `Apps/native/points_native_ui.json`. It selects:
   in both modes.
 
 Runtime `64c8e52e46fd91e8fdafd636db04eed88f0c51a9` and Utilities
-`4103538f6df243a9f3a5acdfd91afd09e5056193` must be exact clean checkouts.
+`2d0e03a58d1d78cec10033dfa384368281156a46` must be exact clean checkouts.
 System is source-frozen at
 `bae723f090a74c78cd567f1c4502386a1fbf34fa`, based on
 `c94f367f6ca3677954b580833f222ae16775c964`. The exact revision, file inventory
