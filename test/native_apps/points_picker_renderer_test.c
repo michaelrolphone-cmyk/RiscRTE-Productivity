@@ -15,6 +15,12 @@ static void np_pixel(int x,int y,uint32_t rgb,unsigned alpha){(void)x;(void)y;(v
 static int width(void){return 240;}
 static int height(void){return 240;}
 static void clear_color(uint32_t color){assert(!color);for(unsigned y=0;y<240;y++)for(unsigned x=0;x<240;x++)picker_pixels[y*244+x]=0;}
+/* The current renderer cooperates with adapter-owned raster checkpoints.
+ * This isolated font oracle always owns its in-memory surface. */
+static bool failed __attribute__((unused));
+static unsigned raster_pixels __attribute__((unused));
+static bool __attribute__((unused)) raster_checkpoint(void){return true;}
+static bool __attribute__((unused)) raster_surface_writable(void){return true;}
 #include "nova_ui.inc"
 static uint32_t test_ticks;
 static uint32_t test_millis(void){return test_ticks;}

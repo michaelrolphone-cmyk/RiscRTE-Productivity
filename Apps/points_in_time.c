@@ -509,8 +509,14 @@ static void edit_slot(unsigned slot);
 static void save_action(void);
 static void retry_action(void);
 #include "points_nova7.inc"
+#ifdef PORTABLE_POINTS_NATIVE_UI
+#include "points_native_ui.inc"
+#endif
 static void draw(void) {
     if(!points_live())return;
+#ifdef PORTABLE_POINTS_NATIVE_UI
+    if(pn.active){pn_render();return;}
+#endif
     if(paper){pe_draw();return;}
 #ifdef PORTABLE_NOVA_UI
     draw_nova7();
@@ -809,12 +815,23 @@ void app_main(void) {
        !app->fill_rect || !app->present)return;
     paper=paper_presentation_get();
     if(paper&&(paper->struct_size<sizeof(*paper)||!paper->begin||!paper->text||!paper->measure||!paper->circle||!paper->contact))paper=NULL;
+#ifdef PORTABLE_POINTS_NATIVE_UI
+    pn.active=false;
+    if(!paper&&portable_points_native_available()) {
+        if(!pn_open(app->screen_width(),app->screen_height()))return;
+    }
+    if(!pn.active)
+#endif
     if(!paper&&(app->screen_width()!=240||app->screen_height()!=240))return;
     if(app->set_back_exits_app)app->set_back_exits_app(false);
 #ifdef PORTABLE_NOVA_UI
     p7_picker_reset();p7_contact_active=p7_contact_moved=false;
 #endif
+#ifdef PORTABLE_POINTS_NATIVE_UI
+    nova=(paper||pn.active)?NULL:springboard_presentation_get();
+#else
     nova=paper?NULL:springboard_presentation_get();
+#endif
     if(nova&&(!nova->begin||!nova->caption||!nova->contact))nova=NULL;
     ready=open_dependencies();if(!points_live())return;if(ready)load_catalog();if(!points_live())return;draw();if(!points_live())return;uint32_t last_draw=app->millis();
 #ifdef ALARM_NATIVE_UTC
@@ -863,9 +880,18 @@ void app_main(void) {
 #ifdef ALARM_NATIVE_UTC
         status_changed|=old_clock_valid!=clock_valid||old_zone_index!=points_zone_index;
 #endif
+#ifdef PORTABLE_POINTS_NATIVE_UI
+        bool native_interacted=false;
+        if(pn.active)native_interacted=pn_input(&input);
+#endif
         bool back=(input.buttons&T5_APP_BUTTON_BACK) || (input.tapped && hit(input.touch_x,input.touch_y,0,0,48,31));
         if(back){if(on_back())break;if(paper)pe_reset_page();draw();if(!points_live())return;last_draw=app->millis();continue;}
         bool interacted=false;
+#ifdef PORTABLE_POINTS_NATIVE_UI
+        interacted=native_interacted;
+        if(pn.active) { if(pn.dirty||portable_points_native_repaint())interacted=true; }
+        else
+#endif
         if(paper){interacted=pe_input(&input);if(pe_exit)break;}
         else {
 #ifdef PORTABLE_NOVA_UI

@@ -52,18 +52,24 @@ static bool host_frame(void*c,uint32_t format,risc_display_surface_v1*out){(void
 static void host_frame_release(void*c,risc_display_frame_v1 f){(void)c;assert(f==1&&renderer_frames);renderer_frames--;}
 static bool host_submit(void*c,risc_display_frame_v1 f,const risc_display_rect_v1*r,size_t n,const risc_display_present_options_v1*o,risc_display_present_token_v1*t){(void)c;(void)r;(void)n;(void)o;assert(f==1&&renderer_frames);renderer_frames--;*t=++renderer_presents;if(renderer_presents==1)memcpy(first_pixels,pixels,sizeof(pixels));return true;}
 static bool host_status(void*c,risc_display_present_token_v1 t,risc_display_present_status_v1*out){(void)c;assert(t);out->state=RISC_DISPLAY_PRESENT_COMPLETE;return true;}
-static uint64_t host_subscribe(void*c){(void)c;renderer_subs++;return 1;}
+static risc_touch_snapshot_v1 delivered;
+static risc_touch_event_v1 queue[32];static unsigned queue_head,queue_count;
+static void host_touch_desired(risc_touch_snapshot_v1*out){*out=renderer_touch;
+ if(renderer_script){out->contact_count=0;unsigned x=0,y=0;switch(renderer_polls){case 3:x=350;y=730;break;case 7:x=100;y=240;break;case 11:x=350;y=280;break;case 15:x=350;y=730;break;case 19:x=100;y=730;break;case 23:x=100;y=730;break;}if(x){out->contact_count=1;out->contacts[0]=(risc_touch_contact_v1){.id=1,.x=x,.y=y};}}}
+static uint64_t host_subscribe(void*c){(void)c;renderer_subs++;queue_head=queue_count=0;host_touch_desired(&delivered);delivered.sequence=0;return 1;}
 static bool host_unsubscribe(void*c,uint64_t s){(void)c;assert(s==1&&renderer_subs);renderer_subs--;return true;}
-static bool host_touch_poll(void*c,size_t n){(void)c;assert(n==1);renderer_polls++;return true;}
-static int32_t host_touch_next(void*c,uint64_t s,risc_touch_event_v1*e){(void)c;(void)s;(void)e;return 0;}
-static bool host_touch_snapshot(void*c,risc_touch_snapshot_v1*out){(void)c;*out=renderer_touch;
- if(renderer_script){out->contact_count=0;unsigned x=0,y=0;switch(renderer_polls){case 3:x=350;y=730;break;case 7:x=100;y=240;break;case 11:x=350;y=280;break;case 15:x=350;y=730;break;case 19:x=100;y=730;break;case 23:x=100;y=730;break;}if(x){out->contact_count=1;out->contacts[0]=(risc_touch_contact_v1){.id=1,.x=x,.y=y};}}
- return true;}
+static bool host_touch_poll(void*c,size_t n){(void)c;assert(n==1);renderer_polls++;
+ risc_touch_snapshot_v1 next;host_touch_desired(&next);bool before=delivered.contact_count!=0,after=next.contact_count!=0;
+ unsigned kind=before&&!after?RISC_TOUCH_EVENT_UP:!before&&after?RISC_TOUCH_EVENT_DOWN:before&&after&&memcmp(&next.contacts[0],&delivered.contacts[0],sizeof(next.contacts[0]))?RISC_TOUCH_EVENT_MOVE:0;
+ if(kind){assert(queue_count<32);risc_touch_contact_v1 point=after?next.contacts[0]:delivered.contacts[0];queue[(queue_head+queue_count++)%32]=(risc_touch_event_v1){.sequence=++delivered.sequence,.timestamp_ms=ticks,.kind=kind,.id=point.id,.x=point.x,.y=point.y};}
+ next.sequence=delivered.sequence;next.timestamp_ms=ticks;delivered=next;return true;}
+static int32_t host_touch_next(void*c,uint64_t s,risc_touch_event_v1*e){(void)c;(void)s;if(!queue_count)return 0;*e=queue[queue_head];queue_head=(queue_head+1)%32;queue_count--;return 1;}
+static bool host_touch_snapshot(void*c,risc_touch_snapshot_v1*out){(void)c;*out=delivered;return true;}
 static const risc_display_output_api_v1 host_display={.api_version=1,.struct_size=sizeof(host_display),.get_info=host_info,.acquire=host_frame,.release=host_frame_release,.submit=host_submit,.present_status=host_status};
 static const risc_touch_api_v1 host_touch={1,sizeof(host_touch),NULL,host_subscribe,host_unsubscribe,host_touch_poll,host_touch_next,host_touch_snapshot};
 static bool host_acquire(const char*name,uint32_t v,uint64_t instance,risc_runtime_capability_v1*g){assert(v==1&&!instance);if(!strcmp(name,"display.output"))g->api=&host_display;else if(!strcmp(name,"input.touch.raw"))g->api=&host_touch;else return false;renderer_grants++;return true;}
 static bool host_release(risc_runtime_capability_v1*g){assert(renderer_grants&&g->api);renderer_grants--;g->api=NULL;return true;}
-static const risc_runtime_api_v1 host_runtime={1,sizeof(host_runtime),host_health,host_yield,host_diag,host_launch,host_acquire,host_release};
+static const risc_runtime_api_v1 host_runtime={.api_version=1,.struct_size=sizeof(host_runtime),.health=host_health,.yield_ms=host_yield,.diagnostic=host_diag,.request_launch=host_launch,.acquire=host_acquire,.release=host_release};
 const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t v){return v==1?&host_runtime:NULL;}
 static void start(void){renderer_polls=0;renderer_limit=10000;renderer_script=false;renderer_touch.contact_count=0;setup();set_direct();assert(app_module_init()==0);fake_app=*t5_app_get_api(1);app=&fake_app;paper=paper_presentation_get();assert(paper&&pe_width()==480&&pe_height()==800);pe_first=pe_edit_first=pe_choice_first=pe_focus=pe_key_page=0;pe_focus_visible=pe_exit=pe_down=false;pe_clean=true;}
 static void finish(void){close_dependencies();app_module_fini();assert(!renderer_grants&&!renderer_subs&&!renderer_frames);paper=NULL;}
