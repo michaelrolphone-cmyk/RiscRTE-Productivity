@@ -53,16 +53,17 @@ static bool fake_present(void*c,risc_display_present_token_v1 t,risc_display_pre
 static const risc_display_output_api_v1 display_api={.api_version=1,.struct_size=sizeof(display_api),.get_info=fake_info,.acquire=fake_frame,.release=fake_frame_release,.submit=fake_submit,.present_status=fake_present};
 static uint64_t fake_sub(void*c){(void)c;subs++;return 1;}
 static bool fake_unsub(void*c,uint64_t n){(void)c;assert(n==1&&subs);subs--;return true;}
+static uint64_t touch_sequence;
 static bool fake_touch_poll(void*c,size_t n){
  (void)c;assert(n==1);polls++;bool down=false;int x=contact_x,y=contact_y;
  for(unsigned i=0;i<action_count;i++)if(actions[i].at==polls){down=true;x=actions[i].x;y=actions[i].y;}
  unsigned kind=down?(contact_down?RISC_TOUCH_EVENT_MOVE:RISC_TOUCH_EVENT_DOWN):RISC_TOUCH_EVENT_UP;
  event_pending=(down!=contact_down)||(down&&(x!=contact_x||y!=contact_y));
- touch_event=(risc_touch_event_v1){.sequence=polls,.timestamp_ms=ticks,.kind=(uint8_t)kind,.id=1,.x=(uint16_t)x,.y=(uint16_t)y};
+ touch_event=(risc_touch_event_v1){.sequence=event_pending?++touch_sequence:touch_sequence,.timestamp_ms=ticks,.kind=(uint8_t)kind,.id=1,.x=(uint16_t)x,.y=(uint16_t)y};
  contact_down=down;contact_x=x;contact_y=y;return true;
 }
 static int32_t fake_next(void*c,uint64_t n,risc_touch_event_v1*e){(void)c;assert(n==1);if(!event_pending)return 0;*e=touch_event;event_pending=false;return 1;}
-static bool fake_snapshot(void*c,risc_touch_snapshot_v1*s){(void)c;*s=(risc_touch_snapshot_v1){.width=240,.height=240};if(contact_down){s->contact_count=1;s->contacts[0]=(risc_touch_contact_v1){.id=1,.x=(uint16_t)contact_x,.y=(uint16_t)contact_y};}return true;}
+static bool fake_snapshot(void*c,risc_touch_snapshot_v1*s){(void)c;*s=(risc_touch_snapshot_v1){.width=240,.height=240,.sequence=touch_sequence,.timestamp_ms=ticks};if(contact_down){s->contact_count=1;s->contacts[0]=(risc_touch_contact_v1){.id=1,.x=(uint16_t)contact_x,.y=(uint16_t)contact_y};}return true;}
 static const risc_touch_api_v1 touch_api={1,sizeof(touch_api),NULL,fake_sub,fake_unsub,fake_touch_poll,fake_next,fake_snapshot};
 static bool fake_battery(void*c,risc_battery_sample_v1*s){(void)c;*s=(risc_battery_sample_v1){.percent=73,.millivolts=3970,.flags=RISC_BATTERY_CHARGING};return true;}
 static const risc_battery_gauge_api_v1 battery_api={1,sizeof(battery_api),NULL,fake_battery};
@@ -86,7 +87,7 @@ void portable_input_navigation_close(const risc_runtime_api_v1*r){(void)r;}
 int portable_app_alarm_sleep(const risc_runtime_api_v1*r,const risc_display_output_api_v1*d,const risc_battery_gauge_api_v1*b,const alarm_service_v1*a){(void)r;(void)d;(void)b;(void)a;assert(!"Unexpected hardware sleep in audit");return 0;}
 static bool fake_acquire(const char*n,uint32_t v,uint64_t id,risc_runtime_capability_v1*g){(void)id;assert(g->struct_size==sizeof(*g));if(!strcmp(n,"display.output")&&v==1)g->api=&display_api;else if(!strcmp(n,"input.touch.raw")&&v==1)g->api=&touch_api;else if(!strcmp(n,"board.battery")&&v==1)g->api=&battery_api;else if(!strcmp(n,"rtc.clock")&&v==2)g->api=&rtc_api;else if(!strcmp(n,"storage.key-value")&&v==1)g->api=&kv_api;else if(!strcmp(n,"alarm.service")&&v==1)g->api=&alarm_api;else if(!strcmp(n,"input.navigation")&&v==1)g->api=&nav_api;else return false;fixture_grants++;return true;}
 static bool fake_release(risc_runtime_capability_v1*g){assert(g->api&&fixture_grants);g->api=NULL;fixture_grants--;return true;}
-static const risc_runtime_api_v1 runtime_api={1,sizeof(runtime_api),fake_health,fake_yield,fake_diag,fake_launch,fake_acquire,fake_release};
+static const risc_runtime_api_v1 runtime_api={.api_version=1,.struct_size=sizeof(runtime_api),.health=fake_health,.yield_ms=fake_yield,.diagnostic=fake_diag,.request_launch=fake_launch,.acquire=fake_acquire,.release=fake_release};
 const risc_runtime_api_v1 *risc_runtime_get_api(uint32_t v){return v==1?&runtime_api:NULL;}
 static void sample(unsigned at,int x,int y){assert(action_count<256);actions[action_count].at=at;actions[action_count].x=x;actions[action_count++].y=y;}
 static void seed(unsigned count) {

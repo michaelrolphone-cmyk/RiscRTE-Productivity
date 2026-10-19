@@ -1,0 +1,273 @@
+name: Points native UI software qualification
+
+on:
+  pull_request:
+    paths:
+      - 'Apps/points*'
+      - 'Apps/productivity_scroll.h'
+      - 'Apps/native/points_native_ui.json'
+      - 'scripts/*points*'
+      - 'scripts/native_paper_transitions.py'
+      - 'scripts/app_manifest.py'
+      - 'sdk/points-native-ui-sources.json'
+      - 'sdk/points-native-utc-sources.json'
+      - 'sdk/paper-transitions-sources.json'
+      - 'sdk/native-touch-scroll-sources.json'
+      - 'sdk/native-broadcast-sources.json'
+      - 'sdk/native-idle-sources.json'
+      - 'test/native_apps/points*'
+      - 'test/native_apps/validate_test.c'
+      - 'test/native_apps/stubs/**'
+      - 'lib/elf_loader/**'
+      - 'docs/POINTS_NATIVE_UI.md'
+      - '.github/workflows/points-native-ui.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Apps/points*'
+      - 'Apps/productivity_scroll.h'
+      - 'Apps/native/points_native_ui.json'
+      - 'scripts/*points*'
+      - 'scripts/native_paper_transitions.py'
+      - 'scripts/app_manifest.py'
+      - 'sdk/points-native-ui-sources.json'
+      - 'sdk/points-native-utc-sources.json'
+      - 'sdk/paper-transitions-sources.json'
+      - 'sdk/native-touch-scroll-sources.json'
+      - 'sdk/native-broadcast-sources.json'
+      - 'sdk/native-idle-sources.json'
+      - 'test/native_apps/points*'
+      - 'test/native_apps/validate_test.c'
+      - 'test/native_apps/stubs/**'
+      - 'lib/elf_loader/**'
+      - 'docs/POINTS_NATIVE_UI.md'
+      - '.github/workflows/points-native-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-points:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: productivity
+    env:
+      PYTHONUNBUFFERED: '1'
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      SYSTEM_APPS: ${{ github.workspace }}/dependencies/system
+      RUNTIME: ${{ github.workspace }}/dependencies/runtime
+      UTILITIES: ${{ github.workspace }}/dependencies/utilities
+      EVIDENCE: ${{ github.workspace }}/productivity/build/points-native-ui-ci
+    steps:
+      - name: Check out exact application head with parity history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          path: productivity
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read exact dependency revisions from the frozen profile
+        id: pins
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git cat-file -e fe612078f486dfa67a654f0f7ef09ac3fee9382e:Apps/points_in_time.c
+          mkdir -p "$EVIDENCE"
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          profile = json.loads(Path('sdk/points-native-ui-sources.json').read_text())
+          assert profile['id'] == 'points-native-ui-development'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              for name in ('system', 'runtime', 'utilities'):
+                  revision = profile['dependencies'][name]['base_revision']
+                  assert re.fullmatch(r'[0-9a-f]{40}', revision), (name, revision)
+                  print(f'{name}_sha={revision}', file=out)
+          PY
+      - name: Check out frozen System dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: ${{ steps.pins.outputs.system_sha }}
+          path: dependencies/system
+          persist-credentials: false
+      - name: Check out frozen Runtime dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: ${{ steps.pins.outputs.runtime_sha }}
+          path: dependencies/runtime
+          persist-credentials: false
+      - name: Check out frozen Utilities dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: ${{ steps.pins.outputs.utilities_sha }}
+          path: dependencies/utilities
+          persist-credentials: false
+      - name: Verify immutable source and header inventories before executing fixtures
+        run: |
+          set -euo pipefail
+          python scripts/test_points_native_ui_profile.py 2>&1 | tee "$EVIDENCE/profile-tests.log"
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          import build_points_native_ui as build
+          roots = {'productivity': Path.cwd(),
+                   'system': Path(os.environ['SYSTEM_APPS']),
+                   'runtime': Path(os.environ['RUNTIME']),
+                   'utilities': Path(os.environ['UTILITIES'])}
+          profile = json.loads(build.PROFILE.read_text())
+          manifest = json.loads(build.MANIFEST.read_text())
+          build.validate(profile, manifest, roots)
+          records = {}
+          for name, root in roots.items():
+              revision = build.git(root, 'rev-parse', 'HEAD')
+              status = build.git(root, 'status', '--porcelain', '--untracked-files=all')
+              if name != 'productivity':
+                  assert not root.is_relative_to(roots['productivity']), name
+                  assert revision == profile['dependencies'][name]['base_revision'], name
+                  assert not status, (name, status)
+              records[name] = {'revision': revision, 'working_tree_status': status}
+          (Path(os.environ['EVIDENCE']) / 'source-checkouts.json').write_text(
+              json.dumps(records, indent=2) + '\n')
+          print('PASS: exact dependency revisions and complete frozen source/header inventories')
+          PY
+      - name: Run 380 native partial-damage cases across all eight compositions
+        run: |
+          set -euo pipefail
+          for quick in 0 1; do
+            for snapshot in 0 1; do
+              for sanitized in 0 1; do
+                label="partial-q${quick}-s${snapshot}-a${sanitized}"
+                flags=()
+                if [[ "$quick" == 1 ]]; then flags+=(--quick); fi
+                if [[ "$snapshot" == 1 ]]; then flags+=(--snapshot); fi
+                if [[ "$sanitized" == 1 ]]; then flags+=(--sanitized); fi
+                python scripts/test_points_native_ui.py \
+                  --system "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME" \
+                  --output "$EVIDENCE/$label" "${flags[@]}" 2>&1 | tee "$EVIDENCE/$label.log"
+              done
+            done
+          done
+      - name: Run 100 full-frame Quick cases with direct and snapshot sanitizers
+        run: |
+          set -euo pipefail
+          for snapshot in 0 1; do
+            label="full-q1-s${snapshot}-a1"
+            flags=(--quick --sanitized --full-frames)
+            if [[ "$snapshot" == 1 ]]; then flags+=(--snapshot); fi
+            python scripts/test_points_native_ui.py \
+              --system "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME" \
+              --output "$EVIDENCE/$label" "${flags[@]}" 2>&1 | tee "$EVIDENCE/$label.log"
+          done
+      - name: Verify selector-off tokens and actual paper frame parity
+        run: |
+          set -euo pipefail
+          python scripts/test_points_native_ui_parity.py \
+            --system "$SYSTEM_APPS" --utilities "$UTILITIES" \
+            --output "$EVIDENCE/app-parity" 2>&1 | tee "$EVIDENCE/app-parity.log"
+          python scripts/test_points_native_ui_paper_utc.py \
+            --system "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME" \
+            --output "$EVIDENCE/paper-utc" 2>&1 | tee "$EVIDENCE/paper-utc.log"
+      - name: Run existing Points model, picker, GUI and raw-touch regressions
+        run: |
+          set -euo pipefail
+          for script in test_points_in_time test_points_picker test_points_gui test_points_touch; do
+            python "scripts/${script}.py" --system-apps "$SYSTEM_APPS" --utilities "$UTILITIES" \
+              2>&1 | tee "$EVIDENCE/${script}.log"
+          done
+      - name: Require complete native and tagged UTC paper matrices
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import itertools, json, os
+          from pathlib import Path
+          root = Path(os.environ['EVIDENCE'])
+          sizes = ('160x160', '240x240', '240x280', '320x240', '410x502')
+          counts = {'partial_damage': 0, 'full_frames': 0}
+          for quick, snapshot, sanitized in itertools.product((0, 1), repeat=3):
+              label = f'partial-q{quick}-s{snapshot}-a{sanitized}'
+              data = json.loads((root / label / 'results.json').read_text())
+              expected = [[size, scenario] for size in sizes for scenario in range(10 if quick else 9)]
+              assert data['passed'] == expected, label
+              assert data['quick'] == bool(quick) and data['snapshot'] == bool(snapshot), label
+              assert data['sanitized'] == bool(sanitized) and data['full_frames'] is False, label
+              assert data['hardware_verified'] is False, label
+              counts['partial_damage'] += len(expected)
+          for snapshot in (0, 1):
+              label = f'full-q1-s{snapshot}-a1'
+              data = json.loads((root / label / 'results.json').read_text())
+              expected = [[size, scenario] for size in sizes for scenario in range(10)]
+              assert data['passed'] == expected, label
+              assert data['quick'] and data['sanitized'] and data['full_frames'], label
+              assert data['snapshot'] == bool(snapshot) and data['hardware_verified'] is False, label
+              counts['full_frames'] += len(expected)
+          parity = json.loads((root / 'app-parity/results.json').read_text())
+          assert len(parity['selector_off']) == 8 and parity['paper_compositions'] == 4
+          assert len(parity['paper_frame_hashes']) == 8
+          paper = json.loads((root / 'paper-utc/results.json').read_text())
+          expected = [[f'selector{e}-snapshot{s}-sanitized{a}', scenario]
+                      for e, s, a in itertools.product((0, 1), repeat=3) for scenario in range(9)]
+          assert paper['passed'] == expected and len(paper['identical_frame_hashes']) == 9
+          assert counts == {'partial_damage': 380, 'full_frames': 100}, counts
+          counts.update(tagged_utc_paper=72, selector_off_profiles=8,
+                        legacy_paper_compositions=4, hardware_verified=False)
+          (root / 'matrix-summary.json').write_text(json.dumps(counts, indent=2) + '\n')
+          print(json.dumps(counts, indent=2))
+          PY
+      - name: Install the existing pinned public GCC8.4 registry toolchain
+        run: |
+          set -euo pipefail
+          export PLATFORMIO_CORE_DIR="$RUNNER_TEMP/points-native-ui-platformio"
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          compiler="$PLATFORMIO_CORE_DIR/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc"
+          test -x "$compiler"
+          "$compiler" --version | tee "$EVIDENCE/compiler-version.txt"
+          echo "NATIVE_APP_CC=$compiler" >> "$GITHUB_ENV"
+      - name: Build strict direct and snapshot targets and prove direct determinism
+        run: |
+          set -euo pipefail
+          args=(--system-apps "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME")
+          python scripts/build_points_native_ui.py "${args[@]}" \
+            --output-dir "$EVIDENCE/verify-only-unused" --verify-only \
+            2>&1 | tee "$EVIDENCE/verify-only.log"
+          test ! -e "$EVIDENCE/verify-only-unused"
+          python scripts/build_points_native_ui.py "${args[@]}" \
+            --output-dir "$EVIDENCE/target-direct" 2>&1 | tee "$EVIDENCE/target-direct.log"
+          python scripts/build_points_native_ui.py "${args[@]}" \
+            --output-dir "$EVIDENCE/target-snapshot" --snapshot \
+            2>&1 | tee "$EVIDENCE/target-snapshot.log"
+          python scripts/build_points_native_ui.py "${args[@]}" \
+            --output-dir "$EVIDENCE/target-direct-repeat" \
+            2>&1 | tee "$EVIDENCE/target-direct-repeat.log"
+          cmp "$EVIDENCE/target-direct/points_in_time.elf" "$EVIDENCE/target-direct-repeat/points_in_time.elf"
+          sha256sum "$EVIDENCE/target-direct/points_in_time.elf" \
+            "$EVIDENCE/target-snapshot/points_in_time.elf" \
+            "$EVIDENCE/target-direct-repeat/points_in_time.elf" | tee "$EVIDENCE/target-sha256.txt"
+          printf '%s\n' 'PASS: repeated direct target is byte-identical' | tee "$EVIDENCE/determinism.txt"
+          git diff --exit-code
+      - name: Upload development-only qualification evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: points-native-ui-software-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            productivity/build/points-native-ui-ci/
+            productivity/build/points-in-time/
+            productivity/build/points-picker/
+            productivity/build/points-gui/
+            productivity/build/points-touch/
+          if-no-files-found: error
+          retention-days: 14
