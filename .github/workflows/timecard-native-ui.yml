@@ -1,0 +1,247 @@
+name: Timecard native UI software qualification
+
+on:
+  pull_request:
+    paths:
+      - 'Apps/timecard*'
+      - 'Apps/productivity_scroll.h'
+      - 'Apps/native/timecard_native_ui.json'
+      - 'scripts/*timecard*'
+      - 'sdk/timecard-native-ui-sources.json'
+      - 'test/native_apps/timecard*'
+      - 'test/native_apps/validate_test.c'
+      - 'test/native_apps/stubs/**'
+      - 'tests/timecard*'
+      - 'lib/elf_loader/**'
+      - 'lib/NativeApps/include/**'
+      - 'docs/TIMECARD_NATIVE_UI.md'
+      - '.github/workflows/timecard-native-ui.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Apps/timecard*'
+      - 'Apps/productivity_scroll.h'
+      - 'Apps/native/timecard_native_ui.json'
+      - 'scripts/*timecard*'
+      - 'sdk/timecard-native-ui-sources.json'
+      - 'test/native_apps/timecard*'
+      - 'test/native_apps/validate_test.c'
+      - 'test/native_apps/stubs/**'
+      - 'tests/timecard*'
+      - 'lib/elf_loader/**'
+      - 'lib/NativeApps/include/**'
+      - 'docs/TIMECARD_NATIVE_UI.md'
+      - '.github/workflows/timecard-native-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-timecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: productivity
+    env:
+      PYTHONUNBUFFERED: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      SYSTEM_APPS: ${{ github.workspace }}/dependencies/system
+      RUNTIME: ${{ github.workspace }}/dependencies/runtime
+      UTILITIES: ${{ github.workspace }}/dependencies/utilities
+      EVIDENCE: ${{ github.workspace }}/productivity/build/timecard-native-ui-ci
+    steps:
+      - name: Check out exact application head with parity history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          path: productivity
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read exact dependency revisions from the frozen profile
+        id: pins
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          mkdir -p "$EVIDENCE"
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          profile = json.loads(Path('sdk/timecard-native-ui-sources.json').read_text())
+          assert profile['id'] == 'timecard-native-ui-development'
+          base = profile['application_base_revision']
+          assert re.fullmatch(r'[0-9a-f]{40}', base)
+          subprocess.run(['git', 'cat-file', '-e', base + ':Apps/timecard_portable.c'], check=True)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              for name in ('system', 'runtime', 'utilities'):
+                  revision = profile['dependencies'][name]['base_revision']
+                  assert re.fullmatch(r'[0-9a-f]{40}', revision), (name, revision)
+                  print(f'{name}_sha={revision}', file=out)
+          PY
+      - name: Check out frozen System dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: ${{ steps.pins.outputs.system_sha }}
+          path: dependencies/system
+          persist-credentials: false
+      - name: Check out frozen Runtime dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: ${{ steps.pins.outputs.runtime_sha }}
+          path: dependencies/runtime
+          persist-credentials: false
+      - name: Check out frozen Utilities dependency
+        uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: ${{ steps.pins.outputs.utilities_sha }}
+          path: dependencies/utilities
+          persist-credentials: false
+      - name: Validate exact source closure before executing fixtures
+        run: |
+          set -euo pipefail
+          python scripts/test_timecard_native_ui_profile.py 2>&1 | tee "$EVIDENCE/profile-tests.log"
+          python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          import build_timecard_native_ui as build
+          roots = {'productivity': Path.cwd(),
+                   'system': Path(os.environ['SYSTEM_APPS']),
+                   'runtime': Path(os.environ['RUNTIME']),
+                   'utilities': Path(os.environ['UTILITIES'])}
+          build.validate(json.loads(build.PROFILE.read_text()), json.loads(build.MANIFEST.read_text()), roots)
+          records = {}
+          for name, root in roots.items():
+              revision = build.git(root, 'rev-parse', 'HEAD')
+              status = build.git(root, 'status', '--porcelain', '--untracked-files=all')
+              if name != 'productivity':
+                  assert not root.is_relative_to(roots['productivity']), name
+                  assert not status, (name, status)
+              records[name] = {'revision': revision, 'working_tree_status': status}
+          (Path(os.environ['EVIDENCE']) / 'source-checkouts.json').write_text(
+              json.dumps(records, indent=2) + '\n')
+          print('PASS: exact dependency revisions and frozen source/header inventories')
+          PY
+      - name: Exercise RTC and UTC native flows with both raster paths and sanitizers
+        run: |
+          set -euo pipefail
+          for utc in 0 1; do
+            for snapshot in 0 1; do
+              for sanitized in 0 1; do
+                label="native-u${utc}-s${snapshot}-a${sanitized}"
+                flags=()
+                if [[ "$utc" == 1 ]]; then flags+=(--utc); fi
+                if [[ "$snapshot" == 1 ]]; then flags+=(--snapshot); fi
+                if [[ "$sanitized" == 1 ]]; then flags+=(--sanitized); fi
+                python scripts/test_timecard_native_ui.py \
+                  --system-apps "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME" \
+                  --output "$EVIDENCE/$label" "${flags[@]}" 2>&1 | tee "$EVIDENCE/$label.log"
+              done
+            done
+          done
+      - name: Require the complete native clock and raster matrix
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import itertools, json, os
+          from pathlib import Path
+          root = Path(os.environ['EVIDENCE'])
+          sizes = ('160x160', '240x240', '240x280', '320x240', '410x502')
+          expected = [[size, scenario, latency] for size in sizes
+                      for scenario in range(13) for latency in (0, 100)]
+          count = 0
+          for utc, snapshot, sanitized in itertools.product((0, 1), repeat=3):
+              label = f'native-u{utc}-s{snapshot}-a{sanitized}'
+              data = json.loads((root / label / 'results.json').read_text())
+              assert data['passed'] == expected, label
+              assert data['utc'] == bool(utc), label
+              assert data['snapshot'] == bool(snapshot), label
+              assert data['sanitized'] == bool(sanitized), label
+              assert data['hardware_verified'] is False, label
+              count += len(expected)
+          assert count == 1040, count
+          summary = {'native_cases': count, 'compositions': 8, 'sizes': list(sizes),
+                     'latency_ms': [0, 100], 'hardware_verified': False}
+          (root / 'matrix-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+      - name: Verify selector-off source and existing paper frame parity
+        run: |
+          set -euo pipefail
+          python scripts/test_timecard_native_ui_parity.py \
+            --system-apps "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME" \
+            --output "$EVIDENCE/parity" 2>&1 | tee "$EVIDENCE/parity.log"
+          python - <<'PY'
+          import itertools, json, os
+          from pathlib import Path
+          root = Path(os.environ['EVIDENCE'])
+          data = json.loads((root / 'parity/results.json').read_text())
+          assert len(data['selector_off']) == 16
+          assert data['hardware_verified'] is False
+          expected = {f'paper-{utc}-{landscape}-{enabled}-{sanitized}': 33 if utc else 18
+                      for utc in (0, 1) for landscape in ((0,) if utc else (0, 1))
+                      for enabled, sanitized in itertools.product((0, 1), repeat=2)}
+          actual = {row['composition']: row['scenarios'] for row in data['paper_compositions']}
+          assert actual == expected and len(data['paper_compositions']) == 12
+          assert sum(actual.values()) == 276
+          for row in data['paper_compositions']:
+              assert len(row['logs']) == row['scenarios'], row['composition']
+          summary = json.loads((root / 'matrix-summary.json').read_text())
+          summary.update(selector_off_profiles=16, paper_compositions=12, paper_cases=276)
+          (root / 'matrix-summary.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print('PASS: complete selector-off and RTC/UTC paper matrices')
+          PY
+      - name: Install the existing pinned public GCC8.4 registry toolchain
+        run: |
+          set -euo pipefail
+          export PLATFORMIO_CORE_DIR="$RUNNER_TEMP/timecard-native-ui-platformio"
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          compiler="$PLATFORMIO_CORE_DIR/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-gcc"
+          test -x "$compiler"
+          "$compiler" --version | tee "$EVIDENCE/compiler-version.txt"
+          echo "NATIVE_APP_CC=$compiler" >> "$GITHUB_ENV"
+      - name: Build both clock and raster variants and prove repeated direct determinism
+        run: |
+          set -euo pipefail
+          args=(--system-apps "$SYSTEM_APPS" --utilities "$UTILITIES" --runtime "$RUNTIME")
+          python scripts/build_timecard_native_ui.py "${args[@]}" \
+            --output-dir "$EVIDENCE/verify-only-unused" --verify-only \
+            2>&1 | tee "$EVIDENCE/verify-only.log"
+          test ! -e "$EVIDENCE/verify-only-unused"
+          for utc in 0 1; do
+            flags=()
+            if [[ "$utc" == 1 ]]; then flags+=(--utc); fi
+            for mode in direct snapshot direct-repeat; do
+              selected=("${flags[@]}")
+              if [[ "$mode" == snapshot ]]; then selected+=(--snapshot); fi
+              label="target-u${utc}-${mode}"
+              python scripts/build_timecard_native_ui.py "${args[@]}" "${selected[@]}" \
+                --output-dir "$EVIDENCE/$label" 2>&1 | tee "$EVIDENCE/$label.log"
+            done
+            cmp "$EVIDENCE/target-u${utc}-direct/timecard.elf" \
+              "$EVIDENCE/target-u${utc}-direct-repeat/timecard.elf"
+          done
+          sha256sum "$EVIDENCE"/target-*/timecard.elf | tee "$EVIDENCE/target-sha256.txt"
+          printf '%s\n' 'PASS: repeated RTC and UTC direct targets are byte-identical' \
+            | tee "$EVIDENCE/determinism.txt"
+          git diff --exit-code
+      - name: Upload development-only qualification evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: timecard-native-ui-software-${{ github.event.pull_request.head.sha || github.sha }}
+          path: productivity/build/timecard-native-ui-ci/
+          if-no-files-found: error
+          retention-days: 14
