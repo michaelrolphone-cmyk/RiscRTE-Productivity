@@ -21,6 +21,10 @@
 #include "PortableRtcClock.h"
 #include "PortableTime.h"
 #include "PortableTimeFormat.h"
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+#include "PortableTimecardNative.h"
+#include "PortableNativeCustody.h"
+#endif
 #ifdef TIMECARD_NATIVE_TIME
 #include "PortableNativeTimeToolbar.h"
 #if !defined(TIMECARD_APP_DATA) || !defined(TIMECARD_PAPER) || !defined(PORTABLE_NATIVE_TIME_TOOLBAR) || !defined(PORTABLE_NATIVE_CUSTODY_FENCE) || !defined(ALARM_SERVICE_TAGGED_V2)
@@ -76,6 +80,14 @@ const t5_storage_api_v1 *timecard_portable_file_storage(void);
 static bool tcp_storage_retained(void) { return false; }
 #endif
 static bool tcp_retained(void) {
+#if defined(PORTABLE_TIMECARD_NATIVE_UI) && defined(PORTABLE_NATIVE_CUSTODY_FENCE) && !defined(TIMECARD_NATIVE_TIME)
+    /* Selected native color shares the adapter's pre-finalization barrier.
+     * Keep the legacy/paper storage-retention behavior unchanged. */
+    if(portable_timecard_native_available()){
+        if(portable_adapter_retained())return true;
+        if(tcp_storage_retained()){portable_adapter_retain();return true;}
+    }
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(portable_adapter_retained())return true;
     if(tcp_storage_retained()){portable_adapter_retain();return true;}
@@ -113,6 +125,11 @@ static uint64_t tcp_cookie;
 static char tcp_entry[13],tcp_editor_title[32],tcp_editor_status[STATUS_CAP];
 static tc_day_t tcp_before[MAX_DAYS];
 static unsigned tcp_render_rows,tcp_render_height;
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+static bool tcn_active(void);
+static void tcn_list(const t5_ui_chrome_t *,const t5_ui_list_row_t *,uint32_t,int32_t);
+static void tcn_table(const t5_ui_chrome_t *,const t5_ui_table_column_t *,uint32_t,const t5_ui_table_row_t *,uint32_t,int32_t);
+#endif
 #ifdef TIMECARD_NATIVE_TIME
 #include "timecard_native_time.h"
 #endif
@@ -260,6 +277,9 @@ static void tcp_paper_list(const t5_ui_chrome_t *,const t5_ui_list_row_t *,uint3
 static void tcp_paper_table(const t5_ui_chrome_t *,const t5_ui_table_column_t *,uint32_t,const t5_ui_table_row_t *,uint32_t,int32_t);
 #endif
 static void tcp_list(const t5_ui_chrome_t *chrome,const t5_ui_list_row_t *rows,uint32_t n,int32_t index) {
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+    if(tcn_active()){tcn_list(chrome,rows,n,index);return;}
+#endif
 #ifdef TIMECARD_PAPER
     if(tcp_paper){tcp_paper_list(chrome,rows,n,index);return;}
 #endif
@@ -277,6 +297,9 @@ static void tcp_list(const t5_ui_chrome_t *chrome,const t5_ui_list_row_t *rows,u
     tcp_chrome(chrome);app->present(false);
 }
 static void tcp_table(const t5_ui_chrome_t *chrome,const t5_ui_table_column_t *columns,uint32_t count,const t5_ui_table_row_t *rows,uint32_t n,int32_t index) {
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+    if(tcn_active()){tcn_table(chrome,columns,count,rows,n,index);return;}
+#endif
 #ifdef TIMECARD_PAPER
     if(tcp_paper){tcp_paper_table(chrome,columns,count,rows,n,index);return;}
 #endif
@@ -388,7 +411,14 @@ static void tcp_tap(int x,int y) {
 #ifdef TIMECARD_PAPER
 #include "timecard_paper.inc"
 #endif
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+#include "timecard_native_ui.inc"
+static bool tcn_active(void){return tcn.active;}
+#endif
 static void tcp_input(const t5_app_input_t *input) {
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+    if(tcn_active()){if(!tcp_retained())tcn_input(input);return;}
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(tcp_retained())return;
 #endif
@@ -466,6 +496,9 @@ static void tcp_dependencies_open(void) {
 #endif
 }
 static void tcp_draw(void) {
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+    if(tcn_active()){tcn_draw();return;}
+#endif
 #ifdef TIMECARD_NATIVE_TIME
     if(tcp_retained())return;
 #endif
@@ -508,7 +541,16 @@ static void tcp_draw(void) {
 __attribute__((visibility("default"))) void app_main(void) {
     app=t5_app_get_api(T5_APP_ABI_VERSION);
     if(!app || app->abi_version!=T5_APP_ABI_VERSION || app->struct_size<offsetof(t5_app_api_v1,touch_contact)+sizeof(app->touch_contact) || !app->poll || !app->present || !app->set_back_exits_app || !app->touch_contact)return;
+
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+    tcn.active=false;
+    if(!app->screen_width || !app->screen_height)return;
+    if(portable_timecard_native_available()){
+        if(!tcn_open(app->screen_width(),app->screen_height()))return;
+    }else if(app->screen_width()<240 || app->screen_height()<240)return;
+#else
     if(!app->screen_width || !app->screen_height || app->screen_width()<240 || app->screen_height()<240)return;
+#endif
 #ifdef TIMECARD_PAPER
     tcp_paper=paper_presentation_get();tcp_paper_first=0;
 #ifdef PORTABLE_PRODUCTIVITY_SCROLL
@@ -530,6 +572,10 @@ __attribute__((visibility("default"))) void app_main(void) {
     while(!tcp_home && !tcp_external_exit && !tcp_retained() && app->poll(&input,20)) {
         tcp_input(&input);
         if(tcp_retained())return;
+
+#ifdef PORTABLE_TIMECARD_NATIVE_UI
+        if(tcn_active() && portable_timecard_native_repaint())tcp_dirty=true;
+#endif
         if(tcp_dirty && !tcp_home && !tcp_external_exit)tcp_draw();
     }
     if(tcp_retained())return;
