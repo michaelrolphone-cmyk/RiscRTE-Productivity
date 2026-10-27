@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "profile": "timecard-current-badge",
+  "version": "0.3.2",
+  "authoritative_model_base": "bb8d0d99b3a857103d2b01e6b4c756b913aa14d3",
+  "authoritative_model_sha256": "c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9",
+  "scene_contract_basis": "55c94bde412dec7772bedac29b067bcd83aad802",
+  "runtime_sdk": "273bdbccf65647a803ab0586a418f8283732baec",
+  "alarm_sdk": "bbafc2c3aebe8c3b9805639f873341e31296c8fb",
+  "compiler_family": "ESP32-S3 GCC 15.2",
+  "time_policy": "native UTC projected to selected IANA civil time; history remains civil date/minutes",
+  "storage": {
+    "capability": "storage.app-data",
+    "api": 1,
+    "instance": 1,
+    "name": "timecard.json",
+    "maximum_bytes": 49151
+  },
+  "preferences": {
+    "capability": "storage.key-value",
+    "api": 1,
+    "instance": 1,
+    "writes": false,
+    "writer": "none; shared Quick writes use separate storage.preferences"
+  },
+  "navigation": {
+    "root_back": "springboard.elf",
+    "physical_home": "default.elf"
+  },
+  "clock_edit_authority": false,
+  "quick_actions_selected": true,
+  "snapshot_selected": false,
+  "historical_profiles_modified": false,
+  "quick_preference_store": {
+    "capability": "storage.preferences",
+    "api": 1,
+    "instance": 1,
+    "writes": true,
+    "mode": "copied atomic preference edits",
+    "completed_pending_frame_before_submit": true
+  }
+}
