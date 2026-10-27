@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "repository": "michaelrolphone-cmyk/RiscRTE-Productivity",
+  "source_commit": "55dd087b054242eb6b28acae08b0f2a913ce0e35",
+  "source_tree": "f2401e4a9e0dfcfef553633b1e4c2d9362f114eb",
+  "object_count": 468,
+  "pack_sha256": "afc905402661c7a34e7d3fc1216ffa9e543238f12ab85929b85ae469ccd091db",
+  "parts": [
+    {
+      "path": "objects-000.packpart",
+      "bytes": 524288,
+      "sha256": "4f0dd0e78b2e9e92a308c67d5accf42fd708c62a53ffc164948054c3efadebc3"
+    },
+    {
+      "path": "objects-001.packpart",
+      "bytes": 348877,
+      "sha256": "99a44db677c52a7772c3144c72c5e52230d2f3383de99dda83e062c185633086"
+    }
+  ],
+  "shallow_boundaries": [
+    "2f2eeaba46353e343841fc35450184a5174b5ae8",
+    "a3a0d2b36114bc1130509e67c6ba7ddee3123148",
+    "bdf5c0ef03ceb87ed91cb2d2a847c1575dc7fae7",
+    "bb8d0d99b3a857103d2b01e6b4c756b913aa14d3",
+    "79d4d9ef498735b31a5618c07ac039af3fa6869b"
+  ],
+  "scope": "Exact original Git objects recovered from source checkpoints, including canonical SDK and selected dependency anchors. Shallow boundaries are explicit; unavailable ancestors are not invented. Publication commit identity differs from original source identity."
+}
