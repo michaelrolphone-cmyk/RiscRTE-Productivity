@@ -155,3 +155,19 @@ exact pinned commit is unavailable or its inventory differs. This workflow is
 prepared software-qualification machinery, not evidence of a green hosted run.
 Local clean exact-commit/hash-matching builds are qualified separately. The
 builder does not commit, push, release or silently repin dependencies.
+
+
+## Shared source inventory refresh for Badge current-profile additions
+
+The legacy native0.3.0 selection remains on the same dependency, capability,
+compiler and authoritative model anchors. Its three shared source hashes now
+include explicit TIMECARD_CURRENT_PROFILE-only changes to retry status, current
+preference reading and native presentation. The prior digests and exact source
+baselinebb8d0d99b3a857103d2b01e6b4c756b913aa14d3 are retained in source_refresh.
+No wholesale manifest regeneration or application behavior rollback was used.
+
+The source-refresh gate compares complete preprocessed application token streams
+for RTC/UTC × direct/snapshot, old three-file content against current content,
+with the selected real frozen SDK. All four match. The existing1040 native cases,
+16 selector-off profiles,276 paper cases and repeated target determinism checks
+remain required. Token parity alone is not target-binary or hardware proof.
