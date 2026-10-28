@@ -4,6 +4,10 @@
  * time-control grant, timezone writes or service occurrence access. */
 #include "PortableRealtimeClient.h"
 #include "AlarmServiceV2.h"
+#ifdef POINTS_SERVICE_CONTEXT
+#include "PointsServiceContext.h"
+static int32_t points_context_status=ALARM_PENDING;
+#endif
 #include "PortableTimeZonePreference.h"
 #ifdef PORTABLE_NATIVE_TIME_TOOLBAR
 #include "PortableNativeTimeToolbar.h"

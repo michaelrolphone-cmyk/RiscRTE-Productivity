@@ -163,4 +163,7 @@ static void retained_tests(void){
  native_setup();native_alarm_descriptor.descriptor_version=2;assert(!open_dependencies()&&!points_retained);close_dependencies();
  native_setup();partial_acquire=true;assert(!open_dependencies()&&points_retained&&retains==1);unsigned before=provider_calls;close_dependencies();assert(before==provider_calls);
 }
-int main(void){schedule_tests();controller_tests();paper_controller_tests();retained_tests();puts("Native UTC Points: DST, elapsed duration, UTC keys/PTU1, paper edit/held/cancel/keyboard controls, exact save retry, timezone changes, native UNSET/2038 and terminal custody passed");return 0;}
+#ifndef POINTS_NATIVE_UTC_TEST_ENTRY
+#define POINTS_NATIVE_UTC_TEST_ENTRY main
+#endif
+int POINTS_NATIVE_UTC_TEST_ENTRY(void){schedule_tests();controller_tests();paper_controller_tests();retained_tests();puts("Native UTC Points: DST, elapsed duration, UTC keys/PTU1, paper edit/held/cancel/keyboard controls, exact save retry, timezone changes, native UNSET/2038 and terminal custody passed");return 0;}

@@ -1,3 +1,10 @@
+#ifdef PORTABLE_NATIVE_SCENE
+#include "native_scroll_labels.h"
+#else
+/* Frozen source composition has no new shared-header dependency. */
+#define PRODUCTIVITY_NATIVE_SCROLL_UP_LABEL "^"
+#define PRODUCTIVITY_NATIVE_SCROLL_DOWN_LABEL "v"
+#endif
 /* Capability-sized Timecard presentation. The authoritative civil-time ledger,
  * guarded storage mutations and shared keyboard character pages stay unchanged. */
 #include "PortableTimecardNative.h"
@@ -75,8 +82,8 @@ static void tcn_header(const char *title,const char *subtitle,bool scroll){
  if(icon)(void)portable_nova_native_icon(tcn.margin,tcn.margin+(size-20)/2,20,"solid:f274",NOVA_CYAN);
 #endif
  tcn_label((tcn_rect){tcn.margin+icon,tcn.margin,tcn.w-2*tcn.margin-space-icon,size},title,NOVA_CYAN,0);
- if(scroll){tcn_button((tcn_rect){tcn.w-tcn.margin-2*size,tcn.margin,size-2,size},TCN_UP,0,"^",false);
-  tcn_button((tcn_rect){tcn.w-tcn.margin-size,tcn.margin,size,size},TCN_DOWN,0,"v",false);}
+ if(scroll){tcn_button((tcn_rect){tcn.w-tcn.margin-2*size,tcn.margin,size-2,size},TCN_UP,0,PRODUCTIVITY_NATIVE_SCROLL_UP_LABEL,false);
+  tcn_button((tcn_rect){tcn.w-tcn.margin-size,tcn.margin,size,size},TCN_DOWN,0,PRODUCTIVITY_NATIVE_SCROLL_DOWN_LABEL,false);}
  tcn_label((tcn_rect){tcn.margin,tcn.top-16,tcn.w-2*tcn.margin,14},subtitle,NOVA_CAP,3);
 }
 static void tcn_footer(const t5_ui_chrome_t *chrome){

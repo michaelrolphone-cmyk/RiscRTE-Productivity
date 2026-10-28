@@ -118,6 +118,10 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/test_points_native_ui_profile.py 2>&1 | tee "$EVIDENCE/profile-tests.log"
+          python scripts/test_points_native_ui_source_refresh.py \
+            --system-apps "$SYSTEM_APPS" --runtime "$RUNTIME" --utilities "$UTILITIES" \
+            --output "$EVIDENCE/shared-source-preservation" \
+            2>&1 | tee "$EVIDENCE/shared-source-preservation.log"
           python - <<'PY'
           import json, os, subprocess, sys
           from pathlib import Path

@@ -574,10 +574,10 @@
     "Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
     "Apps/points_catalog_paper.inc": "de93a981d8c6b58728bc0c20ddd7975691c1348aed25c4d27347bcb41e0d5d82",
     "Apps/points_catalog_view.inc": "57b55d5a0369dbd5b479f0220bd1a59e137343ae5307888ee71b26c16b6667ec",
-    "Apps/points_in_time.c": "843f1e6df65615681502f1f4b00830a9f28d60222c11f9059df96ffe2708db3a",
+    "Apps/points_in_time.c": "c9f6a2c9e8031ca228a2c6f0b7e24781727b115e1d8a90e90be4cd94370c5623",
     "Apps/points_in_time.json": "09a2731e02570a802c81c2a8f2248297dec5d7155b09810ffaa241af769df9e8",
-    "Apps/points_native_time.h": "384b2e77cb89281d29788a87ba251a32fe80193b8ed5ca4a1786476f27cd4576",
-    "Apps/points_native_ui.inc": "9a0d8e5df918f6089b2cd70f0729a612cd000169b8b2b64b925256804261cc4b",
+    "Apps/points_native_time.h": "ad5b6068f3e320fbfcd8cc99230e5da751fa57820d4df51506eb7fb8bb165b28",
+    "Apps/points_native_ui.inc": "f7b338ec47d9ad8044bda2d9c1e8cb5823ded5385abfbb6e7f984960ad9d2fd5",
     "Apps/points_nova7.inc": "77a5940023a30c85706a7a43fc4bac64efcf8cd2245f00fb770b7c1c747c7de9",
     "Apps/points_nova7_picker.inc": "1569382e35b1964572d9032cd36a7eb782056647a0049c999f8c487c6b8a2669",
     "Apps/points_paper.inc": "dbd911cc0411bbbb266f00dfcf3dc0529362e6c5fa0739a62d643bf91244a2a3",
@@ -586,5 +586,14 @@
     "Apps/points_watch_keyboard.h": "fc4bc1df6abb4f2e2751b07762fb6d08e9a45bf36bca2c0b2f4293df5dd602f5",
     "Apps/points_writer.h": "2d84b9d3738314ef17dbb5b71f3a50a18a5f13f1c5b11430992fbd094a363da8",
     "Apps/productivity_scroll.h": "bc09ee2794bdd410dc74a401ca99376ac6c25ff179c1db8fa758e6e2b43b6452"
+  },
+  "source_refresh": {
+    "baseline_commit": "652fe571bba7f0cd4750af82f4e8b255a1934756",
+    "previous_sha256": {
+      "Apps/points_in_time.c": "843f1e6df65615681502f1f4b00830a9f28d60222c11f9059df96ffe2708db3a",
+      "Apps/points_native_time.h": "384b2e77cb89281d29788a87ba251a32fe80193b8ed5ca4a1786476f27cd4576",
+      "Apps/points_native_ui.inc": "9a0d8e5df918f6089b2cd70f0729a612cd000169b8b2b64b925256804261cc4b"
+    },
+    "reason": "Current Points context and shared scene labels are explicit opt-ins. Complete selector-off RTC/UTC direct/snapshot token parity and unchanged legacy dependencies required; no SDK/model/capability/compiler/version change."
   }
 }

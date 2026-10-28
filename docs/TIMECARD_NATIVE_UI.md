@@ -171,3 +171,5 @@ for RTC/UTC × direct/snapshot, old three-file content against current content,
 with the selected real frozen SDK. All four match. The existing1040 native cases,
 16 selector-off profiles,276 paper cases and repeated target determinism checks
 remain required. Token parity alone is not target-binary or hardware proof.
+
+Current shared-scene scroll labels use supported UP/DN words; the shared label header is not a frozen native compiler dependency. The scoped include hash is refreshed only after the existing four RTC/UTC direct/snapshot translation token comparisons pass, retaining the original source-refresh baseline and digests.
