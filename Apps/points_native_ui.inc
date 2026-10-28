@@ -1,3 +1,10 @@
+#ifdef PORTABLE_NATIVE_SCENE
+#include "native_scroll_labels.h"
+#else
+/* Frozen source composition has no new shared-header dependency. */
+#define PRODUCTIVITY_NATIVE_SCROLL_UP_LABEL "^"
+#define PRODUCTIVITY_NATIVE_SCROLL_DOWN_LABEL "v"
+#endif
 /* Capability-sized Points presentation. The existing writer, scheduling and
  * alarm policy remain authoritative; controls invoke their existing actions. */
 #include "PortablePointsNative.h"
@@ -106,8 +113,8 @@ static void pn_build(void){
  default:pn_row(PN_BACK,0,"BACK",false);break;
  }
  if(pn.total>pn_visible()){
-  int size=pn.header;pn_add((pn_rect){pn.w-pn.margin-2*size,pn.margin,size-2,size},PN_SCROLL_UP,0,"^",false);
-  pn_add((pn_rect){pn.w-pn.margin-size,pn.margin,size,size},PN_SCROLL_DOWN,0,"v",false);
+  int size=pn.header;pn_add((pn_rect){pn.w-pn.margin-2*size,pn.margin,size-2,size},PN_SCROLL_UP,0,PRODUCTIVITY_NATIVE_SCROLL_UP_LABEL,false);
+  pn_add((pn_rect){pn.w-pn.margin-size,pn.margin,size,size},PN_SCROLL_DOWN,0,PRODUCTIVITY_NATIVE_SCROLL_DOWN_LABEL,false);
  }
  unsigned maximum=pn.total>pn_visible()?pn.total-pn_visible():0;if(pn.first>maximum){pn.first=maximum;pn_build();return;}
  pn_map();

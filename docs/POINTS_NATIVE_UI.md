@@ -188,3 +188,7 @@ normal/sanitized. Existing Points model, glyph and raw-touch regressions remain
 part of qualification. Their fixture updates supply the current runtime layout,
 ordered provider sequence semantics and renderer checkpoint hooks, without
 changing legacy app behavior.
+
+## Opt-in current-source refresh
+
+The explicit current Points context and shared-scene scroll labels do not change frozen native selections. `test_points_native_ui_source_refresh.py` compares complete RTC/UTC direct/snapshot preprocessor token streams against exact current-before-Points commit `652fe571`, checks the immutable legacy dependency inventories, and rejects consumption of current-only context or scroll-label headers. Only the three edited application source hashes are refreshed; prior digests and the full baseline commit remain in `source_refresh`. SDK, compiler, manifest, capability and version pins remain unchanged. Token parity is not target-byte or hardware proof.

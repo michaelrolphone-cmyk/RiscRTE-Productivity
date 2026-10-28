@@ -674,7 +674,7 @@
     "Apps/timecard.json": "20dd3433258a3f74f14d5063506052625aa6d8b0a396101233fd76c30412bf5b",
     "Apps/timecard_appdata_bridge.h": "0adf349d3aba15dd29575d57c14d6ecf8123d304c939f4a32589d91e0c9ba585",
     "Apps/timecard_native_time.h": "9a26f02fef3577c9ce6e951f451c4cdf89c2e36d0e89bd76e253c4d11f11976e",
-    "Apps/timecard_native_ui.inc": "b1f024b5829d625fd9b92082cd5b35793d7e09c602be4007e53d23bd5053c56c",
+    "Apps/timecard_native_ui.inc": "1cee799ae5c30e66dd03f61ec8cf7f79572c319cc088ad442ce77da03fb3be30",
     "Apps/timecard_paper.inc": "702f19939beb4b3cf5ba412fa398b7541ea0dd166d069a0ce3dbefc1f8ec6e23",
     "Apps/timecard_portable.c": "f749a670efc56f315ebeb2dbed2abcbca4f5368427b8d9e33af084791c0cf01b",
     "Apps/timecard_portable_validation.h": "6f86fb034b96fa3dc15f902182efd6e4a850699dd9be0e944823d9cddfe429e8",

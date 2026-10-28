@@ -119,7 +119,20 @@ static bool read_clock(uint32_t *seconds) {
 #ifdef ALARM_NATIVE_UTC
     bool ok=points_native_sample(runtime,preferences,seconds,NULL);
     memset(&points_preview,0,sizeof(points_preview));
+#ifdef POINTS_SERVICE_CONTEXT
+    points_context_status=ALARM_PENDING;
+    if(ok&&writer.loaded) {
+        points_service_context context={.struct_size=sizeof(context)};
+        points_context_status=points_service_read_context(service,&writer.saved,points_zone,points_zone_index,&context);
+        if(!points_service_result(points_context_status))return false;
+        if(points_context_status==ALARM_OK) {
+            points_config projected=writer.saved;projected.created=context.effective_created;
+            if(!points_utc_project(&points_zone_rule,&projected,context.sampled_utc,&points_preview))points_context_status=ALARM_RTC;
+        }
+    }
+#else
     if(ok&&writer.loaded)(void)points_utc_project(&points_zone_rule,&writer.saved,*seconds,&points_preview);
+#endif
     return ok;
 #else
     twatch_rtc_time_v1 t;
@@ -251,6 +264,11 @@ static const char *status_message(void) {
 #endif
         "Service error: retry";
 #ifdef ALARM_NATIVE_UTC
+#ifdef POINTS_SERVICE_CONTEXT
+    if(points_context_status==ALARM_PENDING||points_context_status==ALARM_BUSY)return "Schedule syncing";
+    if(points_context_status==ALARM_STALE)return "Schedule changed: retry";
+    if(points_context_status!=ALARM_OK)return "Schedule unavailable: retry";
+#endif
     if(points_preview.flags&POINTS_FLAG_GAP)return "DST gap: start skipped";
     if(points_preview.flags&POINTS_FLAG_FOLD)return "DST fold: start skipped";
     if(points_preview.flags&POINTS_FLAG_RANGE)return "Time range limit";
