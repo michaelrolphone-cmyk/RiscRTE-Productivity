@@ -201,7 +201,14 @@ static bool tcp_reload(void) {
     if(tcp_retained())return false;
 #endif
     store_ready=false;
-    if(!tcp_files || !load_store()) {set_status("History unavailable; Retry");tcp_dirty=true;return false;}
+    if(!tcp_files || !load_store()) {
+#ifdef TIMECARD_CURRENT_PROFILE
+        set_status(tcp_data.status==RISC_APP_DATA_BUSY?"History busy; Retry":"History unavailable; Retry");
+#else
+        set_status("History unavailable; Retry");
+#endif
+        tcp_dirty=true;return false;
+    }
     set_status("History loaded");tcp_dirty=true;return true;
 }
 /* Every portable mutation passes this preflight. Preserve all 400 existing days
@@ -228,7 +235,12 @@ static bool tcp_mutate(int32_t date,uint8_t punch,int16_t minutes) {
     }
     if(!set_punch(date,punch,minutes)) {
         memcpy(days,tcp_before,(size_t)before_count*sizeof(days[0]));day_count=before_count;store_ready=false;
-        set_status("Save unconfirmed; Retry history");return false;
+#ifdef TIMECARD_CURRENT_PROFILE
+        set_status(tcp_data.status==RISC_APP_DATA_BUSY?"Storage busy; Retry":"Save unconfirmed; Retry history");
+#else
+        set_status("Save unconfirmed; Retry history");
+#endif
+        return false;
     }
     /* Keep RAM consistent with the confirmed serializer, including clearing the
      * final punch of a day. This is not eviction of recorded history. */
@@ -378,6 +390,9 @@ static void tcp_key(unsigned key) {
     tcp_dirty=true;
 }
 static void tcp_activate(void) {
+#ifdef TIMECARD_CURRENT_PROFILE
+    if(!tcp_current_format_known){tcp_current_format_refresh(true);tcp_dirty=true;return;}
+#endif
     if(!store_ready){tcp_reload();return;}
     if(!tcp_clock_valid){tcp_dirty=true;return;}
     if(screen_id==SCREEN_WEEK_LIST)open_week(-selected);
@@ -570,6 +585,9 @@ __attribute__((visibility("default"))) void app_main(void) {
     tcp_draw();
     t5_app_input_t input;
     while(!tcp_home && !tcp_external_exit && !tcp_retained() && app->poll(&input,20)) {
+#ifdef TIMECARD_CURRENT_PROFILE
+        tcp_current_format_refresh(false);if(tcp_retained())return;
+#endif
         tcp_input(&input);
         if(tcp_retained())return;
 

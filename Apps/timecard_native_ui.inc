@@ -1,7 +1,7 @@
 /* Capability-sized Timecard presentation. The authoritative civil-time ledger,
  * guarded storage mutations and shared keyboard character pages stay unchanged. */
 #include "PortableTimecardNative.h"
-#if !defined(PORTABLE_NOVA_UI) || !defined(PORTABLE_NATIVE_CANVAS) || !defined(PORTABLE_APP_OWNS_TOUCH_CHROME)
+#if !defined(PORTABLE_NOVA_UI) || (!defined(PORTABLE_NATIVE_CANVAS) && !(defined(TIMECARD_CURRENT_PROFILE) && defined(PORTABLE_RF_NATIVE_CANVAS))) || !defined(PORTABLE_APP_OWNS_TOUCH_CHROME)
 #error Native Timecard requires NOVA, native canvas and app-owned touch chrome
 #endif
 extern bool portable_paper_frame_ready(void);
@@ -54,6 +54,9 @@ static void tcn_map(void){
  #define TCN_HASH(v) do{hash^=(uint64_t)(v);hash*=1099511628211ULL;}while(0)
  TCN_HASH(screen_id);TCN_HASH(week_offset);TCN_HASH(editing_ymd);TCN_HASH(tcp_editor);
  TCN_HASH(tcp_key_page);TCN_HASH(tcp_cookie);TCN_HASH(tcn.first);TCN_HASH(store_ready);
+#ifdef TIMECARD_CURRENT_PROFILE
+ TCN_HASH(tcp_current_format_known);
+#endif
  TCN_HASH(tcp_clock_valid);TCN_HASH(tcp_files!=NULL);TCN_HASH(tcn.count);
  for(unsigned i=0;i<tcn.count;i++){tcn_control*c=&tcn.controls[i];TCN_HASH(c->action);TCN_HASH(c->arg);TCN_HASH(c->r.x);TCN_HASH(c->r.y);TCN_HASH(c->r.w);TCN_HASH(c->r.h);}
  #undef TCN_HASH
@@ -65,8 +68,12 @@ static bool tcn_begin(void){
 }
 static void tcn_finish(void){tcn_map();portable_timecard_native_present(false);tcp_dirty=false;}
 static void tcn_header(const char *title,const char *subtitle,bool scroll){
+#ifdef TIMECARD_CURRENT_PROFILE
+ int size=tcn.header,space=scroll?2*size:0,icon=0; /* Current canvas has no decorative glyph dependency. */
+#else
  int size=tcn.header,space=scroll?2*size:0,icon=!tcp_editor&&tcn.w>=240?24:0;
  if(icon)(void)portable_nova_native_icon(tcn.margin,tcn.margin+(size-20)/2,20,"solid:f274",NOVA_CYAN);
+#endif
  tcn_label((tcn_rect){tcn.margin+icon,tcn.margin,tcn.w-2*tcn.margin-space-icon,size},title,NOVA_CYAN,0);
  if(scroll){tcn_button((tcn_rect){tcn.w-tcn.margin-2*size,tcn.margin,size-2,size},TCN_UP,0,"^",false);
   tcn_button((tcn_rect){tcn.w-tcn.margin-size,tcn.margin,size,size},TCN_DOWN,0,"v",false);}
@@ -138,6 +145,15 @@ static void tcn_unavailable(bool clock){
 }
 static void tcn_draw(void){
  if(tcp_retained())return;
+#ifdef TIMECARD_CURRENT_PROFILE
+ if(!tcp_current_format_known){
+  tcn_adjust(0,1);if(!tcn_begin())return;tcn_header("TIME CARD","",false);
+  tcn_label((tcn_rect){tcn.margin,tcn.top,tcn.w-2*tcn.margin,20},"Display preference pending",NOVA_TEXT,3);
+  tcn_label((tcn_rect){tcn.margin,tcn.top+22,tcn.w-2*tcn.margin,20},"Retrying; history unchanged",NOVA_CAP,3);
+  t5_ui_chrome_t chrome={.back_label="BACK",.confirm_label="Retry",.status="No preference defaults are written."};
+  tcn_footer(&chrome);tcn_finish();return;
+ }
+#endif
  if(tcp_editor){tcn_editor();return;}
  if(!tcp_files){tcp_clock_valid=false;tcn_unavailable(false);return;}
  tcp_clock_valid=tcp_read_datetime(&tcp_snapshot);if(tcp_retained())return;

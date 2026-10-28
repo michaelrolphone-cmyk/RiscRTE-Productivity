@@ -673,14 +673,23 @@
     "Apps/timecard.c": "c17b0fed28eb44d2397c740ef56c8f07bc51c3f707d3080ec9ad5849e25a31a9",
     "Apps/timecard.json": "20dd3433258a3f74f14d5063506052625aa6d8b0a396101233fd76c30412bf5b",
     "Apps/timecard_appdata_bridge.h": "0adf349d3aba15dd29575d57c14d6ecf8123d304c939f4a32589d91e0c9ba585",
-    "Apps/timecard_native_time.h": "55a6e8a7aba25534056a09957a2f9a6b916753ee1edf15cb8f648e42472a846c",
-    "Apps/timecard_native_ui.inc": "f0a0f9adeb873ecd89c2daa4319baf8c40b15591e5e5a669d11e90fd417886d2",
+    "Apps/timecard_native_time.h": "9a26f02fef3577c9ce6e951f451c4cdf89c2e36d0e89bd76e253c4d11f11976e",
+    "Apps/timecard_native_ui.inc": "b1f024b5829d625fd9b92082cd5b35793d7e09c602be4007e53d23bd5053c56c",
     "Apps/timecard_paper.inc": "702f19939beb4b3cf5ba412fa398b7541ea0dd166d069a0ce3dbefc1f8ec6e23",
-    "Apps/timecard_portable.c": "55572b16beffe739acbba68e908fff783e284418edcb154c9a9ba4fc79c03b12",
+    "Apps/timecard_portable.c": "f749a670efc56f315ebeb2dbed2abcbca4f5368427b8d9e33af084791c0cf01b",
     "Apps/timecard_portable_validation.h": "6f86fb034b96fa3dc15f902182efd6e4a850699dd9be0e944823d9cddfe429e8",
     "Apps/timecard_scroll_input.inc": "05d18fdb1ae04a02b025f426fec09764a15c0a4c32e0a1ec601399d8ac58dc73",
     "Apps/timecard_scroll_model.inc": "eb493ec497d0bb05db7b152e35572b74ca3583e17c675e7ee354575a98d1807d",
     "LICENSE": "7212963b5b1b5ee34ca158163356beb1e6945dd2cc5d320f1fe7573c424ea640",
     "lib/NativeApps/include/T5SystemApi.h": "56179941cac6dac7c71c2fe43013015a2d286620172a4d5945425c9cebc6d2d2"
+  },
+  "source_refresh": {
+    "baseline_commit": "bb8d0d99b3a857103d2b01e6b4c756b913aa14d3",
+    "previous_sha256": {
+      "Apps/timecard_native_time.h": "55a6e8a7aba25534056a09957a2f9a6b916753ee1edf15cb8f648e42472a846c",
+      "Apps/timecard_native_ui.inc": "f0a0f9adeb873ecd89c2daa4319baf8c40b15591e5e5a669d11e90fd417886d2",
+      "Apps/timecard_portable.c": "55572b16beffe739acbba68e908fff783e284418edcb154c9a9ba4fc79c03b12"
+    },
+    "reason": "Shared current-profile additions are opt-in; require full legacy native translation token parity and retained RTC/UTC/raster/paper matrices. No SDK/dependency/model/capability/version change."
   }
 }
