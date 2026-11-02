@@ -154,7 +154,7 @@ static bool acquireApp(const char *name,uint32_t version,uint64_t instance,risc_
  assert(g->api);g->slot=++acquired;return true;
 }
 static bool releaseApp(risc_runtime_capability_v1 *g){assert(g->api&&!held);g->api=nullptr;++released;return true;}
-static bool appLog(const char *message){if(strstr(message,"scene ready page=480x680 sd=ready")){readySeen=true;
+static bool appLog(const char *message){if(strstr(message,"scene ready page=")&&strstr(message,"sd=ready")){readySeen=true;
  if(badCatalog){for(auto& f:files)f.second.error=1;} // Fail the already-open index's next read.
  else if(!sourcePath&&!libraryResident&&!outsideBrowser)reader_test_scene_allow_exit();}return log(message);}
 static void *runApp(void*){app_main();return nullptr;}

@@ -36,6 +36,35 @@ def build(a):
     elf = package / 'ebook_reader.elf'
     receipt = link(compiler, json.loads((objects / 'objects.json').read_text()), elf,
                    {'app_main', 'app_module_init', 'app_module_fini', 'risc_resident_app_descriptor_v1'})
+    # Production shared objects do not need the static linker/debug symbol table.
+    # Preserve every loadable section, relocation, dynamic import/export and
+    # virtual address byte-for-byte. This is NOT feature stripping or a reduced
+    # engine; it lets the complete engine fit the existing Watch store.
+    from elftools.elf.elffile import ELFFile
+    from link_cpp_module import mapped_relocations
+    def runtime_image(path):
+        with path.open('rb') as stream:
+            image = ELFFile(stream)
+            sections = list(image.iter_sections())
+            return {section.name: {
+                'type': section['sh_type'], 'flags': section['sh_flags'],
+                'address': section['sh_addr'], 'size': section['sh_size'],
+                'alignment': section['sh_addralign'], 'entry_size': section['sh_entsize'],
+                'link': sections[section['sh_link']].name if section['sh_link'] else '',
+                'sha256': hashlib.sha256(section.data() if section['sh_type'] != 'SHT_NOBITS' else b'').hexdigest()
+            } for section in sections if section['sh_flags'] & 2 or section['sh_type'] in ('SHT_REL', 'SHT_RELA')}
+    before = runtime_image(elf)
+    nm = compiler.removesuffix('g++') + 'nm'
+    dynamic_symbols = subprocess.check_output([nm, '-D', str(elf)])
+    unstripped = {'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
+    subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', str(elf)], check=True)
+    if runtime_image(elf) != before or subprocess.check_output([nm, '-D', str(elf)]) != dynamic_symbols:
+        raise ValueError('Stripping changed loadable bytes, relocation semantics or dynamic symbols')
+    if mapped_relocations(elf) != receipt['mapped_relocations']:
+        raise ValueError('Stripping changed mapped relocations')
+    receipt.update({'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest(),
+                    'production_symbols': {'method': 'strip --strip-unneeded', 'unstripped': unstripped,
+                    'runtime_sections': before, 'runtime_bytes_and_dynamic_symbols_unchanged': True}})
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),
                     '-I' + str(a.runtime / 'lib/elf_loader/include'),

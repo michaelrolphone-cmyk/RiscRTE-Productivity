@@ -73,6 +73,11 @@ jobs:
           READER_TEST_WIDTH=240 READER_TEST_HEIGHT=240 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-watch --host-profile watch-compact 2>&1 | tee evidence/gui-watch.log
           READER_TEST_WIDTH=410 READER_TEST_HEIGHT=502 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-wave --host-profile color-dynamic 2>&1 | tee evidence/gui-wave.log
           READER_TEST_WIDTH=328 READER_TEST_HEIGHT=356 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-extra --host-profile color-dynamic 2>&1 | tee evidence/gui-extra.log
+      - name: Optional-service unavailable UI on actual color providers
+        run: |
+          set -euo pipefail
+          READER_TEST_WIDTH=240 READER_TEST_HEIGHT=240 python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/optional-watch --host-profile watch-compact --optional-only 2>&1 | tee evidence/optional-watch.log
+          READER_TEST_WIDTH=410 READER_TEST_HEIGHT=502 python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/optional-wave --host-profile color-dynamic --optional-only 2>&1 | tee evidence/optional-wave.log
       - name: Compile and structurally validate ESP32-S3 Reader
         run: |
           set -euo pipefail
