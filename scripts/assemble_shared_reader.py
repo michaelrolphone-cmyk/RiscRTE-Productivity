@@ -20,6 +20,7 @@ for asset in lock['assets']:
 elf=(a.application/'ebook_reader.elf').read_bytes()
 manifest=(a.application/'ebook_reader.json').read_bytes();common=json.loads(manifest)
 proof=json.loads((a.application/'build.json').read_text())
+assert proof['sha256']==digest(elf) and proof['bytes']==len(elf)
 assert json.loads(manifest)['version']=='0.2.0'
 assert proof['exports']==sorted(['app_main','app_module_init','app_module_fini','risc_resident_app_descriptor_v1'])
 assert common['requires']==[{'capability':'ui.scene','api':1}]
@@ -39,6 +40,7 @@ for lane in ('watch','wave','x4'):
  new=copy.deepcopy(common);new['runtime_lifecycle']='foreground'
  if lane=='x4':
   assert len(rows)==1 and rows[0]['image_source']=={'path':'Apps/ebook-reader/ebook_reader.elf','volume_instance':9}
+  assert digest(sd['Apps/ebook-reader/ebook_reader.elf'])=='395eb0ad04b1c86b26f713b2c82e7d3f2a7a26dd802778bf4d355a5b55b351b2'
   old=json.loads(before['ebook_reader.json'])
   assert old['id']=='ebook-reader' and old['supported_file_types']==new['supported_file_types']
   row=copy.deepcopy(rows[0])
@@ -53,7 +55,9 @@ for lane in ('watch','wave','x4'):
    assert ('storage.volume',1,12) in available
    row['grants'].append({'api':1,'capability':'storage.volume','instance_id':12})
    row['image_source']={'path':'Apps/ebook-reader/ebook_reader.elf','volume_instance':12}
-  else:assert not any(k[0]=='storage.volume' for k in available),'Watch storage capability changed'
+  else:
+   assert {k:v for k,v in available.items() if k[0]=='storage.volume'}=={('storage.volume',1,0):'pkg-internal/manifest.json'},'Watch user storage changed'
+   # The internal installation volume is not a user book volume. Do not grant it.
   boot['app_capabilities'].append(row)
  for g in row['grants']:
   k=(g['capability'],g['api'],g['instance_id'])
