@@ -125,7 +125,19 @@ for lane in ('x4','wave','watch'):
  else:out['ebook_reader.elf']=elf;packed['ebook_reader.elf']=elf
  metadata_internal={};metadata_sd={}
  driver_images={safe(str(Path(r['manifest']).parent/json.loads(out[r['manifest']])['file_name'])) for r in boot.get('drivers',[])}
+ internal_app_images=set()
+ for policy in boot['app_capabilities']:
+  m=json.loads(out[policy['manifest']])
+  if 'image_source' not in policy and m.get('type')=='application' and not m.get('provides'):
+   internal_app_images.add(safe(str(Path(policy['manifest']).parent/m['file_name'])))
+ sd_app_images=set()
+ for manifest_name,manifest_bytes in after_sd.items():
+  if not manifest_name.startswith('Apps/') or not manifest_name.endswith('/manifest.json'):continue
+  m=json.loads(manifest_bytes)
+  if m.get('type')=='application' and not m.get('provides') and 'usb' not in m.get('id','').lower():
+   sd_app_images.add(safe(str(Path(manifest_name).parent/m['file_name'])))
  for name,data in list(out.items()):
+  if name not in internal_app_images:continue
   match=compactions.get(digest(data))
   if not match:continue
   assert name not in driver_images,'Provider alias cannot be compacted'
@@ -134,14 +146,15 @@ for lane in ('x4','wave','watch'):
   out[name]=match['candidate'];metadata_internal[name]=match['proof']
   packed[name]=encode_image(out[name]) if stored[name].startswith(MAGIC) else out[name]
  for name,data in list(after_sd.items()):
+  if name not in sd_app_images:continue
   match=compactions.get(digest(data))
   if not match:continue
   assert not ('usb' in name.lower()),'Published USB remains exact'
   require_runtime_equal(data,match['candidate'])
   after_sd[name]=match['candidate'];metadata_sd[name]=match['proof']
- for original,current in ((before,out),(sd,after_sd)):
+ for original,current,eligible in ((before,out,internal_app_images),(sd,after_sd,sd_app_images)):
   for name,data in original.items():
-   if data.startswith(bytes([127])+b'ELF') and name not in ('ebook_reader.elf','Apps/ebook-reader/ebook_reader.elf'):
+   if name in eligible and data.startswith(bytes([127])+b'ELF') and name not in ('ebook_reader.elf','Apps/ebook-reader/ebook_reader.elf'):
     identity_outputs.setdefault(digest(data),set()).add(digest(current[name]))
  allowed={'boot.json','ebook_reader.json'}|({'ebook_reader.elf'} if lane=='watch' else set())|set(metadata_internal)
  allowed_sd={'Apps/ebook-reader/ebook_reader.elf','Apps/ebook-reader/manifest.json'}|set(metadata_sd)
