@@ -1,5 +1,7 @@
 name: Shared Lists full ELF delivery
 on:
+  push:
+    branches: [work/lists-shared-elf-20261102]
   pull_request:
     paths: ['scripts/*lists*', 'tests/test_shared_lists.py', 'docs/LISTS_SHARED_DELIVERY.md', '.github/workflows/shared-lists.yml']
   workflow_dispatch:
