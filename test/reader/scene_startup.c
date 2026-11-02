@@ -24,7 +24,7 @@ void reader_test_scene_checkpoint(void){assert(!subscribed&&!presenting&&!held);
 
 unsigned reader_test_width(void){const char *v=getenv("READER_TEST_WIDTH");return v?(unsigned)atoi(v):480;}
 unsigned reader_test_height(void){const char *v=getenv("READER_TEST_HEIGHT");return v?(unsigned)atoi(v):800;}
-unsigned reader_test_scale(void){return getenv("READER_TEST_WIDTH")?1:2;}
+unsigned reader_test_scale(void){return reader_test_width()>=400?2:1;}
 const void *reader_test_scene_start(void) {
     w=800;h=480;format=1;
     prof=(risc_scene_profile_v1){1,sizeof(prof),1,3,88,20,0,0xffff,0,270,0,0};

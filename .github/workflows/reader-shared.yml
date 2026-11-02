@@ -87,6 +87,7 @@ jobs:
             build/target/ebook-reader/ebook_reader.json
             build/target/ebook-reader/build.json
             build/target/ebook-reader/licenses/
+            build/target/ebook-reader/sd/
             evidence/
             build/gui*/frames/
           retention-days: 14
