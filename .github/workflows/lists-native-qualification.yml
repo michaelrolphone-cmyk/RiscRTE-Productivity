@@ -1,5 +1,7 @@
 name: Lists native software qualification
 on:
+  push:
+    branches: [work/lists-shared-elf-20261102]
   pull_request:
     paths:
       - 'Apps/ListsScene.*'
