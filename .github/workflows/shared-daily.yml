@@ -122,3 +122,94 @@ jobs:
             evidence/
           include-hidden-files: true
           if-no-files-found: error
+
+  product-assembly:
+    needs: [app, baseline]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 712ecc3f894dba99d9c9638941778a82f5856b97
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 0052d1fc42e9cfc82d626c5a247d460919c87935
+          path: X4Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: c69d7914935fccdc04749f7bfa429c74219bf88a
+          path: WatchProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Wavshare-S3-Touch-AMOLED-2.06
+          ref: 97ca6157aa9c3bba7c7fee3858aa7d0ff896d13b
+          path: WaveProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-XTEINK-X4-PRO
+          ref: e361e73de14314bb4b8d2fb3a24eb81e2390b0ee
+          path: X4Product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: shared-daily-application-${{ github.event.pull_request.head.sha }}
+          path: incoming/application
+      - uses: actions/download-artifact@v4
+        with:
+          name: shared-daily-baseline-${{ github.event.pull_request.head.sha }}
+          path: incoming/baseline-artifact
+      - name: Overlay invariants and cumulative fixed geometry products
+        run: |
+          set -euo pipefail
+          python3 Productivity/scripts/assemble_shared_daily.py --system System --baseline incoming/baseline-artifact/incoming/baseline --application incoming/application/build/daily-digest --bootfs-tools Bootfs/scripts --plan Productivity/docs/shared-daily/plan.json --output closure/assembly
+          mkdir -p closure/application closure/source closure/baseline closure/qualification
+          cp incoming/application/build/daily-digest/{daily_digest.elf,daily_digest.json,build.json} closure/application/
+          cp Productivity/docs/shared-daily/{baseline.json,plan.json} closure/baseline/
+          cp incoming/baseline-artifact/evidence/baseline-inventory.json closure/baseline/
+          cp -a incoming/application/package/evidence/. closure/qualification/
+          for repo in Productivity System Runtime X4Runtime WatchProduct WaveProduct X4Product Bootfs; do
+            git -C "$repo" archive HEAD | gzip -n > "closure/source/$repo.tar.gz"
+            git -C "$repo" rev-parse HEAD > "closure/source/$repo.head"
+          done
+      - name: Actual stored-byte Runtime admission, normal and sanitizers
+        run: |
+          set -euo pipefail
+          for mode in normal sanitized; do
+            flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
+            DAILY_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_daily_product_admission.py --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/admission/$mode" "${flags[@]}"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-daily-qualified-products-${{ github.event.pull_request.head.sha }}
+          path: closure/
+          include-hidden-files: true
+          if-no-files-found: error

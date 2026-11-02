@@ -1,0 +1,176 @@
+{
+  "watch": {
+    "inventory_sha256": "ab75453b5830962dab75053aa1f19c0c46acf9cb80cc814dbc5004e34037415f",
+    "manifest": "daily_digest.json",
+    "original_policy_rows": [],
+    "policy_rows": [
+      {
+        "manifest": "daily_digest.json",
+        "grants": [
+          {
+            "api": 1,
+            "capability": "ui.scene",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "file.open",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "net.wifi",
+            "instance_id": 15
+          }
+        ]
+      }
+    ],
+    "route": {
+      "storage": "internal",
+      "path": "daily_digest.elf"
+    }
+  },
+  "wave": {
+    "inventory_sha256": "cec98803fe7cbfc814587b8689eddd267c7a3c913575add40d8e35c737c92ecf",
+    "manifest": "daily_digest.json",
+    "original_policy_rows": [],
+    "policy_rows": [
+      {
+        "manifest": "daily_digest.json",
+        "grants": [
+          {
+            "api": 1,
+            "capability": "ui.scene",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "file.open",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "net.wifi",
+            "instance_id": 15
+          },
+          {
+            "api": 1,
+            "capability": "storage.volume",
+            "instance_id": 12
+          }
+        ]
+      }
+    ],
+    "route": {
+      "storage": "internal",
+      "path": "daily_digest.elf"
+    }
+  },
+  "x4": {
+    "inventory_sha256": "33cb86feef00902b98c026af3e1e55979323e25a0d5f51ffb56cfa876446dcff",
+    "manifest": "daily_digest.json",
+    "original_policy_rows": [
+      {
+        "catalog_authority": true,
+        "grants": [
+          {
+            "api": 1,
+            "capability": "ui.scene",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "file.open",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "storage.volume",
+            "instance_id": 9
+          },
+          {
+            "api": 1,
+            "capability": "runtime.realtime",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "net.wifi",
+            "instance_id": 15
+          },
+          {
+            "api": 1,
+            "capability": "storage.key-value",
+            "instance_id": 6
+          },
+          {
+            "api": 1,
+            "capability": "net.http-client",
+            "instance_id": 0
+          }
+        ],
+        "image_source": {
+          "path": "Apps/daily-digest/daily_digest.elf",
+          "volume_instance": 9
+        },
+        "manifest": "daily_digest.json"
+      }
+    ],
+    "policy_rows": [
+      {
+        "catalog_authority": true,
+        "grants": [
+          {
+            "api": 1,
+            "capability": "ui.scene",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "file.open",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "storage.volume",
+            "instance_id": 9
+          },
+          {
+            "api": 1,
+            "capability": "runtime.realtime",
+            "instance_id": 0
+          },
+          {
+            "api": 1,
+            "capability": "net.wifi",
+            "instance_id": 15
+          },
+          {
+            "api": 1,
+            "capability": "storage.key-value",
+            "instance_id": 6
+          },
+          {
+            "api": 1,
+            "capability": "net.http-client",
+            "instance_id": 0
+          }
+        ],
+        "image_source": {
+          "path": "Apps/daily-digest/daily_digest.elf",
+          "volume_instance": 9
+        },
+        "manifest": "daily_digest.json"
+      }
+    ],
+    "route": {
+      "storage": "sd",
+      "path": "Apps/daily-digest/daily_digest.elf"
+    },
+    "manifest_sha256": "1f8827a772257e0136ead7de69971867be557e60483f1ae7d530c4e4f31edd21",
+    "elf_sha256": "72a8ef9d1c7eb087e889bbc717c635cdb59a4dd6e7d97d3500971c6b743381aa",
+    "grant_substitutions": [],
+    "sd_manifest": "Apps/daily-digest/manifest.json",
+    "sd_manifest_sha256": "1f8827a772257e0136ead7de69971867be557e60483f1ae7d530c4e4f31edd21"
+  }
+}
