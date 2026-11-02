@@ -1,0 +1,61 @@
+{
+  "schema": "reader-library-019-focused",
+  "reader_version": "0.1.9",
+  "runtime": "1c1ed8661ea30d47e7e9707c41d492ce3a2b4d70",
+  "system": "c2889adff2a06bcd6c6207f11fbd0795fbbd99fa",
+  "physical_hardware_tested": false,
+  "files_handoff_fix_included": false,
+  "qualified": [
+    "engine/presentation/bookmark rollback",
+    "21 real-entry startup/resident/file-open scenarios",
+    "28 GUI intents",
+    "4 storage checkpoint scenarios, ASan/UBSan",
+    "12 post-policy page turns (complete and partial caches)",
+    "13 real touch reading-link interactions"
+  ],
+  "sanitizer_limit": "LeakSanitizer unsupported under execution tracer; ASan/UBSan checkpoint run uses detect_leaks=0. Explicit closed-handle assertions remain active.",
+  "elf": {
+    "bytes": 1918724,
+    "sha256": "395eb0ad04b1c86b26f713b2c82e7d3f2a7a26dd802778bf4d355a5b55b351b2"
+  },
+  "target_stack_frames": {
+    "Engine::open(": {
+      "function": "bool reader::Engine::open(const string&, bool)",
+      "bytes": 352,
+      "kind": "static",
+      "limit_bytes": 512
+    },
+    "Engine::toggleBookmark(": {
+      "function": "bool reader::Engine::toggleBookmark()",
+      "bytes": 176,
+      "kind": "static",
+      "limit_bytes": 512
+    },
+    "Engine::removeBookmark(": {
+      "function": "bool reader::Engine::removeBookmark(unsigned int)",
+      "bytes": 144,
+      "kind": "static",
+      "limit_bytes": 512
+    },
+    "Engine::renameBookmark(": {
+      "function": "bool reader::Engine::renameBookmark(unsigned int, const char*)",
+      "bytes": 128,
+      "kind": "static",
+      "limit_bytes": 512
+    },
+    "app_main(": {
+      "function": "void app_main()",
+      "bytes": 928,
+      "kind": "static",
+      "limit_bytes": 1536
+    }
+  },
+  "logs": {
+    "engine.log": "d92ab5a37966c8f84ea70d406e0f88238062ac60603ad643689f765778e9d658",
+    "startup.log": "1a12ca2a5bb817f1eb5bf0aad4290e099a15d9401ad42ba4681e2275640f5b08",
+    "gui.log": "263a2aac80414a623de00d366989c90cbbad107c5fe1d4736a7f8031aae9d83e",
+    "checkpoint.log": "8d69921810d0a0cece4a05dce38ea31122a7757a6481ff513e55995d06b0a19a",
+    "performance.log": "e1c0d690a3626b1844765aff6faf579c5f46cf51c8fe31abe2ef52697b972099",
+    "links.log": "84bb3295526aebb4a5713d8186a450b74663d097fa6c00b3046d31e7ca5d41d7"
+  }
+}

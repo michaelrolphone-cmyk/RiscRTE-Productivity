@@ -28,7 +28,7 @@ if fixture.exists():shutil.rmtree(fixture)
 sys.path.insert(0,str(ROOT/'test/reader'))
 from make_fixture import create
 cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
-cases += [('-', 'missing:'+cap) for cap in ('storage.volume','memory.heap','random.bytes','file.open')]
+cases += [('-', 'resident-library'),('-', 'browse-outside'),('-', 'stale-catalog'),('/outside.txt',None)]
 cases += [('-', 'catalog'),('-', 'bad-catalog'),('-', 'legacy-scene')]
 cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
 cases += [('/Books/sample.epub','resident-redraw')]
@@ -36,8 +36,10 @@ cases += [('/Books/sample.epub','resident-later')]
 cases += [('/Books/sample.epub','controls')]
 cases += [('/Books/sample.epub','resident-turns')]
 cases += [(source,'turns') for source in ('/Books/sample.epub','/Books/sample.txt')]
+cases += [('-', 'missing:'+name) for name in ('storage.volume','memory.heap','random.bytes','file.open')]
 for source,scenario in cases:
     if fixture.exists():shutil.rmtree(fixture)
     create(fixture)
+    shutil.copyfile(fixture/'Books/sample.txt',fixture/'outside.txt')
     shutil.copytree(a.engine_output/'fixture/fonts',fixture/'fonts')
     subprocess.run([str(binary),str(fixture)]+([source] if source else [])+([scenario] if scenario else []),check=True,timeout=60)

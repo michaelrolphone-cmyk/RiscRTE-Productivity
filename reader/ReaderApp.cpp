@@ -272,7 +272,8 @@ struct App {
  bool shell(unsigned reason){
   std::string reopen=engineSuspended?suspendedPath:engine->path();
   const bool restorePage=screen==Screen::Reading&&!waiting&&pageDocument.struct_size==sizeof(pageDocument);
-  const bool preserveScene=restorePage&&checkpointScene;
+  // Preserve the delivered 0.1.9 library scroll and cached rows on policy checkpoints.
+  const bool preserveScene=checkpointScene&&(restorePage||reason==RISC_RESIDENT_CHECKPOINT_POLICY);
   const bool warmPolicy=preserveScene&&reason==RISC_RESIDENT_CHECKPOINT_POLICY;
   if(!(preserveScene?pauseScene():closeScene()))return false;
   if(warmPolicy){

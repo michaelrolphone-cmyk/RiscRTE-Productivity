@@ -32,6 +32,7 @@ struct BookSummary {
  char title[96]{},author[96]{};
 };
 bool readBookSummary(const std::string&,BookSummary&);
+bool libraryBookPath(const std::string&);
 
 class Engine {
  GfxRenderer renderer;
