@@ -38,5 +38,6 @@
       "capability": "net.http-client",
       "api": 1
     }
-  ]
+  ],
+  "runtime_lifecycle": "foreground"
 }
