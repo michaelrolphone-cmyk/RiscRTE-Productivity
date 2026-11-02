@@ -24,6 +24,10 @@ dep_hash=hashlib.sha256(b''.join(p.read_bytes() for d in [ROOT/'reader',include,
 def compile_one(source):
  name=hashlib.sha256(str(source.resolve()).encode()).hexdigest()[:12]+'-'+source.stem+'.o';dest=a.output/name
  flags=common[:]
+ # Keep the historically stack-budgeted entry/engine translation units native.
+ # GCC's linker plugin optimizes all remaining units together without removing
+ # features; the exact rich-engine and GUI regressions still gate publication.
+ if a.target and source.name not in ('ReaderApp.cpp','ReaderEngine.cpp'):flags+=['-flto','-ffat-lto-objects']
  if a.target and source.suffix in ('.cpp','.cc'):flags=['-include',str(a.runtime/'sdk/cxx/TemplateConfig.h')]+flags
  if source.suffix=='.c':flags=[x for x in flags];idx=flags.index('-include');flags[idx+1]=str(ROOT/'reader/port/CCompat.h')
  cmd=[cxx if source.suffix in ('.cpp','.cc') else c,*flags,*(['-std=c++17','-fno-exceptions','-fno-rtti','-fno-threadsafe-statics'] if source.suffix in ('.cpp','.cc') else ['-std=c99']),*['-I'+str(i) for i in inc],'-c',str(source),'-o',str(dest)]
