@@ -127,6 +127,11 @@ jobs:
           persist-credentials: false
       - name: Read exact published cumulative product inventory
         run: python3 scripts/inspect_reader_baseline.py --system Helpers --bootfs-tools Bootfs/scripts --output baseline
+      - name: Inspect lossless non-runtime metadata options without changing candidates
+        run: |
+          python3 -m pip install platformio==6.1.19 pyelftools==0.32
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python3 scripts/inspect_reader_storage_options.py --system Helpers --baseline baseline --bootfs-tools Bootfs/scripts --output baseline/metadata-options.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
