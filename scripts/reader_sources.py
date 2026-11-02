@@ -25,6 +25,8 @@ def stage(source,output,apply_patches=True):
   p=ROOT/patch
   if not p.is_file() or not p.stat().st_size:raise ValueError('Missing recorded upstream patch')
   subprocess.run(['git','apply',str(p.resolve())],cwd=output,check=True)
+ from deduplicate_reader_fonts import deduplicate
+ deduplicate(output)
  return output
 
 def inputs(upstream):
