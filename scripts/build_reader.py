@@ -34,8 +34,8 @@ def build(a):
     package = a.output / 'ebook-reader'
     package.mkdir(exist_ok=True)
     elf = package / 'ebook_reader.elf'
-    def produce(elf, flag):
-        receipt = link(compiler, json.loads((objects / 'objects.json').read_text()) + ([flag] if flag else []), elf,
+    def produce(elf, flags):
+        receipt = link(compiler, json.loads((objects / 'objects.json').read_text()) + flags, elf,
                        {'app_main', 'app_module_init', 'app_module_fini', 'risc_resident_app_descriptor_v1'})
         # Production shared objects do not need the static linker/debug symbol table.
         # Preserve every loadable section, relocation, dynamic import/export and
@@ -88,17 +88,19 @@ def build(a):
                     str(a.runtime / 'lib/elf_loader/src/esp_elf_validate.c'),
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     candidates=[];layouts={}
-    for label,flag in [('default',''),('alignment','-Wl,--sort-section=alignment'),('name','-Wl,--sort-section=name')]:
+    for label,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment']),
+                        ('ipa',['-fipa-pta']),('ipa-alignment',['-fipa-pta','-Wl,--sort-section=alignment']),
+                        ('inline',['-finline-functions']),('inline-alignment',['-finline-functions','-Wl,--sort-section=alignment'])]:
         path=a.output/'layout-candidates'/(label+'.elf')
         try:
-            result=produce(path,flag)
+            result=produce(path,flags)
             subprocess.run([str(validator),str(path)],check=True)
             stored=storage_size(path)
         except (subprocess.CalledProcessError,ValueError) as error:
-            layouts[label]={'flag':flag,'rejected':str(error)}
+            layouts[label]={'flags':flags,'rejected':str(error)}
             print('REJECTED READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
             continue
-        layouts[label]={'flag':flag,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
+        layouts[label]={'flags':flags,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
         candidates.append((stored,label,path,result))
         print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
     _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
