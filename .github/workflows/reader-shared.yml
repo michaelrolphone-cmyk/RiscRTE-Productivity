@@ -197,6 +197,10 @@ jobs:
         with:
           name: reader-baseline-${{ github.event.pull_request.head.sha }}
           path: incoming/baseline
+      - name: Compile exact X4 installation-broker admission fixture
+        run: |
+          mkdir -p closure/qualification
+          READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --prepare-only --lane x4 --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output closure/qualification/x4-fixture
       - name: Reader-only overlay and cumulative fixed geometry products
         run: |
           set -euo pipefail

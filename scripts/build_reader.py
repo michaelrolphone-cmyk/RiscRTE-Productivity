@@ -56,6 +56,8 @@ def build(a):
     before = runtime_image(elf)
     nm = compiler.removesuffix('g++') + 'nm'
     dynamic_symbols = subprocess.check_output([nm, '-D', str(elf)])
+    largest_symbols = subprocess.check_output([nm, '-S', '--size-sort', '-C', str(elf)], text=True).splitlines()[-60:]
+    print('Largest complete Reader symbols:\n' + '\n'.join(largest_symbols), flush=True)
     unstripped = {'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
     subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', '--remove-section=.xt.prop', '--remove-section=.xt.lit', '--remove-section=.xt.insn', '--remove-section=.comment', str(elf)], check=True)
     if runtime_image(elf) != before or subprocess.check_output([nm, '-D', str(elf)]) != dynamic_symbols:
