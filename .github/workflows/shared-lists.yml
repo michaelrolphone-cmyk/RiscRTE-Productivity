@@ -66,6 +66,7 @@ jobs:
           cmp qualification/products/lists.elf qualification/repeat/lists.elf
           for lane in watch wave x4; do
             cmp qualification/products/$lane/store.bin qualification/repeat/$lane/store.bin
+            if [ -f qualification/products/$lane/sd-apps.zip ]; then cmp qualification/products/$lane/sd-apps.zip qualification/repeat/$lane/sd-apps.zip; fi
           done
           python -m unittest discover -s tests -p test_shared_lists.py -v 2>&1 | tee qualification/logs/regressions.log
       - name: Complete product native Runtime and ELF admission
@@ -76,21 +77,6 @@ jobs:
             flags=(); if [ "$mode" = sanitized ]; then flags=(--sanitize); fi
             python .deps/System/scripts/test_files_product_admission.py --runtime .deps/Runtime --x4-runtime .deps/X4Runtime --assembly qualification/products --source-pins .deps/System/docs/files-product-runtime-source-pins.json --output "qualification/admission-$mode" "${flags[@]}" 2>&1 | tee "qualification/logs/admission-$mode.log"
           done
-      - name: Diagnose original and projected Wave admission
-        if: failure()
-        shell: bash
-        run: |
-          set +e
-          qualification/admission-normal/wave "$(realpath qualification/products/wave/before)" "$(realpath qualification/products/wave/before)"
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('.deps/System/test/files_products/native/cohort_elf_admission.h')
-          s=p.read_text().replace('std::ifstream input(path,std::ios::binary);if(!input)return false;', 'fprintf(stderr,"ADMIT %s\\n",path);std::ifstream input(path,std::ios::binary);if(!input)return false;')
-          p.write_text(s)
-          PY
-          python .deps/System/scripts/test_files_product_admission.py --lane wave --runtime .deps/Runtime --x4-runtime .deps/X4Runtime --assembly qualification/products --output qualification/diagnostic-wave
-          cat qualification/diagnostic-wave/wave-after.log
-          exit 0
       - name: Preserve source and identity
         if: always()
         run: |
