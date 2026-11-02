@@ -22,10 +22,11 @@ def build(a):
             raise ValueError(name + ' does not match the source lock')
         if subprocess.run(['git', '-C', str(checkout), 'diff-index', '--quiet', 'HEAD', '--']).returncode:
             raise ValueError(name + ' tracked source is modified')
-    objects = a.output / 'objects'
+    objects = a.output / 'objects-no-inline-once'
     subprocess.run([sys.executable, str(ROOT / 'scripts/compile_reader.py'), '--target',
                     '--upstream', str(staged), '--runtime', str(a.runtime), '--system', str(a.system),
-                    '--png', str(a.png), '--jpeg', str(a.jpeg), '--output', str(objects)], check=True)
+                    '--png', str(a.png), '--jpeg', str(a.jpeg), '--output', str(objects)], check=True,
+                   env=dict(os.environ,READER_SUPPORT_OPT_FLAGS='-fno-inline-functions-called-once'))
     from reader_stack_budget import check
     stack_frames=check(objects)
     sys.path.insert(0, str(a.runtime / 'scripts'))
@@ -81,12 +82,11 @@ def build(a):
                     str(a.runtime / 'lib/elf_loader/src/esp_elf_validate.c'),
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     candidates=[];layouts={}
-    for variant,optflags in [('baseline',[]),('no-sra',['-fno-tree-sra']),
-                             ('no-inline-once',['-fno-inline-functions-called-once']),
-                             ('no-pre',['-fno-tree-pre']),('original-fonts',[])]:
-        if variant=='original-fonts':
+    for variant,optflags in [('no-inline-once',['-fno-inline-functions-called-once']),
+                             ('original-fonts-no-inline-once',['-fno-inline-functions-called-once'])]:
+        if variant=='original-fonts-no-inline-once':
             staged=stage(a.crosspoint,a.output/'upstream-original',share_fonts=False)
-        if variant!='baseline':
+        if variant!='no-inline-once':
             objects=a.output/('objects-'+variant)
             env=dict(os.environ,READER_SUPPORT_OPT_FLAGS=' '.join(optflags))
             subprocess.run([sys.executable,str(ROOT/'scripts/compile_reader.py'),'--target',
