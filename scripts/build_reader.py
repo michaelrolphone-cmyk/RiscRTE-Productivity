@@ -88,8 +88,7 @@ def build(a):
                     str(a.runtime / 'lib/elf_loader/src/esp_elf_validate.c'),
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     candidates=[];layouts={}
-    for label,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment']),
-                        ('size',['-Oz']),('size-alignment',['-Oz','-Wl,--sort-section=alignment'])]:
+    for label,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment'])]:
         path=a.output/'layout-candidates'/(label+'.elf')
         try:
             result=produce(path,flags)
@@ -128,7 +127,7 @@ def build(a):
                 shutil.copyfile(source, target)
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
     receipt.update({'font_sharing': json.loads((staged / 'font-sharing.json').read_text()),
-                    'optimization': 'Support-unit LTO; historically stack-budgeted ReaderApp/ReaderEngine remain direct target objects',
+                    'optimization': 'Support-unit LTO and no small-function inlining; historically stack-budgeted ReaderApp/ReaderEngine remain direct target objects',
                     'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':stack_frames,
                     'native_admission': 'requires matching native candidate verification',
                     'asset_sha256': {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((package / 'sd').rglob('*')) if p.is_file()},

@@ -18,7 +18,7 @@ cc+=list((a.upstream/'lib/uzlib/src').glob('*.c'))+list((a.png/'src').glob('*.c'
 common=['-Os','-fno-ivopts','-fPIC','-ffunction-sections','-fdata-sections','-fstack-usage','-DRISC_READER_VECTOR_FONTS','-DXML_DTD','-DXML_GE=1','-DXML_NS','-DHAVE_MEMMOVE','-DBYTEORDER=1234','-DXML_CONTEXT_BYTES=1024','-DXML_STATIC','-DFT_CONFIG_OPTION_DISABLE_FILE_SYSTEM','-DPNG_NO_LOGGING','-include',str(ROOT/'reader/port/Arduino.h')]
 base=Path.home()/'.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-'
 cxx=os.environ.get('NATIVE_APP_CXX',str(base)+'g++') if a.target else 'g++';c=os.environ.get('NATIVE_APP_CC',str(base)+'gcc') if a.target else 'gcc'
-if a.target:common+=['-mtext-section-literals','-mlongcalls','-fvisibility=hidden']
+if a.target:common+=['-mtext-section-literals','-mlongcalls','-fvisibility=hidden','-fno-inline-small-functions']
 a.output.mkdir(parents=True,exist_ok=True)
 dep_hash=hashlib.sha256(b''.join(p.read_bytes() for d in [ROOT/'reader',include,a.upstream,a.runtime/'sdk/cxx'] for p in sorted(d.rglob('*.h')))).digest()
 def compile_one(source):

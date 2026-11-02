@@ -84,13 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install platformio==6.1.19 pyelftools==0.32
-          curl -fL --retry 3 -o /tmp/reader-toolchain.tar.xz https://github.com/espressif/crosstool-NG/releases/download/esp-15.2.0_20251204/xtensa-esp-elf-15.2.0_20251204-x86_64-linux-gnu.tar.xz
-          echo '3d50f5cd5f173acfd524e07c1cd69bc99585731a415ca2e5bce879997fe602b8  /tmp/reader-toolchain.tar.xz' | sha256sum -c -
-          mkdir -p build/toolchain
-          tar -xJf /tmp/reader-toolchain.tar.xz -C build/toolchain
-          export NATIVE_APP_CXX="$PWD/build/toolchain/xtensa-esp-elf/bin/xtensa-esp-elf-g++"
-          export NATIVE_APP_CC="$PWD/build/toolchain/xtensa-esp-elf/bin/xtensa-esp-elf-gcc"
-          "$NATIVE_APP_CXX" --version | tee evidence/target-toolchain.txt
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
           python Productivity/scripts/build_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/target 2>&1 | tee evidence/target.log
       - name: Preserve exact build source dependencies
         run: |
