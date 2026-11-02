@@ -12,7 +12,7 @@ def baseline_bytes(name):
     reader = json.loads((ROOT / "Apps/ebook_reader.json").read_text())
     expected = [{
         "id": "ebook-reader", "version": reader["version"],
-        "classification": "e-ink", "target": "x4",
+        "classification": "shared", "target": "x4,watch,wave",
         "source_path": "reader/ReaderApp.cpp",
         "manifest_path": "Apps/ebook_reader.json",
         "build_script": "scripts/build_reader.py",

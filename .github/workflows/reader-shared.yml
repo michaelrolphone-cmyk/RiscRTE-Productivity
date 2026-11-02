@@ -1,0 +1,261 @@
+name: Shared Reader qualification
+on:
+  pull_request:
+    paths: ['reader/**', 'scripts/**', 'test/reader/**', 'Apps/ebook_reader.json', '.github/workflows/reader-shared.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 13eca114cb58469cf6004fafc3da84fbd9d29beb
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 30923eed576cd8d8caf3bbec131e6675ce029a06
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Drivers
+          ref: 605a407f5aba0116dad35be123075298eff77e3c
+          path: Drivers
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          repository: lz4/lz4
+          ref: 5ff839680134437dbf4678f3d0c7b371d84f4964
+          path: Lz4
+          persist-credentials: false
+      - name: Obtain unchanged pinned engine sources
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('Productivity/reader/upstream.json').read_text())
+          entries=[('CrossPoint',lock['repository'],lock['commit'])]+[(name,d['repository'],d['commit']) for name,d in lock['dependencies'].items()]
+          for name,url,sha in entries:
+              subprocess.run(['git','init',name],check=True)
+              subprocess.run(['git','-C',name,'remote','add','origin',url],check=True)
+              subprocess.run(['git','-C',name,'fetch','--depth','1','origin',sha],check=True)
+              subprocess.run(['git','-C',name,'checkout','--detach','FETCH_HEAD'],check=True)
+          subprocess.run(['git','-C','CrossPoint','submodule','update','--init','--depth','1','freeink-sdk'],check=True)
+          assert subprocess.check_output(['git','-C','CrossPoint/freeink-sdk','rev-parse','HEAD'],text=True).strip()==lock['sdk_commit']
+          Path('evidence').mkdir()
+          sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime','Drivers','CrossPoint','png','jpeg']}
+          Path('evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
+          PY
+      - name: Measure all eleven unchanged hyphenation tables
+        run: python3 Productivity/scripts/inspect_reader_trie_storage.py --upstream CrossPoint
+      - name: Test engine, retained lifecycle, GUI and production FatFs
+        run: |
+          set -euo pipefail
+          python Productivity/scripts/test_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/engine 2>&1 | tee evidence/engine.log
+          python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/startup 2>&1 | tee evidence/startup.log
+          python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui 2>&1 | tee evidence/gui.log
+          python Productivity/scripts/test_reader_links.py --runtime Runtime --system System --engine-output build/engine --output build/links 2>&1 | tee evidence/links.log
+          python Productivity/scripts/test_reader_fatfs.py --drivers Drivers --engine-output build/engine --output build/fatfs 2>&1 | tee evidence/fatfs.log
+          python Productivity/scripts/test_reader_file_checkpoint.py --runtime Runtime --system System --output build/checkpoint 2>&1 | tee evidence/checkpoint.log
+          python Productivity/scripts/test_reader_performance.py --runtime Runtime --system System --engine-output build/engine --output build/performance --verify 2>&1 | tee evidence/performance.log
+          mkdir -p evidence/frames evidence/link-frames
+          cp build/gui/frames/*.pbm evidence/frames/
+          cp build/links/frames/*.pbm evidence/link-frames/
+      - name: Same native app on compact and dynamic color providers
+        run: |
+          set -euo pipefail
+          READER_TEST_WIDTH=240 READER_TEST_HEIGHT=240 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-watch --host-profile watch-compact 2>&1 | tee evidence/gui-watch.log
+          READER_TEST_WIDTH=410 READER_TEST_HEIGHT=502 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-wave --host-profile color-dynamic 2>&1 | tee evidence/gui-wave.log
+          READER_TEST_WIDTH=328 READER_TEST_HEIGHT=356 python Productivity/scripts/test_reader_gui.py --runtime Runtime --system System --engine-output build/engine --output build/gui-extra --host-profile color-dynamic 2>&1 | tee evidence/gui-extra.log
+      - name: Optional-service unavailable UI on actual color providers
+        run: |
+          set -euo pipefail
+          READER_TEST_WIDTH=240 READER_TEST_HEIGHT=240 python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/optional-watch --host-profile watch-compact --optional-only 2>&1 | tee evidence/optional-watch.log
+          READER_TEST_WIDTH=410 READER_TEST_HEIGHT=502 python Productivity/scripts/test_reader_startup.py --runtime Runtime --system System --engine-output build/engine --output build/optional-wave --host-profile color-dynamic --optional-only 2>&1 | tee evidence/optional-wave.log
+      - name: Compile and structurally validate ESP32-S3 Reader
+        run: |
+          set -euo pipefail
+          python -m pip install platformio==6.1.19 pyelftools==0.32
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python Productivity/scripts/build_reader.py --crosspoint CrossPoint --runtime Runtime --system System --png png --jpeg jpeg --output build/target 2>&1 | tee evidence/target.log
+      - name: Preserve exact build source dependencies
+        run: |
+          mkdir -p evidence/source
+          for repo in Runtime System Drivers CrossPoint png jpeg Lz4; do
+            git -C "$repo" archive HEAD | gzip -n > "evidence/source/$repo.tar.gz"
+            git -C "$repo" rev-parse HEAD > "evidence/source/$repo.head"
+          done
+          git -C CrossPoint/freeink-sdk archive HEAD | gzip -n > evidence/source/freeink-sdk.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reader-shared-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            build/target/ebook-reader/ebook_reader.elf
+            build/target/ebook-reader/ebook_reader.json
+            build/target/ebook-reader/build.json
+            build/target/ebook-reader/licenses/
+            build/target/ebook-reader/sd/
+            evidence/
+            build/gui*/frames/
+          retention-days: 14
+
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: Helpers
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - name: Read exact published cumulative product inventory
+        run: python3 scripts/inspect_reader_baseline.py --system Helpers --bootfs-tools Bootfs/scripts --output baseline
+      - name: Inspect lossless non-runtime metadata options without changing candidates
+        run: |
+          python3 -m pip install platformio==6.1.19 pyelftools==0.32
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python3 scripts/inspect_reader_storage_options.py --system Helpers --baseline baseline --bootfs-tools Bootfs/scripts --output baseline/metadata-options.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reader-baseline-${{ github.event.pull_request.head.sha }}
+          path: baseline/
+          if-no-files-found: error
+
+  product-assembly:
+    needs: [reader, baseline]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 712ecc3f894dba99d9c9638941778a82f5856b97
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 0052d1fc42e9cfc82d626c5a247d460919c87935
+          path: X4Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: c69d7914935fccdc04749f7bfa429c74219bf88a
+          path: WatchProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Wavshare-S3-Touch-AMOLED-2.06
+          ref: 97ca6157aa9c3bba7c7fee3858aa7d0ff896d13b
+          path: WaveProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-XTEINK-X4-PRO
+          ref: e361e73de14314bb4b8d2fb3a24eb81e2390b0ee
+          path: X4Product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: reader-shared-${{ github.event.pull_request.head.sha }}
+          path: incoming/application
+      - uses: actions/download-artifact@v4
+        with:
+          name: reader-baseline-${{ github.event.pull_request.head.sha }}
+          path: incoming/baseline
+      - uses: actions/checkout@v4
+        with:
+          repository: lz4/lz4
+          ref: 5ff839680134437dbf4678f3d0c7b371d84f4964
+          path: Lz4
+          persist-credentials: false
+      - name: Compile exact X4 installation-broker admission fixture
+        run: |
+          mkdir -p closure/qualification
+          READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --prepare-only --lane x4 --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output closure/qualification/x4-fixture
+      - name: Reader-only overlay and cumulative fixed geometry products
+        run: |
+          set -euo pipefail
+          mkdir -p closure/qualification
+          python3 Productivity/scripts/assemble_shared_reader.py --system System --baseline incoming/baseline --application incoming/application/build/target/ebook-reader --bootfs-tools Bootfs/scripts --output closure/assembly 2>&1 | tee closure/qualification/assembly.log
+          mkdir -p closure/application closure/source closure/baseline closure/qualification
+          cp -a incoming/application/build/target/ebook-reader/. closure/application/
+          cp Productivity/reader/shared-baseline.json closure/baseline/
+          cp -a incoming/application/evidence closure/qualification/
+          for repo in Productivity System Runtime X4Runtime WatchProduct WaveProduct X4Product Bootfs Lz4; do
+            git -C "$repo" archive HEAD | gzip -n > "closure/source/$repo.tar.gz"
+            git -C "$repo" rev-parse HEAD > "closure/source/$repo.head"
+          done
+      - name: Independently qualify completed SD lanes if later Watch packing fails
+        if: failure()
+        run: |
+          set -euo pipefail
+          if [ -f closure/assembly/assembly.json ]; then
+            for lane in x4 wave; do
+              for mode in normal sanitized; do
+                flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
+                READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --lane "$lane" --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/preliminary-$lane/$mode" "${flags[@]}"
+              done
+            done
+          fi
+      - name: Actual stored-byte Runtime admission, normal and sanitizers
+        run: |
+          set -euo pipefail
+          for mode in normal sanitized; do
+            flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
+            READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/admission/$mode" "${flags[@]}"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reader-qualified-products-${{ github.event.pull_request.head.sha }}
+          path: closure/
+          include-hidden-files: true
+          if-no-files-found: error

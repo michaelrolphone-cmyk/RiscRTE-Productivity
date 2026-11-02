@@ -9,6 +9,8 @@ from reader_sources import ROOT,inputs
 p=argparse.ArgumentParser()
 for name in ('runtime','system','engine-output','output'):
     p.add_argument('--'+name,type=lambda x:Path(x).resolve(),required=True)
+p.add_argument('--host-profile',choices=['full','watch-compact','color-dynamic'],default='full')
+p.add_argument('--optional-only',action='store_true')
 p.add_argument('--app-source',type=lambda x:Path(x).resolve(),default=ROOT/'reader/ReaderApp.cpp')
 a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True)
 sys.path.insert(0,str(a.system/'scripts'))
@@ -19,7 +21,7 @@ includes=[ROOT/'reader/port',ROOT/'reader',sdk,a.runtime/'sdk/cxx']+includes
 objects=[]
 for name,source in [('scene',a.system/'Services/scene_host/host.c'),('scene-fixture',ROOT/'test/reader/scene_startup.c')]:
     obj=a.output/(name+'.o')
-    subprocess.run(['cc','-std=c11','-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all','-I'+str(sdk),'-I'+str(a.system/'test/scene'),'-c',str(source),'-o',str(obj)],check=True)
+    subprocess.run(['cc',*({'full':[],'watch-compact':['-DSCENE_HOST_TELEMETRY=0','-DSCENE_HOST_WATCH_240=1'],'color-dynamic':['-DSCENE_HOST_TELEMETRY=0']}[a.host_profile] if name=='scene' else []),'-std=c11','-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all','-I'+str(sdk),'-I'+str(a.system/'test/scene'),'-c',str(source),'-o',str(obj)],check=True)
     objects.append(str(obj))
 binary=a.output/'reader-startup'
 subprocess.run(['g++','-pthread','-std=c++17','-fno-rtti','-fno-exceptions','-O1','-g','-fsanitize=undefined','-fno-sanitize-recover=all','-DRISC_READER_VECTOR_FONTS','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-include',str(ROOT/'reader/port/Arduino.h'),*['-I'+str(x) for x in includes],str(ROOT/'test/reader/app_startup.cpp'),str(a.app_source),*objects,*json.loads((a.engine_output/'objects/objects.json').read_text()),'-o',str(binary)],check=True)
@@ -28,6 +30,7 @@ if fixture.exists():shutil.rmtree(fixture)
 sys.path.insert(0,str(ROOT/'test/reader'))
 from make_fixture import create
 cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [('-', 'resident-library'),('-', 'browse-outside'),('-', 'stale-catalog'),('/outside.txt',None)]
 cases += [('-', 'catalog'),('-', 'bad-catalog'),('-', 'legacy-scene')]
 cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
 cases += [('/Books/sample.epub','resident-redraw')]
@@ -35,8 +38,11 @@ cases += [('/Books/sample.epub','resident-later')]
 cases += [('/Books/sample.epub','controls')]
 cases += [('/Books/sample.epub','resident-turns')]
 cases += [(source,'turns') for source in ('/Books/sample.epub','/Books/sample.txt')]
+if a.optional_only:cases=[]
+cases += [('-', 'missing:'+name) for name in ('storage.volume','memory.heap','random.bytes','file.open')]
 for source,scenario in cases:
     if fixture.exists():shutil.rmtree(fixture)
     create(fixture)
+    shutil.copyfile(fixture/'Books/sample.txt',fixture/'outside.txt')
     shutil.copytree(a.engine_output/'fixture/fonts',fixture/'fonts')
     subprocess.run([str(binary),str(fixture)]+([source] if source else [])+([scenario] if scenario else []),check=True,timeout=60)

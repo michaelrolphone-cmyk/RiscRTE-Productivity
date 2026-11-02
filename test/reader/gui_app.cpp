@@ -3,6 +3,11 @@
 #include "app_startup.cpp"
 #undef main
 extern "C" void reader_test_scene_snapshot(const char*);
+extern "C" unsigned reader_test_width(void);
+extern "C" unsigned reader_test_height(void);
+extern "C" unsigned reader_test_scale(void);
+static unsigned viewWidth(){return reader_test_width()&~7u;}
+static unsigned viewHeight(){return reader_test_height()-60*reader_test_scale();}
 static risc_components_document_v1 guiDocument;
 static risc_scene_reading_document_v1 guiReading;
 static bool isReading;
@@ -14,11 +19,11 @@ static int32_t guiComponents(void*c,uint64_t s,const risc_components_document_v1
 }
 static int32_t guiPage(void*c,uint64_t s,const risc_scene_reading_document_v1*d,const uint8_t*p,size_t n,uint32_t refresh){
  if(!p){assert(!n&&refresh==RISC_SCENE_PAGE_REFRESH_DEFAULT);++metadataPages;}
- else {assert(n==480*680/8&&refresh==RISC_SCENE_PAGE_REFRESH_CLEAN);++pages;}
+ else {assert(n==viewWidth()*viewHeight()/8&&refresh==RISC_SCENE_PAGE_REFRESH_CLEAN);++pages;}
  int rc=realReading->present_reading(c,s,d,p,n,refresh);if(!rc){guiReading=*d;guiRevision=d->base.revision;isReading=true;}return rc;
 }
 static int32_t guiPreview(void*c,uint64_t s,const risc_components_document_v1*d,uint32_t node,const uint8_t*p,size_t n){
- assert(p&&n==368*120/8);unsigned ink=0;for(size_t i=0;i<n;i++)ink+=p[i]!=255;assert(ink>50);++previewCount;
+ assert(p&&n==((reader_test_width()-54*reader_test_scale())&~7u)*60*reader_test_scale()/8);unsigned ink=0;for(size_t i=0;i<n;i++)ink+=p[i]!=255;assert(ink>50);++previewCount;
  int rc=realReading->present_preview(c,s,d,node,p,n);if(!rc){guiDocument=*d;guiRevision=d->revision;isReading=false;}return rc;
 }
 struct Command{bool reading;const char* capture;const char* label;unsigned kind;int value;unsigned readingNode;};
@@ -78,10 +83,10 @@ static int32_t guiNext(void*c,uint64_t s,risc_scene_event_v1*e){
  fprintf(stderr,"GUI stage %u revision %u action %u node %u value %d\n",stage,guiRevision,e->action,e->node,e->value);
  lastActionRevision=guiRevision;++stage;return RISC_SCENE_OK;
 }
-static bool guiLog(const char*m){if(strstr(m,"scene ready page=480x680 sd=ready"))readySeen=true;return log(m);}
+static bool guiLog(const char*m){if(strstr(m,"sd=ready"))readySeen=true;return log(m);}
 int main(int argc,char**argv){
  assert(argc==3);hostBind(argv[1]);captureRoot=argv[2];std::filesystem::create_directories(captureRoot);
- {reader::Engine e;assert(e.init(480,680)&&e.scanLibrary()&&e.open("/Books/sample.epub")&&e.beginReading());while(e.busy())assert(e.step());assert(e.turn(1));assert(e.toggleBookmark());assert(e.savePosition());}
+ {reader::Engine e;assert(e.init(viewWidth(),viewHeight())&&e.scanLibrary()&&e.open("/Books/sample.epub")&&e.beginReading());while(e.busy())assert(e.step());assert(e.turn(1));assert(e.toggleBookmark());assert(e.savePosition());}
  realReading=static_cast<const risc_scene_reading_api_v1*>(reader_test_scene_start());realCheckpoint=&realReading->checkpoint;realRefresh=&realCheckpoint->presentation;realScene=&realRefresh->page;
  sceneCopy=*realReading;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.struct_size=sizeof(sceneCopy);sceneCopy.present_reading=guiPage;sceneCopy.present_preview=guiPreview;
  sceneCopy.checkpoint.presentation.page.components.update=guiComponents;sceneCopy.checkpoint.presentation.page.components.lifecycle.base.next=guiNext;sceneApi=&sceneCopy;
