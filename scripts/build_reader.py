@@ -34,39 +34,64 @@ def build(a):
     package = a.output / 'ebook-reader'
     package.mkdir(exist_ok=True)
     elf = package / 'ebook_reader.elf'
-    receipt = link(compiler, json.loads((objects / 'objects.json').read_text()), elf,
-                   {'app_main', 'app_module_init', 'app_module_fini', 'risc_resident_app_descriptor_v1'})
-    # Production shared objects do not need the static linker/debug symbol table.
-    # Preserve every loadable section, relocation, dynamic import/export and
-    # virtual address byte-for-byte. This is NOT feature stripping or a reduced
-    # engine; it lets the complete engine fit the existing Watch store.
-    from elftools.elf.elffile import ELFFile
-    from link_cpp_module import mapped_relocations
-    def runtime_image(path):
-        with path.open('rb') as stream:
-            image = ELFFile(stream)
-            sections = list(image.iter_sections())
-            return {section.name: {
-                'type': section['sh_type'], 'flags': section['sh_flags'],
-                'address': section['sh_addr'], 'size': section['sh_size'],
-                'alignment': section['sh_addralign'], 'entry_size': section['sh_entsize'],
-                'link': sections[section['sh_link']].name if section['sh_link'] else '',
-                'sha256': hashlib.sha256(section.data() if section['sh_type'] != 'SHT_NOBITS' else b'').hexdigest()
-            } for section in sections if section['sh_flags'] & 2 or section['sh_type'] in ('SHT_REL', 'SHT_RELA')}
-    before = runtime_image(elf)
-    nm = compiler.removesuffix('g++') + 'nm'
-    dynamic_symbols = subprocess.check_output([nm, '-D', str(elf)])
-    largest_symbols = subprocess.check_output([nm, '-S', '--size-sort', '-C', str(elf)], text=True).splitlines()[-60:]
-    print('Largest complete Reader symbols:\n' + '\n'.join(largest_symbols), flush=True)
-    unstripped = {'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
-    subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', '--remove-section=.xt.prop', '--remove-section=.xt.lit', '--remove-section=.xt.insn', '--remove-section=.comment', str(elf)], check=True)
-    if runtime_image(elf) != before or subprocess.check_output([nm, '-D', str(elf)]) != dynamic_symbols:
-        raise ValueError('Stripping changed loadable bytes, relocation semantics or dynamic symbols')
-    if mapped_relocations(elf) != receipt['mapped_relocations']:
-        raise ValueError('Stripping changed mapped relocations')
-    receipt.update({'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest(),
-                    'production_symbols': {'method': 'strip --strip-unneeded; remove non-ALLOC Xtensa linker property/literal/instruction metadata and compiler comment', 'unstripped': unstripped,
-                    'runtime_sections': before, 'runtime_bytes_and_dynamic_symbols_unchanged': True}})
+    def produce(elf, flag):
+        receipt = link(compiler, json.loads((objects / 'objects.json').read_text()) + ([flag] if flag else []), elf,
+                       {'app_main', 'app_module_init', 'app_module_fini', 'risc_resident_app_descriptor_v1'})
+        # Production shared objects do not need the static linker/debug symbol table.
+        # Preserve every loadable section, relocation, dynamic import/export and
+        # virtual address byte-for-byte. This is NOT feature stripping or a reduced
+        # engine; it lets the complete engine fit the existing Watch store.
+        from elftools.elf.elffile import ELFFile
+        from link_cpp_module import mapped_relocations
+        def runtime_image(path):
+            with path.open('rb') as stream:
+                image = ELFFile(stream)
+                sections = list(image.iter_sections())
+                return {section.name: {
+                    'type': section['sh_type'], 'flags': section['sh_flags'],
+                    'address': section['sh_addr'], 'size': section['sh_size'],
+                    'alignment': section['sh_addralign'], 'entry_size': section['sh_entsize'],
+                    'link': sections[section['sh_link']].name if section['sh_link'] else '',
+                    'sha256': hashlib.sha256(section.data() if section['sh_type'] != 'SHT_NOBITS' else b'').hexdigest()
+                } for section in sections if section['sh_flags'] & 2 or section['sh_type'] in ('SHT_REL', 'SHT_RELA')}
+        before = runtime_image(elf)
+        nm = compiler.removesuffix('g++') + 'nm'
+        dynamic_symbols = subprocess.check_output([nm, '-D', str(elf)])
+        largest_symbols = subprocess.check_output([nm, '-S', '--size-sort', '-C', str(elf)], text=True).splitlines()[-60:]
+        print('Largest complete Reader symbols:\n' + '\n'.join(largest_symbols), flush=True)
+        unstripped = {'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
+        subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', '--remove-section=.xt.prop', '--remove-section=.xt.lit', '--remove-section=.xt.insn', '--remove-section=.comment', str(elf)], check=True)
+        if runtime_image(elf) != before or subprocess.check_output([nm, '-D', str(elf)]) != dynamic_symbols:
+            raise ValueError('Stripping changed loadable bytes, relocation semantics or dynamic symbols')
+        if mapped_relocations(elf) != receipt['mapped_relocations']:
+            raise ValueError('Stripping changed mapped relocations')
+        receipt.update({'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest(),
+                        'production_symbols': {'method': 'strip --strip-unneeded; remove non-ALLOC Xtensa linker property/literal/instruction metadata and compiler comment', 'unstripped': unstripped,
+                        'runtime_sections': before, 'runtime_bytes_and_dynamic_symbols_unchanged': True}})
+        return receipt
+    # Layout-only alternatives preserve the complete code/data and ABI. Select
+    # deterministically by the actual existing LZ4 storage codec, not raw size.
+    import ctypes
+    lib=ctypes.CDLL('liblz4.so.1')
+    lib.LZ4_versionNumber.restype=ctypes.c_int
+    assert lib.LZ4_versionNumber()==10904
+    lib.LZ4_compressBound.argtypes=[ctypes.c_int];lib.LZ4_compressBound.restype=ctypes.c_int
+    lib.LZ4_compress_HC.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int];lib.LZ4_compress_HC.restype=ctypes.c_int
+    def storage_size(path):
+        data=path.read_bytes();source=ctypes.create_string_buffer(data);bound=lib.LZ4_compressBound(len(data));target=ctypes.create_string_buffer(bound)
+        result=lib.LZ4_compress_HC(source,target,len(data),bound,12)
+        assert result>0
+        return result
+    candidates=[];layouts={}
+    for label,flag in [('default',''),('alignment','-Wl,--sort-section=alignment'),('name','-Wl,--sort-section=name')]:
+        path=a.output/'layout-candidates'/(label+'.elf')
+        result=produce(path,flag);stored=storage_size(path)
+        layouts[label]={'flag':flag,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
+        candidates.append((stored,label,path,result))
+        print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
+    _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
+    shutil.copyfile(path,elf)
+    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4level12 size among deterministic complete linker layouts','selected':selected,'candidates':layouts}
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),
                     '-I' + str(a.runtime / 'lib/elf_loader/include'),
