@@ -39,4 +39,5 @@ for lane in ('watch','wave','x4'):
   'stored_files':{n:digest(b) for n,b in sorted(stored.items())}}
  print(lane+' DAILY '+json.dumps(details),flush=True)
  print(lane+' BOOT '+json.dumps(boot),flush=True)
+ print(lane+' SUMMARY '+json.dumps({'inventory_sha256':result[lane]['inventory_sha256'],'driver_providers':result[lane]['driver_providers']}),flush=True)
 a.output.write_bytes(encode(result))
