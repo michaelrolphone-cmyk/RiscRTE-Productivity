@@ -83,7 +83,9 @@ def build(a):
     candidates=[];layouts={}
     for variant,optflags in [('baseline',[]),('no-sra',['-fno-tree-sra']),
                              ('no-inline-once',['-fno-inline-functions-called-once']),
-                             ('no-pre',['-fno-tree-pre'])]:
+                             ('no-pre',['-fno-tree-pre']),('original-fonts',[])]:
+        if variant=='original-fonts':
+            staged=stage(a.crosspoint,a.output/'upstream-original',share_fonts=False)
         if variant!='baseline':
             objects=a.output/('objects-'+variant)
             env=dict(os.environ,READER_SUPPORT_OPT_FLAGS=' '.join(optflags))
@@ -96,6 +98,7 @@ def build(a):
             path=a.output/'layout-candidates'/(label+'.elf')
             try:
                 result=produce(path,flags)
+                result['font_sharing']=json.loads((staged/'font-sharing.json').read_text())
                 result['support_optimization']={'variant':variant,'flags':optflags,'target_stack_frames':variant_frames}
                 subprocess.run([str(validator),str(path)],check=True)
                 stored=storage_size(path)
@@ -131,7 +134,7 @@ def build(a):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
-    receipt.update({'encoder': encoder.receipt(), 'font_sharing': json.loads((staged / 'font-sharing.json').read_text()),
+    receipt.update({'encoder': encoder.receipt(), 'font_sharing': receipt['font_sharing'],
                     'optimization': 'Measured complete support-unit LTO variants; historically stack-budgeted ReaderApp/ReaderEngine remain identical direct target objects',
                     'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':receipt['support_optimization']['target_stack_frames'],
                     'native_admission': 'requires matching native candidate verification',

@@ -3,7 +3,7 @@ import hashlib,json,shutil,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 LIBS='Epub EpdFont GfxRenderer Txt ZipFile LibraryIndex InflateReader FsHelpers Serialization Utf8 XmlParserUtils MiniBidi Memory expat miniz uzlib JpegToBmpConverter PngToBmpConverter'.split()
-def stage(source,output,apply_patches=True):
+def stage(source,output,apply_patches=True,share_fonts=True):
  source,output=source.resolve(),output.resolve()
  if source in output.parents or output==source or output in source.parents or output==ROOT or output in ROOT.parents:raise ValueError('Staging output aliases source checkout')
  lock=json.loads((ROOT/'reader/upstream.json').read_text())
@@ -25,8 +25,12 @@ def stage(source,output,apply_patches=True):
   p=ROOT/patch
   if not p.is_file() or not p.stat().st_size:raise ValueError('Missing recorded upstream patch')
   subprocess.run(['git','apply',str(p.resolve())],cwd=output,check=True)
- from deduplicate_reader_fonts import deduplicate
- deduplicate(output)
+ if share_fonts:
+  from deduplicate_reader_fonts import deduplicate
+  deduplicate(output)
+ else:
+  record={'method':'Original complete four-style builtin metadata; no deduplication', 'original_header_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((output/'lib/EpdFont/builtinFonts').glob('notoserif_14_*.h'))}}
+  (output/'font-sharing.json').write_text(json.dumps(record,sort_keys=True)+'\n')
  return output
 
 def inputs(upstream):
