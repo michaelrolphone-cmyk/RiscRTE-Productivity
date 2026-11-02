@@ -82,22 +82,28 @@ def build(a):
         result=lib.LZ4_compress_HC(source,target,len(data),bound,12)
         assert result>0
         return result
-    candidates=[];layouts={}
-    for label,flag in [('default',''),('alignment','-Wl,--sort-section=alignment'),('name','-Wl,--sort-section=name')]:
-        path=a.output/'layout-candidates'/(label+'.elf')
-        result=produce(path,flag);stored=storage_size(path)
-        layouts[label]={'flag':flag,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
-        candidates.append((stored,label,path,result))
-        print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
-    _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
-    shutil.copyfile(path,elf)
-    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4level12 size among deterministic complete linker layouts','selected':selected,'candidates':layouts}
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),
                     '-I' + str(a.runtime / 'lib/elf_loader/include'),
                     str(a.runtime / 'lib/elf_loader/src/esp_elf_validate.c'),
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
-    subprocess.run([str(validator), str(elf)], check=True)
+    candidates=[];layouts={}
+    for label,flag in [('default',''),('alignment','-Wl,--sort-section=alignment'),('name','-Wl,--sort-section=name')]:
+        path=a.output/'layout-candidates'/(label+'.elf')
+        try:
+            result=produce(path,flag)
+            subprocess.run([str(validator),str(path)],check=True)
+            stored=storage_size(path)
+        except (subprocess.CalledProcessError,ValueError) as error:
+            layouts[label]={'flag':flag,'rejected':str(error)}
+            print('REJECTED READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
+            continue
+        layouts[label]={'flag':flag,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
+        candidates.append((stored,label,path,result))
+        print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
+    _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
+    shutil.copyfile(path,elf)
+    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4level12 size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
     shutil.copyfile(ROOT / 'Apps/ebook_reader.json', package / 'ebook_reader.json')
     # Upstream streamed fonts preserve all styles without mapping every size
     # into the ELF. These assets are copied to the user's SD card separately.
