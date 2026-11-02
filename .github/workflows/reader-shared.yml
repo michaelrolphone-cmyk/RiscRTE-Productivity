@@ -219,14 +219,16 @@ jobs:
             git -C "$repo" archive HEAD | gzip -n > "closure/source/$repo.tar.gz"
             git -C "$repo" rev-parse HEAD > "closure/source/$repo.head"
           done
-      - name: Independently qualify completed X4 lane if later Watch packing fails
+      - name: Independently qualify completed SD lanes if later Watch packing fails
         if: failure()
         run: |
           set -euo pipefail
           if [ -f closure/assembly/assembly.json ]; then
-            for mode in normal sanitized; do
-              flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
-              READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --lane x4 --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/preliminary-x4/$mode" "${flags[@]}"
+            for lane in x4 wave; do
+              for mode in normal sanitized; do
+                flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
+                READER_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_reader_product_admission.py --reader --lane "$lane" --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/preliminary-$lane/$mode" "${flags[@]}"
+              done
             done
           fi
       - name: Actual stored-byte Runtime admission, normal and sanitizers
