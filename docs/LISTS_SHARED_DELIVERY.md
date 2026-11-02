@@ -25,7 +25,14 @@ provider upgrade to make the test pass.
 
 The existing semantic controller, model and persistence source is unchanged:
 `Apps/lists_scene.c`, `Apps/ListsScene.c`, and `lib/Lists/`.
-The app uses `ui.scene@1`, `storage.app-data@1`, and `time.civil@1`.
+The app requires `ui.scene@1`, `storage.app-data@1`, and `time.civil@1`.
+These core services are not optional: missing-provider startup prints a clear
+diagnostic, releases acquired capabilities and exits. The existing missing-1/2/3
+tests verify refusal and cleanup, not a usable missing-provider UI. Resident-shell
+participation is optional. Invalid civil time disables date-dependent features
+while undated lists remain usable; recoverable storage failures expose read-only
+retry behavior without replacing saved data. Service presence and operational
+availability are distinct contracts.
 Presentation, dimensions, input and hardware remain provider-owned. The retained
 native qualification covers five reported sizes, real renderer/hit targets,
 keyboard, modal/repeated lifecycle and storage failures. Existing features,
