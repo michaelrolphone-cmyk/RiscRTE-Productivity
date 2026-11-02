@@ -89,8 +89,7 @@ def build(a):
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     candidates=[];layouts={}
     for label,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment']),
-                        ('ipa',['-fipa-pta']),('ipa-alignment',['-fipa-pta','-Wl,--sort-section=alignment']),
-                        ('inline',['-finline-functions']),('inline-alignment',['-finline-functions','-Wl,--sort-section=alignment'])]:
+                        ('size',['-Oz']),('size-alignment',['-Oz','-Wl,--sort-section=alignment'])]:
         path=a.output/'layout-candidates'/(label+'.elf')
         try:
             result=produce(path,flags)
