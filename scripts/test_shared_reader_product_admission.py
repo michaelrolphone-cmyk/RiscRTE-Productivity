@@ -6,6 +6,7 @@ Serial boot/private file preparation is excluded from this no-I/O fixture;
 the separately built full X4 firmware retains those enabled namespaces.
 """
 import argparse,pathlib,json,subprocess,hashlib,shlex,os,re
+from elf_runtime_equivalence import require_runtime_equal
 WATCH=pathlib.Path(__file__).resolve().parents[1]
 ROOT=pathlib.Path(os.environ['READER_SYSTEM']).resolve()
 p=argparse.ArgumentParser(description=__doc__)
@@ -80,6 +81,13 @@ if not args.prepare_only:
  for lane in templates:
   if args.lane and lane!=args.lane:continue
   product_pins[lane]={which:tree_pins(args.assembly/lane/which) for which in ('before','after','stored','after-sd')}
+  for storage,old_tree,new_tree in [('internal','before','after'),('sd','before-sd','after-sd')]:
+   for name,proof in assembly['products'][lane].get('metadata_only_compaction',{}).get(storage,{}).items():
+    original=(args.assembly/lane/old_tree/name).read_bytes();candidate=(args.assembly/lane/new_tree/name).read_bytes()
+    if hashlib.sha256(original).hexdigest()!=proof['original_sha256'] or hashlib.sha256(candidate).hexdigest()!=proof['candidate_sha256']:raise ValueError('Compaction byte identity differs')
+    if (args.assembly/proof['original_sidecar']).read_bytes()!=original:raise ValueError('Original ELF sidecar differs')
+    witness=require_runtime_equal(original,candidate)
+    if witness!=json.loads((args.assembly/proof['runtime_witness']).read_text()) or sha(args.assembly/proof['runtime_witness'])!=proof['runtime_witness_sha256']:raise ValueError('Independent runtime witness differs')
   binding['products'][lane]={'inventory_sha256':assembly['products'][lane]['inventory_sha256'],
     **{which.replace('-','_')+'_tree_sha256':canonical_digest(pins) for which,pins in product_pins[lane].items()}}
 
@@ -99,7 +107,9 @@ for lane,template in templates.items():
  vcmd=['cc','-std=c11',*(['-fsanitize=address,undefined','-fno-sanitize-recover=all'] if args.sanitize else []),'-I'+str(selected_runtime/'lib/elf_loader/include'),'-I'+str(selected_runtime/'test/native_bank_stubs'),'-c',str(vsrc),'-o',str(validator)]
  subprocess.run(vcmd,check=True);cmd.append(str(validator))
  vdeps=subprocess.check_output(vcmd[:vcmd.index('-c')]+['-MM',str(vsrc)],text=True);validator_dependencies=shlex.split(vdeps.replace('\\\n',' ').split(':',1)[1])
- sources=[x for x in cmd if x.endswith(('.c','.cpp'))];base=[];skip=False
+ compacted_sd=[] if args.prepare_only else list(assembly['products'][lane].get('metadata_only_compaction',{}).get('sd',{}))
+ sd_fixture=str(WATCH/'test/reader/compacted_sd.cpp')
+ sources=[x for x in cmd if x.endswith(('.c','.cpp'))]+([sd_fixture] if compacted_sd else []);base=[];skip=False
  for x in cmd[1:]:
   if skip:skip=False;continue
   if x=='-o':skip=True;continue
@@ -122,6 +132,10 @@ for lane,template in templates.items():
  q=subprocess.run(cmd,capture_output=True);(args.output/(lane+'-compile.log')).write_bytes(q.stdout+q.stderr)
  if q.returncode:
   print((q.stdout+q.stderr).decode(errors='replace'),flush=True);raise RuntimeError(lane+' compile failed; see retained log')
+ if compacted_sd:
+  sd_binary=args.output/(lane+'-compacted-sd')
+  subprocess.run([cmd[0],*base,sd_fixture,str(validator),'-o',str(sd_binary)],check=True)
+  subprocess.run([str(sd_binary),*[str(args.assembly/lane/'after-sd'/name) for name in compacted_sd]],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
  rows=[]
  for which in (() if args.prepare_only else ('after',)):
   argv=[str(args.output/lane),str(args.assembly/lane/'before'),str(args.assembly/lane/'stored')]
@@ -131,6 +145,7 @@ for lane,template in templates.items():
   if q.returncode:
    print(q.stdout+q.stderr,flush=True);raise RuntimeError(lane+' '+which+' preparation failed, exit='+str(q.returncode))
   result=json.loads(q.stdout)
+  result['metadata_compacted_sd_elf_count']=len(compacted_sd)
   if lane in ('wave','x4') and not result.get('sd_elf_validated'):raise RuntimeError('Actual Wave SD application ELF not admitted')
   if lane=='x4' and not result.get('reader_catalog_admitted'):raise RuntimeError('Reader catalog reservation was not natively discovered/admitted')
   encoding=assembly['products'][lane].get('image_storage')

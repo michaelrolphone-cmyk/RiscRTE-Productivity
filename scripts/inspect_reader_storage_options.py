@@ -3,6 +3,7 @@
 import argparse,ctypes,hashlib,json,os,subprocess,sys,tempfile
 from pathlib import Path
 from elftools.elf.elffile import ELFFile
+from elf_runtime_equivalence import require_runtime_equal
 p=argparse.ArgumentParser()
 for n in ('system','baseline','bootfs-tools','output'):p.add_argument('--'+n,type=Path,required=True)
 a=p.parse_args()
@@ -34,6 +35,10 @@ with tempfile.TemporaryDirectory() as td:
   symbols=subprocess.check_output([nm,'-D',str(path)])
   subprocess.run([strip,'--strip-unneeded','--remove-section=.xt.prop','--remove-section=.xt.lit','--remove-section=.xt.insn','--remove-section=.comment',str(path)],check=True)
   after=path.read_bytes()
+  witness=require_runtime_equal(data,after)
+  derivatives=a.output.parent/'metadata-options';derivatives.mkdir(exist_ok=True)
+  (derivatives/(hashlib.sha256(data).hexdigest()+'.elf')).write_bytes(after)
+  (derivatives/(hashlib.sha256(data).hexdigest()+'.json')).write_text(json.dumps(witness,sort_keys=True)+chr(10))
   assert protected(path)==before and subprocess.check_output([nm,'-D',str(path)])==symbols
   results.append({'id':manifest['id'],'path':name,'before_bytes':len(data),'after_bytes':len(after),'before_lz4':compressed(data),'after_lz4':compressed(after),'saving_lz4':compressed(data)-compressed(after),'runtime_sections_dynamic_symbols_unchanged':True,'before_sha256':hashlib.sha256(data).hexdigest(),'after_sha256':hashlib.sha256(after).hexdigest()})
 a.output.parent.mkdir(parents=True,exist_ok=True)

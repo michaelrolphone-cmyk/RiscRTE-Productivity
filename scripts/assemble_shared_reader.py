@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reader-only overlay of published Home/Contexts. Existing USB is byte-preserved."""
+"""Shared Reader overlay; explicit runtime-invariant metadata compaction preserves capacity."""
 import argparse,copy,json,sys,zipfile,ctypes,zlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -28,6 +28,7 @@ def encode_image(raw):
  return encoded
 from current_bootfs import build
 from read_only_spiffs import read_image
+from elf_runtime_equivalence import require_runtime_equal
 lock=json.loads((ROOT/'reader/shared-baseline.json').read_text())
 for asset in lock['assets']:
  raw=(a.baseline/asset['name']).read_bytes()
@@ -40,6 +41,30 @@ assert json.loads(manifest)['version']=='0.2.0'
 assert proof['exports']==sorted(['app_main','app_module_init','app_module_fini','risc_resident_app_descriptor_v1'])
 assert common['requires']==[{'capability':'ui.scene','api':1}]
 assert not a.output.exists();a.output.mkdir(parents=True)
+# Exact original ELF sidecars and loader-visible proofs replace byte-identity
+# only for explicitly listed non-runtime metadata compactions. The deterministic
+# old-hash -> new-hash map is applied to EVERY product occurrence, preserving
+# already-converged application identities across all three deployments.
+options=json.loads((a.baseline/'metadata-options.json').read_text())
+watch_raw=(a.baseline/'product-watch-store.bin').read_bytes()
+watch_before=decode_store(read_image(watch_raw,len(watch_raw)))
+compactions={}
+sidecars=a.output/'metadata-sidecars';sidecars.mkdir()
+for option in options['apps']:
+ if option['saving_lz4']<=0:continue
+ original=watch_before[option['path']]
+ old=digest(original);assert old==option['before_sha256']
+ candidate=(a.baseline/'metadata-options'/(old+'.elf')).read_bytes()
+ assert digest(candidate)==option['after_sha256'] and len(candidate)==option['after_bytes']
+ witness=require_runtime_equal(original,candidate)
+ assert witness==json.loads((a.baseline/'metadata-options'/(old+'.json')).read_text())
+ (sidecars/(old+'.elf')).write_bytes(original)
+ (sidecars/(old+'.json')).write_bytes(encode(witness))
+ compactions[old]={'candidate':candidate,'proof':{'original_sha256':old,'candidate_sha256':digest(candidate),
+  'original_sidecar':'metadata-sidecars/'+old+'.elf','runtime_witness':'metadata-sidecars/'+old+'.json',
+  'runtime_witness_sha256':digest(encode(witness)),'watch_id':option['id']}}
+assert compactions
+identity_outputs={}
 results={}
 for lane in ('x4','wave','watch'):
  raw=(a.baseline/f'product-{lane}-store.bin').read_bytes()
@@ -98,8 +123,28 @@ for lane in ('x4','wave','watch'):
    if name in sd:assert sd[name]==data,'Existing font asset differs: '+name
    after_sd[name]=data
  else:out['ebook_reader.elf']=elf;packed['ebook_reader.elf']=elf
- allowed={'boot.json','ebook_reader.json'}|({'ebook_reader.elf'} if lane=='watch' else set())
- allowed_sd={'Apps/ebook-reader/ebook_reader.elf','Apps/ebook-reader/manifest.json'}
+ metadata_internal={};metadata_sd={}
+ driver_images={safe(str(Path(r['manifest']).parent/json.loads(out[r['manifest']])['file_name'])) for r in boot.get('drivers',[])}
+ for name,data in list(out.items()):
+  match=compactions.get(digest(data))
+  if not match:continue
+  assert name not in driver_images,'Provider alias cannot be compacted'
+  assert name!='ebook_reader.elf'
+  require_runtime_equal(data,match['candidate'])
+  out[name]=match['candidate'];metadata_internal[name]=match['proof']
+  packed[name]=encode_image(out[name]) if stored[name].startswith(MAGIC) else out[name]
+ for name,data in list(after_sd.items()):
+  match=compactions.get(digest(data))
+  if not match:continue
+  assert not ('usb' in name.lower()),'Published USB remains exact'
+  require_runtime_equal(data,match['candidate'])
+  after_sd[name]=match['candidate'];metadata_sd[name]=match['proof']
+ for original,current in ((before,out),(sd,after_sd)):
+  for name,data in original.items():
+   if data.startswith(bytes([127])+b'ELF') and name not in ('ebook_reader.elf','Apps/ebook-reader/ebook_reader.elf'):
+    identity_outputs.setdefault(digest(data),set()).add(digest(current[name]))
+ allowed={'boot.json','ebook_reader.json'}|({'ebook_reader.elf'} if lane=='watch' else set())|set(metadata_internal)
+ allowed_sd={'Apps/ebook-reader/ebook_reader.elf','Apps/ebook-reader/manifest.json'}|set(metadata_sd)
  assert not(set(before)-set(out)) and not(set(sd)-set(after_sd))
  assert all(out[n]==b for n,b in before.items() if n not in allowed)
  assert all(packed[n]==b for n,b in stored.items() if n not in allowed)
@@ -155,9 +200,10 @@ for lane in ('x4','wave','watch'):
   'image_storage':encoding,'changed_internal':[n for n in sorted(out) if out[n]!=before.get(n)],
   'changed_stored':[n for n in sorted(packed) if packed[n]!=stored.get(n)],
   'changed_sd':[n for n in sorted(after_sd) if after_sd[n]!=sd.get(n)],
-  'unrelated_canonical_bytes_preserved':True,'unrelated_stored_bytes_preserved':not bool(representation_changes),
+  'unrelated_canonical_bytes_preserved':not bool(metadata_internal),'unrelated_stored_bytes_preserved':not bool(representation_changes or metadata_internal),
+  'metadata_only_compaction':{'internal':metadata_internal,'sd':metadata_sd},'all_unrelated_runtime_sections_and_data_preserved':True,
   'ordinary_application_representation_changes':representation_changes,
-  'unrelated_sd_bytes_preserved':True,'provider_and_saved_data_ownership_preserved':True,
+  'unrelated_sd_bytes_preserved':not bool(metadata_sd),'unrelated_non_executable_data_bytes_preserved':True,'provider_and_saved_data_ownership_preserved':True,
   'installed_policy':row,'resident_policy':boot.get('resident_shell')}
  result.update(pack_candidate(path,packed,after_sd,len(raw),build,read_image))
  results[lane]=result
@@ -165,6 +211,8 @@ for lane in ('x4','wave','watch'):
  # This partial receipt is never publishable (packed remains false).
  (a.output/'assembly.json').write_bytes(encode({'schema':1,'products':results,'packed':False,'shared_elf_sha256':digest(elf),'baseline_tag':lock['tag'],'physical_testing':False,'usb_candidate_included':False}))
  print('READER PRODUCT '+lane+' '+json.dumps(result),flush=True)
+assert all(len(outputs)==1 for outputs in identity_outputs.values()),'Previously identical application ELF diverged across products'
 (a.output/'assembly.json').write_bytes(encode({'schema':1,'products':results,'packed':True,
+ 'previously_identical_application_images_remain_identical':True,'metadata_only_compaction_proofs':{old:item['proof'] for old,item in compactions.items()},
  'shared_elf_sha256':digest(elf),'baseline_tag':lock['tag'],'physical_testing':False,
- 'usb_candidate_included':False,'scope':'Reader only; all published Home, Contexts, Bringup and existing USB canonical bytes unchanged'}))
+ 'usb_candidate_included':False,'scope':'Complete shared Reader; unrelated executable runtime bytes and all provider/data bytes preserved. Explicit non-runtime metadata compaction has original ELF sidecars and exact loader-visible proofs, applied consistently across all product occurrences. Existing USB unchanged.'}))
