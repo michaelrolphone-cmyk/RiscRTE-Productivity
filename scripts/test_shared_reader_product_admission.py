@@ -87,6 +87,7 @@ for lane,template in templates.items():
  if args.lane and lane!=args.lane:continue
  cmd=[x.format(runtime=args.runtime,x4_runtime=args.x4_runtime,fixtures=fixtures,output=args.output) for x in template]
  if lane=='x4':cmd=[str(WATCH/'test/reader/product_x4.cpp') if x==str(fixtures/'x4.cpp') else x for x in cmd]
+ if lane=='x4':cmd=[str(WATCH/'test/reader/product_catalog.cpp') if x==str(args.x4_runtime/'src/bootstrap/Runtime.cpp') else x for x in cmd]
  if args.reader and lane=='wave':cmd=[str(fixtures/'usb_wave.cpp') if x==str(fixtures/'wave.cpp') else x for x in cmd]
  cmd[1:1]=['-I'+str(fixtures),'-DSTORE_ADMISSION_COHORT','-Wno-misleading-indentation']
  if lane!='x4':cmd[1:1]=['-DSTORE_ADMISSION_ENCODED_IMAGES']
@@ -131,6 +132,7 @@ for lane,template in templates.items():
    print(q.stdout+q.stderr,flush=True);raise RuntimeError(lane+' '+which+' preparation failed, exit='+str(q.returncode))
   result=json.loads(q.stdout)
   if lane in ('wave','x4') and not result.get('sd_elf_validated'):raise RuntimeError('Actual Wave SD application ELF not admitted')
+  if lane=='x4' and not result.get('reader_catalog_admitted'):raise RuntimeError('Reader catalog reservation was not natively discovered/admitted')
   encoding=assembly['products'][lane].get('image_storage')
   expected_encoded=len(encoding['images']) if encoding else 0
   if result.get('encoded_image_count',0)!=expected_encoded:raise RuntimeError('Actual stored envelope read count differs '+lane)

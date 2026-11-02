@@ -246,6 +246,7 @@ static bool bindRetainedSd(RiscBoot::Runtime& runtime) {
     admission->namespaces[0].files==&S::sdFiles() &&
     !S::sdFiles().bound() && !S::sdFiles().retained();
 }
+extern "C" bool reader_test_catalog_admit(RiscBoot::Runtime*,const char*);
 int main(int argc, char** argv) {
 #ifdef STORE_ADMISSION_COHORT
   if (argc != 4) return 2;
@@ -348,7 +349,12 @@ int main(int argc, char** argv) {
   const bool readerSdValidated=validated && CohortElf::admitElf(bytes.data(),bytes.size());
   if(!readerSdValidated || bytes.empty())return 5;
   bytes[0]=0;if(CohortElf::admitElf(bytes.data(),bytes.size()))return 6;
+  const std::string imagePath(argv[3]);
+  std::ifstream manifestInput(imagePath.substr(0,imagePath.find_last_of('/')+1)+"manifest.json",std::ios::binary);
+  const std::string manifest(std::istreambuf_iterator<char>(manifestInput),{});
+  if(manifest.empty() || !reader_test_catalog_admit(&candidate,manifest.c_str()))return 8;
   printPlatformReceipt(validated?candidate:runtime);
+  printf("\"reader_catalog_admitted\":true,");
   printf("\"sd_elf_validated\":true,");
   printf("\"retained_sd_serial_graph_bound\":%s,\"prepared\":%s,\"cohort_validated\":%s,\"error\":\"%s\",\"hardware_calls\":%u,\"storage_calls\":%u,\"elf_count\":%u,\"cooperative_yields\":%u}\n",
          retainedSdGraphBound?"true":"false",prepared?"true":"false",validated?"true":"false",prepared?candidate.error():runtime.error(),hardwareCalls,storageCalls,admitted,cooperativeYields);

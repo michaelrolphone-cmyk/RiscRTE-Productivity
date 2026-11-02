@@ -35,5 +35,6 @@
       "capability": "file.open",
       "api": 1
     }
-  ]
+  ],
+  "runtime_lifecycle": "foreground"
 }
