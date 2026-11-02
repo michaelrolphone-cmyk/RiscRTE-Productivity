@@ -54,6 +54,8 @@ jobs:
           sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime','Drivers','CrossPoint','png','jpeg']}
           Path('evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
           PY
+      - name: Measure all eleven unchanged hyphenation tables
+        run: python3 Productivity/scripts/inspect_reader_trie_storage.py --upstream CrossPoint
       - name: Test engine, retained lifecycle, GUI and production FatFs
         run: |
           set -euo pipefail
