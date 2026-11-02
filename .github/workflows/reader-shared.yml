@@ -195,7 +195,8 @@ jobs:
       - name: Reader-only overlay and cumulative fixed geometry products
         run: |
           set -euo pipefail
-          python3 Productivity/scripts/assemble_shared_reader.py --system System --baseline incoming/baseline --application incoming/application/build/target/ebook-reader --bootfs-tools Bootfs/scripts --output closure/assembly
+          mkdir -p closure/qualification
+          python3 Productivity/scripts/assemble_shared_reader.py --system System --baseline incoming/baseline --application incoming/application/build/target/ebook-reader --bootfs-tools Bootfs/scripts --output closure/assembly 2>&1 | tee closure/qualification/assembly.log
           mkdir -p closure/application closure/source closure/baseline closure/qualification
           cp -a incoming/application/build/target/ebook-reader/. closure/application/
           cp Productivity/reader/shared-baseline.json closure/baseline/
