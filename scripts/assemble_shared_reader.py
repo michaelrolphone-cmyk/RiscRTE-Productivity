@@ -132,7 +132,17 @@ for lane in ('watch','wave','x4'):
    for _,name,encoded in sorted(choices):
     packed[name]=encoded;representation_changes.append(name)
     if fit():break
-   else:raise ValueError('Ordinary application encoding cannot preserve SPIFFS reserve: '+json.dumps({'store_bytes':len(raw),'canonical_reader_bytes':len(elf),'stored_reader_bytes':len(packed['ebook_reader.elf']),'stored_file_bytes':sum(map(len,packed.values())),'representations':representation_changes}))
+   else:
+    # Capacity diagnostic only, never a delivered image. Measure exact room for
+    # this member using the same pinned builder, then restore the real bytes.
+    saved=packed['ebook_reader.elf'];lo,hi=0,len(saved)
+    while lo<hi:
+     mid=(lo+hi+1)//2;packed['ebook_reader.elf']=bytes(mid)
+     if fit():lo=mid
+     else:hi=mid-1
+    packed['ebook_reader.elf']=saved
+    raise ValueError('Ordinary application encoding cannot preserve SPIFFS reserve: '+json.dumps({'store_bytes':len(raw),'canonical_reader_bytes':len(elf),'stored_reader_bytes':len(saved),'maximum_reader_member_bytes':lo,'shortfall_bytes':len(saved)-lo,'stored_file_bytes':sum(map(len,packed.values())),'representations':representation_changes}))
+
  assert all(packed[n]==data for n,data in stored.items() if n not in allowed and n not in representation_changes)
  assert decode_store(packed)==out
  encoding=storage_record(out,packed)
