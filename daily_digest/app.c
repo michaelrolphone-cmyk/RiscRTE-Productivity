@@ -169,9 +169,22 @@ static bool release_to(unsigned count) {
         if (index == 4) a.wifi = NULL;
         if (index == 3) a.clock = NULL;
         if (index == 2) { a.fs = NULL; a.volume = NULL; }
+        if (index == 1) a.files = NULL;
         if (!a.rt->release(&a.grants[index])) { retain("Daily Paper: service release failed; restart required"); return false; }
     }
     return runtime_alive();
+}
+static bool reader_service(void) {
+    if (a.files) return true;
+    if (!acquire(1, "file.open", 0)) return false;
+    const t5_file_open_api_v1 *files = a.grants[1].api;
+    if (!files || files->api_version != 1 || files->struct_size < sizeof(*files) ||
+        !files->open_request || !files->open_take_result) {
+        if (!release_to(1)) return false;
+        return failure("READER SERVICE UNAVAILABLE", "Install a compatible file-open provider, then retry.");
+    }
+    a.files = files;
+    return true;
 }
 static bool close_http(void) {
     if (!a.transfer) return alive();
@@ -221,7 +234,7 @@ static bool dependencies(void) {
     a.volume = risc_storage_volume_extension(volume); a.fs = risc_storage_volume_fs(volume);
     if (!a.volume || !a.fs || !volume->refresh || !volume->ready || !volume->file_open_write ||
         !volume->file_write || !volume->file_close || !volume->remove || !a.volume->file_sync || !a.volume->mkdir || !a.volume->handle_error)
-        return failure("SD SERVICE UNAVAILABLE", "Install the current X4 storage provider.");
+        return failure("SD SERVICE UNAVAILABLE", "Install a compatible storage provider.");
     if (!volume->refresh(volume->context) || !alive() || !volume->ready(volume->context)) return storage_failure("SD CARD UNAVAILABLE");
     if (!directory("/Books") || !directory(DAILY_DIRECTORY)) return false;
     if (!acquire(3, "runtime.realtime", 0)) return false;
@@ -386,23 +399,21 @@ __attribute__((visibility("default"))) void app_main(void) {
     if (!a.ui || !a.ui->lifecycle.configure || !a.scene->next || !a.scene->close || !a.scene->snapshot) {
         failure("UI UNAVAILABLE", "Current NOVA scene components are required."); release_to(0); return;
     }
-    if (!acquire(1, "file.open", 0)) { release_to(0); return; }
-    a.files = a.grants[1].api;
-    if (!a.files || a.files->api_version != 1 || a.files->struct_size < sizeof(*a.files) ||
-        !a.files->open_request || !a.files->open_take_result) { release_to(0); return; }
+    bool reader_ready = reader_service();
     int32_t reader_error = 0; uint64_t cookie = 0;
-    bool returned = a.files->open_take_result(&reader_error, &cookie);
+    bool returned = reader_ready && a.files->open_take_result(&reader_error, &cookie);
     if (!runtime_alive()) return;
     /* The loader relaunches a file-open caller after Reader returns. Consume
      * that result once; never download/reopen in a loop on normal Reader exit. */
     if (returned && cookie == READER_COOKIE && !reader_error) { release_to(0); return; }
     if (!risc_scene_resident_bind_v1(a.rt, &a.resident)) { retain("Daily Paper: resident binding failed"); return; }
-    status("STARTING", "Preparing the latest newspaper.");
+    if (reader_ready) status("STARTING", "Preparing the latest newspaper.");
     if (!open_scene()) { if (close_scene()) release_to(0); return; }
     bool first = true;
     while (alive() && !a.done) {
         bool success;
-        if (first && returned && cookie == READER_COOKIE && reader_error) {
+        if (!reader_service()) success = false;
+        else if (first && returned && cookie == READER_COOKIE && reader_error) {
             char text[72]; snprintf(text, sizeof(text), "Reader could not open the paper (error %d).", (int)reader_error);
             success = failure("READER OPEN FAILED", text);
         } else success = download();

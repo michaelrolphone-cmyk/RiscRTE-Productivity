@@ -1,0 +1,215 @@
+name: Shared Daily Paper ELF
+on:
+  pull_request:
+    paths: ['daily_digest/**', 'Apps/daily_digest.json', 'scripts/*daily*', 'docs/shared-daily/**', '.github/workflows/shared-daily.yml']
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 536e01a36461d2e66bdfa735186c1d02267b3fb7
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 8ddd9bcf751cecfcf74a67c50c809b87ec75fcc3
+          path: System
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exercise download, failures, storage and Reader handoff
+        run: |
+          set -euo pipefail
+          mkdir evidence
+          python Productivity/daily_digest/test_shared_contract.py
+          python Productivity/daily_digest/test.py --runtime Runtime --system System 2>&1 | tee evidence/tests.log
+          python Productivity/daily_digest/test.py --runtime Runtime --system System --sanitize 2>&1 | tee evidence/sanitizers.log
+      - name: Compile ESP32-S3 app and provider
+        run: |
+          set -euo pipefail
+          python -m pip install platformio==6.1.19
+          pio pkg install --global --tool 'espressif/toolchain-xtensa-esp32s3@8.4.0+2021r2-patch5'
+          python Productivity/daily_digest/build.py --runtime Runtime --system System --output build 2>&1 | tee evidence/target.log
+      - name: Independent repeat is byte-identical
+        run: |
+          python Productivity/daily_digest/build.py --runtime Runtime --system System --output repeat
+          cmp build/daily-digest/daily_digest.elf repeat/daily-digest/daily_digest.elf
+          cmp build/daily-digest/daily_digest.json repeat/daily-digest/daily_digest.json
+      - name: Package SD app separately from firmware integration provider
+        run: |
+          mkdir -p package/Apps/daily-digest package/firmware-integration/net-http-client
+          cp build/daily-digest/daily_digest.elf package/Apps/daily-digest/
+          cp build/daily-digest/daily_digest.json package/Apps/daily-digest/manifest.json
+          cp build/net-http-client/driver.elf build/net-http-client/manifest.json package/firmware-integration/net-http-client/
+          cp build/daily-digest/daily_digest.json package/firmware-integration/
+          cp Productivity/daily_digest/README.md package/README.md
+          cp -r evidence package/
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          sources={n:subprocess.check_output(['git','-C',n,'rev-parse','HEAD'],text=True).strip() for n in ['Productivity','System','Runtime']}
+          Path('package/evidence/sources.json').write_text(json.dumps(sources,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shared-daily-application-${{ github.event.pull_request.head.sha }}
+          path: |
+            package/
+            build/daily-digest/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-daily-evidence-${{ github.event.pull_request.head.sha }}
+          path: |
+            evidence/
+            build/**/*.json
+            build/**/*.su
+          retention-days: 14
+
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - name: Exact published baseline download and inventory
+        run: |
+          set -euo pipefail
+          mkdir -p incoming/baseline evidence
+          python3 - <<'PY'
+          import hashlib,json,urllib.request
+          from pathlib import Path
+          lock=json.loads(Path('docs/shared-daily/baseline.json').read_text())
+          for item in lock['assets']:
+              with urllib.request.urlopen(item['url'],timeout=180) as response: data=response.read()
+              assert len(data)==item['bytes'] and hashlib.sha256(data).hexdigest()==item['sha256']
+              Path('incoming/baseline',item['name']).write_bytes(data)
+          PY
+          python3 scripts/inspect_shared_daily_baseline.py --system System --baseline incoming/baseline --bootfs-tools Bootfs/scripts --output evidence/baseline-inventory.json | tee evidence/baseline.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-daily-baseline-${{ github.event.pull_request.head.sha }}
+          path: |
+            incoming/baseline/
+            evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  product-assembly:
+    needs: [app, baseline]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 712ecc3f894dba99d9c9638941778a82f5856b97
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 0052d1fc42e9cfc82d626c5a247d460919c87935
+          path: X4Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: c69d7914935fccdc04749f7bfa429c74219bf88a
+          path: WatchProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Wavshare-S3-Touch-AMOLED-2.06
+          ref: 97ca6157aa9c3bba7c7fee3858aa7d0ff896d13b
+          path: WaveProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-XTEINK-X4-PRO
+          ref: e361e73de14314bb4b8d2fb3a24eb81e2390b0ee
+          path: X4Product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: shared-daily-application-${{ github.event.pull_request.head.sha }}
+          path: incoming/application
+      - uses: actions/download-artifact@v4
+        with:
+          name: shared-daily-baseline-${{ github.event.pull_request.head.sha }}
+          path: incoming/baseline-artifact
+      - name: Overlay invariants and cumulative fixed geometry products
+        run: |
+          set -euo pipefail
+          python3 Productivity/scripts/assemble_shared_daily.py --system System --baseline incoming/baseline-artifact/incoming/baseline --application incoming/application/build/daily-digest --bootfs-tools Bootfs/scripts --plan Productivity/docs/shared-daily/plan.json --output closure/assembly
+          mkdir -p closure/application closure/source closure/baseline closure/qualification
+          cp incoming/application/build/daily-digest/{daily_digest.elf,daily_digest.json,build.json} closure/application/
+          cp Productivity/docs/shared-daily/{baseline.json,plan.json} closure/baseline/
+          cp incoming/baseline-artifact/evidence/baseline-inventory.json closure/baseline/
+          cp -a incoming/application/package/evidence/. closure/qualification/
+          for repo in Productivity System Runtime X4Runtime WatchProduct WaveProduct X4Product Bootfs; do
+            git -C "$repo" archive HEAD | gzip -n > "closure/source/$repo.tar.gz"
+            git -C "$repo" rev-parse HEAD > "closure/source/$repo.head"
+          done
+      - name: Actual stored-byte Runtime admission, normal and sanitizers
+        run: |
+          set -euo pipefail
+          for mode in normal sanitized; do
+            flags=(); if [ "$mode" = sanitized ]; then flags+=(--sanitize); fi
+            DAILY_SYSTEM="$PWD/System" python3 Productivity/scripts/test_shared_daily_product_admission.py --runtime Runtime --x4-runtime X4Runtime --watch-product WatchProduct --wave-product WaveProduct --x4-product X4Product --assembly closure/assembly --output "closure/admission/$mode" "${flags[@]}"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-daily-qualified-products-${{ github.event.pull_request.head.sha }}
+          path: closure/
+          include-hidden-files: true
+          if-no-files-found: error

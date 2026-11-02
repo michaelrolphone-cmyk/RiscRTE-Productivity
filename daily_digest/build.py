@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build the Daily Paper ELF and its small HTTPS capability provider."""
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -53,7 +54,8 @@ def target(compiler, include, system, output, manifest, sources, exports):
     name = 'daily_digest.json' if manifest['type'] == 'application' else 'manifest.json'
     (output/name).write_text(json.dumps(manifest, indent=2)+'\n')
     (output/'build.json').write_text(json.dumps({'id': manifest['id'], 'version': manifest['version'],
-        'bytes': len(content), 'imports': sorted(imports), 'exports': sorted(found), 'hardware_tested': False}, indent=2)+'\n')
+        'bytes': len(content), 'sha256': hashlib.sha256(content).hexdigest(),
+        'manifest_sha256': hashlib.sha256((output/name).read_bytes()).hexdigest(), 'imports': sorted(imports), 'exports': sorted(found), 'hardware_tested': False}, indent=2)+'\n')
     mapping.unlink()
     for obj in objects: obj.unlink()
     print(f'{manifest["id"]}: {len(content)} bytes; imports/exports and stack-frame budget passed')

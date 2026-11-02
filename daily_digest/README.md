@@ -1,4 +1,4 @@
-# Daily Paper for X4
+# Daily Paper — shared application ELF
 
 Open Daily Paper. It connects using the existing saved Wi-Fi network, downloads the latest issue from `michaelrolphone-cmyk/Daily-Digest-Epub`, saves `/Books/Daily Digest/YYYY-MM-DD.epub`, and opens that file in the installed `ebook-reader` app. The date comes from the published edition, not the device's local date. Older days remain on the card. Running it again replaces only the same day's file after the new download has finished.
 
@@ -10,7 +10,9 @@ Downloads use a hidden `.YYYY-MM-DD.part` file, checked file close, and the exis
 
 The target artifact separates `Apps/` (copy to SD) from `firmware-integration/` (internal build inputs, NOT an SD install). The app path is `Apps/daily-digest/daily_digest.elf`.
 
-**Current X4 0.1.73–0.1.76 still registers new app identities, grants and launcher entries inside firmware. Copying this ELF alone onto an unchanged build cannot register Daily Paper.** The firmware needs its app manifest/policy, launcher entry and the small `net-http-client` provider included once. This provider forwards the already-existing bounded native HTTPS interface; it contains no newspaper-specific logic or TLS bypass. Existing Reader, fonts, saved books, display driver and state remain unchanged.
+The shared application requires only the scene presentation service. File-open, storage, realtime, Wi-Fi, saved-network storage and HTTPS are optional capability contracts: missing services produce an explicit retryable error without starting network transfers. Without scene presentation, the runtime diagnostic reports the missing service and no work starts. No device identity or fixed-resolution layout branch exists in the application; the installed scene provider owns dimensions and hardware presentation.
+
+Products must register the application manifest and grant only their existing compatible providers. Copying an ELF alone cannot add firmware policy or missing hardware. The net-http-client provider remains a separate integration input; this convergence does not replace any published provider, Reader, fonts, books or saved state. It does not imply every product supports downloading or Reader handoff.
 
 The Reader handoff uses `file.open@1`, with an absolute `/sd/Books/Daily Digest/YYYY-MM-DD.epub` source and `ebook-reader` handler. When Reader returns, the downloader consumes its completion result and exits instead of redownloading in a loop.
 

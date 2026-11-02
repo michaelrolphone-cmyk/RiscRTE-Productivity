@@ -28,7 +28,8 @@ static struct Fake {
  std::map<std::string,Bytes> files,credentials;
  std::set<std::string> dirs;
  std::set<unsigned> grants;
- std::string date="2026-10-10",meta,payload,writing,source;
+ std::string date="2026-10-10",meta,payload,writing,source,missing;
+ bool bad_reader_api=false,restore_missing=false;
  std::vector<std::string> errors,diagnostics,headings;
  risc_components_document_v1 doc{};
  uint32_t ms=0; unsigned yields=0,releases=0,opens=0,downloads=0,gets=0,reads=0,updates=0,connections=0,disconnects=0;
@@ -57,9 +58,9 @@ static void initialize(){
  rt.diagnostic=[](const char*s){live();f.diagnostics.emplace_back(s);return true;};
  rt.retain_invocation=[](){live();f.terminal=true;return true;};
  rt.acquire=[](const char*cap,uint32_t ver,uint64_t instance,risc_runtime_capability_v1 *out){
-  live();assert(ver==1);unsigned slot=0;const void *api=nullptr;
+  live();assert(ver==1);if(f.missing==cap)return false;unsigned slot=0;const void *api=nullptr;
   if(!strcmp(cap,"ui.scene")){slot=1;api=&ui;}
-  else if(!strcmp(cap,"file.open")){slot=2;api=&files_api;}
+  else if(!strcmp(cap,"file.open")){slot=2;api=f.bad_reader_api?nullptr:&files_api;}
   else if(!strcmp(cap,"storage.volume")){slot=3;api=&fs;}
   else if(!strcmp(cap,"runtime.realtime")){slot=4;api=&clock_api;}
   else if(!strcmp(cap,"net.wifi")){slot=5;api=&wifi;}
@@ -78,7 +79,7 @@ static void initialize(){
  sb.snapshot=[](void*,uint64_t,risc_scene_navigation_v1*,uint32_t*flags)->int32_t{live();*flags=0;return 0;};
  sb.next=[](void*,uint64_t,risc_scene_event_v1 *e)->int32_t{
   live();assert(f.scene);unsigned action=0;
-  if(f.doc.nodes[0].kind==RISC_COMPONENT_EMPTY){action=f.retry?2:1;if(f.retry){f.retry=false;f.http404=false;f.httpfail=false;}}
+  if(f.doc.nodes[0].kind==RISC_COMPONENT_EMPTY){action=f.retry?2:1;if(f.retry){f.retry=false;f.http404=false;f.httpfail=false;if(f.restore_missing){f.missing.clear();f.bad_reader_api=false;}}}
   else if(f.cancel&&f.downloads&&f.cursor>512)action=1;
   if(!action)return RISC_SCENE_IDLE;
   e->kind=RISC_SCENE_ACTION_EVENT;e->action=action;e->document_revision=f.doc.revision;e->sequence=uint64_t(f.yields)+100;
@@ -170,5 +171,12 @@ int main(){
  reset();f.fail_reader=true;app_main();done("Reader missing leaves paper saved",false);assert(f.files.at(dest())==book());
  reset();f.link=WIFI_LINK_DOWN;portable_wifi_credentials saved{};strcpy(saved.ssid,"Saved Network");strcpy(saved.password,"password123");assert(portable_wifi_credentials_save(&kv,&saved)==0);app_main();done("saved Wi-Fi connection and checked cleanup",true);assert(f.connections==1&&f.disconnects==1);
  reset();f.link=WIFI_LINK_DOWN;app_main();done("no saved Wi-Fi error",false);assert(!f.connections&&!f.gets);
+ for(const char *cap:{"file.open","storage.volume","runtime.realtime","net.wifi","storage.key-value","net.http-client"}){
+  reset();f.missing=cap;app_main();done(cap,false);assert(!f.gets&&!partials());assert(f.errors.back().find(cap)!=std::string::npos);
+  reset();f.missing=cap;f.retry=true;f.restore_missing=true;app_main();done("retry restored capability",true);
+ }
+ reset();f.bad_reader_api=true;app_main();done("invalid Reader API is visible",false);assert(!f.gets);
+ reset();f.bad_reader_api=true;f.retry=true;f.restore_missing=true;app_main();done("retry restored Reader API",true);
+ reset();f.missing="ui.scene";app_main();assert(f.grants.empty()&&!f.scene&&!f.gets&&!f.diagnostics.empty());puts("PASS absent UI diagnosed without side effects");++passed;
  printf("%u actual-app/metadata scenarios passed.\n",passed);
 }
