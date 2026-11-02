@@ -71,20 +71,10 @@ def build(a):
         return receipt
     # Layout-only alternatives preserve the complete code/data and ABI. Select
     # deterministically by the actual existing LZ4 storage codec, not raw size.
-    import ctypes
-    lib=ctypes.CDLL('liblz4.so.1')
-    lib.LZ4_versionNumber.restype=ctypes.c_int
-    assert lib.LZ4_versionNumber()==10904
-    lib.LZ4_compressBound.argtypes=[ctypes.c_int];lib.LZ4_compressBound.restype=ctypes.c_int
-    lib.LZ4_compress_HC.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int];lib.LZ4_compress_HC.restype=ctypes.c_int
+    from reader_lz4_encoder import Encoder
+    encoder=Encoder()
     def storage_size(path):
-        data=path.read_bytes();source=ctypes.create_string_buffer(data);bound=lib.LZ4_compressBound(len(data));target=ctypes.create_string_buffer(bound)
-        sizes=[]
-        for level in range(3,13):
-            result=lib.LZ4_compress_HC(source,target,len(data),bound,level)
-            assert result>0
-            sizes.append(result)
-        return min(sizes)
+        return len(encoder.compress(path.read_bytes()))
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),
                     '-I' + str(a.runtime / 'lib/elf_loader/include'),
@@ -106,7 +96,7 @@ def build(a):
         print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
     _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
     shutil.copyfile(path,elf)
-    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4 levels3–12 size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
+    receipt['layout_selection']={'method':'Minimum measured standard LZ4HC block size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
     shutil.copyfile(ROOT / 'Apps/ebook_reader.json', package / 'ebook_reader.json')
     # Upstream streamed fonts preserve all styles without mapping every size
     # into the ELF. These assets are copied to the user's SD card separately.
@@ -129,8 +119,8 @@ def build(a):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, target)
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
-    receipt.update({'font_sharing': json.loads((staged / 'font-sharing.json').read_text()),
-                    'optimization': 'Support-unit LTO and no small-function inlining; historically stack-budgeted ReaderApp/ReaderEngine remain direct target objects',
+    receipt.update({'encoder': encoder.receipt(), 'font_sharing': json.loads((staged / 'font-sharing.json').read_text()),
+                    'optimization': 'Support-unit LTO; historically stack-budgeted ReaderApp/ReaderEngine remain direct target objects',
                     'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':stack_frames,
                     'native_admission': 'requires matching native candidate verification',
                     'asset_sha256': {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((package / 'sd').rglob('*')) if p.is_file()},

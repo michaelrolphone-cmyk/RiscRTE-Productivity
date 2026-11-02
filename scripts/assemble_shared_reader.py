@@ -13,21 +13,12 @@ from assemble_shared_usb_cohort import decode_store,storage_record
 from image_envelope import decode_image,MAGIC,HEADER,MAX_IMAGE
 # Same already-published RTEIMG1/LZ4 block format, with a better build-time
 # compressor. Runtime, canonical bytes and required decoder are unchanged.
-lz4=ctypes.CDLL('liblz4.so.1')
-lz4.LZ4_versionNumber.restype=ctypes.c_int
-assert lz4.LZ4_versionNumber()==10904,'Pinned LZ4 1.9.4 build tool required'
-lz4.LZ4_compressBound.argtypes=[ctypes.c_int];lz4.LZ4_compressBound.restype=ctypes.c_int
-lz4.LZ4_compress_HC.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int]
-lz4.LZ4_compress_HC.restype=ctypes.c_int
+from reader_lz4_encoder import Encoder
+encoder=Encoder()
 def encode_image(raw):
  assert raw.startswith(b'\x7fELF') and 52<=len(raw)<=MAX_IMAGE
- source=ctypes.create_string_buffer(raw);bound=lz4.LZ4_compressBound(len(raw));target=ctypes.create_string_buffer(bound)
- candidates=[]
- for level in range(3,13):
-  size=lz4.LZ4_compress_HC(source,target,len(raw),bound,level);assert size>0
-  candidates.append((size,level,target.raw[:size]))
- size,level,block=min(candidates,key=lambda x:(x[0],x[1]))
- encoded=HEADER.pack(MAGIC,HEADER.size,1,len(raw),size,zlib.crc32(raw),0)+block
+ block=encoder.compress(raw)
+ encoded=HEADER.pack(MAGIC,HEADER.size,1,len(raw),len(block),zlib.crc32(raw),0)+block
  assert decode_image(encoded)==raw
  return encoded
 from current_bootfs import build
@@ -208,7 +199,7 @@ for lane in ('x4','wave','watch'):
  assert all(packed[n]==data for n,data in stored.items() if n not in allowed and n not in representation_changes)
  assert decode_store(packed)==out
  encoding=storage_record(out,packed)
- if encoding:encoding['selection']='Reader first, then descending positive savings among ordinary internal applications including existing envelopes, minimum actual LZ4 HC 1.9.4 output across levels 3–12 in existing RTEIMG1 codec; stop at first fixed-size pack preserving reserve'
+ if encoding:encoding['selection']='Reader first, then descending positive savings among ordinary internal applications including existing envelopes, minimum measured standard LZ4HC block across pinned encoder candidates in existing RTEIMG1 codec; stop at first fixed-size pack preserving reserve'
  path=a.output/lane
  for name,entries in [('before',before),('before-stored',stored),('before-sd',sd),('after',out),('stored',packed),('after-sd',after_sd)]:
   write_tree(path/name,entries)
@@ -233,3 +224,5 @@ assert all(len(outputs)==1 for outputs in identity_outputs.values()),'Previously
  'previously_identical_application_images_remain_identical':True,'metadata_only_compaction_proofs':{old:item['proof'] for old,item in compactions.items()},
  'shared_elf_sha256':digest(elf),'baseline_tag':lock['tag'],'physical_testing':False,
  'usb_candidate_included':False,'scope':'Complete shared Reader; unrelated executable runtime bytes and all provider/data bytes preserved. Explicit non-runtime metadata compaction has original ELF sidecars and exact loader-visible proofs, applied consistently across all product occurrences. Existing USB unchanged.'}))
+
+(a.output/'encoder.json').write_bytes(encode(encoder.receipt()))

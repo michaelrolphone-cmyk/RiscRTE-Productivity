@@ -36,6 +36,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          repository: lz4/lz4
+          ref: 5ff839680134437dbf4678f3d0c7b371d84f4964
+          path: Lz4
+          persist-credentials: false
       - name: Obtain unchanged pinned engine sources
         run: |
           python3 - <<'PY'
@@ -89,7 +95,7 @@ jobs:
       - name: Preserve exact build source dependencies
         run: |
           mkdir -p evidence/source
-          for repo in Runtime System Drivers CrossPoint png jpeg; do
+          for repo in Runtime System Drivers CrossPoint png jpeg Lz4; do
             git -C "$repo" archive HEAD | gzip -n > "evidence/source/$repo.tar.gz"
             git -C "$repo" rev-parse HEAD > "evidence/source/$repo.head"
           done
@@ -204,6 +210,12 @@ jobs:
         with:
           name: reader-baseline-${{ github.event.pull_request.head.sha }}
           path: incoming/baseline
+      - uses: actions/checkout@v4
+        with:
+          repository: lz4/lz4
+          ref: 5ff839680134437dbf4678f3d0c7b371d84f4964
+          path: Lz4
+          persist-credentials: false
       - name: Compile exact X4 installation-broker admission fixture
         run: |
           mkdir -p closure/qualification
@@ -217,7 +229,7 @@ jobs:
           cp -a incoming/application/build/target/ebook-reader/. closure/application/
           cp Productivity/reader/shared-baseline.json closure/baseline/
           cp -a incoming/application/evidence closure/qualification/
-          for repo in Productivity System Runtime X4Runtime WatchProduct WaveProduct X4Product Bootfs; do
+          for repo in Productivity System Runtime X4Runtime WatchProduct WaveProduct X4Product Bootfs Lz4; do
             git -C "$repo" archive HEAD | gzip -n > "closure/source/$repo.tar.gz"
             git -C "$repo" rev-parse HEAD > "closure/source/$repo.head"
           done
