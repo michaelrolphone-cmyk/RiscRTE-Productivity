@@ -41,7 +41,7 @@ assert proof['exports']==sorted(['app_main','app_module_init','app_module_fini',
 assert common['requires']==[{'capability':'ui.scene','api':1}]
 assert not a.output.exists();a.output.mkdir(parents=True)
 results={}
-for lane in ('watch','wave','x4'):
+for lane in ('x4','wave','watch'):
  raw=(a.baseline/f'product-{lane}-store.bin').read_bytes()
  stored=read_image(raw,len(raw));before=decode_store(stored)
  with zipfile.ZipFile(a.baseline/f'product-{lane}-sd-apps.zip') as z:
@@ -161,6 +161,9 @@ for lane in ('watch','wave','x4'):
   'installed_policy':row,'resident_policy':boot.get('resident_shell')}
  result.update(pack_candidate(path,packed,after_sd,len(raw),build,read_image))
  results[lane]=result
+ # Preserve completed lane evidence even when a later fixed-store fit fails.
+ # This partial receipt is never publishable (packed remains false).
+ (a.output/'assembly.json').write_bytes(encode({'schema':1,'products':results,'packed':False,'shared_elf_sha256':digest(elf),'baseline_tag':lock['tag'],'physical_testing':False,'usb_candidate_included':False}))
  print('READER PRODUCT '+lane+' '+json.dumps(result),flush=True)
 (a.output/'assembly.json').write_bytes(encode({'schema':1,'products':results,'packed':True,
  'shared_elf_sha256':digest(elf),'baseline_tag':lock['tag'],'physical_testing':False,
