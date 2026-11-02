@@ -103,15 +103,17 @@ def run(inputs,tools,output):
   for which,entries in (('before',before),('after',after)):
    for n,b in entries.items():
     p=d/which/safe(n);p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b)
-  # Native admission resolves external image paths from the extracted store root.
+  # SD is a separate product volume, never extra internal cohort inventory.
   for which,entries in (('before',sd),('after',nextsd)):
    for n,b in entries.items():
-    p=d/which/safe(n);p.parent.mkdir(parents=True,exist_ok=True)
+    p=d/(which+'-sd')/safe(n);p.parent.mkdir(parents=True,exist_ok=True)
     if p.exists() and p.read_bytes()!=b: raise ValueError('External path aliases store')
     p.write_bytes(b)
   if sd:
    with zipfile.ZipFile(d/'sd-apps.zip','w',compression=zipfile.ZIP_DEFLATED) as z:
-    for n,b in sorted(nextsd.items()): z.writestr(n,b)
+    for n,b in sorted(nextsd.items()):
+     info=zipfile.ZipInfo(n,date_time=(1980,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
+     z.writestr(info,b)
    if unzip(d/'sd-apps.zip')!=nextsd: raise ValueError('SD roundtrip differs')
   (d/'original-lists.elf').write_bytes(blob)
   if locate(after,nextsd,VERSION)[0]!=canonical: raise ValueError('Product identity differs')
