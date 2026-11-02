@@ -22,8 +22,12 @@ lz4.LZ4_compress_HC.restype=ctypes.c_int
 def encode_image(raw):
  assert raw.startswith(b'\x7fELF') and 52<=len(raw)<=MAX_IMAGE
  source=ctypes.create_string_buffer(raw);bound=lz4.LZ4_compressBound(len(raw));target=ctypes.create_string_buffer(bound)
- size=lz4.LZ4_compress_HC(source,target,len(raw),bound,12);assert size>0
- encoded=HEADER.pack(MAGIC,HEADER.size,1,len(raw),size,zlib.crc32(raw),0)+target.raw[:size]
+ candidates=[]
+ for level in range(3,13):
+  size=lz4.LZ4_compress_HC(source,target,len(raw),bound,level);assert size>0
+  candidates.append((size,level,target.raw[:size]))
+ size,level,block=min(candidates,key=lambda x:(x[0],x[1]))
+ encoded=HEADER.pack(MAGIC,HEADER.size,1,len(raw),size,zlib.crc32(raw),0)+block
  assert decode_image(encoded)==raw
  return encoded
 from current_bootfs import build
@@ -204,7 +208,7 @@ for lane in ('x4','wave','watch'):
  assert all(packed[n]==data for n,data in stored.items() if n not in allowed and n not in representation_changes)
  assert decode_store(packed)==out
  encoding=storage_record(out,packed)
- if encoding:encoding['selection']='Reader first, then descending positive savings among ordinary internal applications including existing envelopes, LZ4 HC 1.9.4 level12 in existing RTEIMG1 codec; stop at first fixed-size pack preserving reserve'
+ if encoding:encoding['selection']='Reader first, then descending positive savings among ordinary internal applications including existing envelopes, minimum actual LZ4 HC 1.9.4 output across levels 3–12 in existing RTEIMG1 codec; stop at first fixed-size pack preserving reserve'
  path=a.output/lane
  for name,entries in [('before',before),('before-stored',stored),('before-sd',sd),('after',out),('stored',packed),('after-sd',after_sd)]:
   write_tree(path/name,entries)

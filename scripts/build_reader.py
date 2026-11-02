@@ -79,9 +79,12 @@ def build(a):
     lib.LZ4_compress_HC.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int];lib.LZ4_compress_HC.restype=ctypes.c_int
     def storage_size(path):
         data=path.read_bytes();source=ctypes.create_string_buffer(data);bound=lib.LZ4_compressBound(len(data));target=ctypes.create_string_buffer(bound)
-        result=lib.LZ4_compress_HC(source,target,len(data),bound,12)
-        assert result>0
-        return result
+        sizes=[]
+        for level in range(3,13):
+            result=lib.LZ4_compress_HC(source,target,len(data),bound,level)
+            assert result>0
+            sizes.append(result)
+        return min(sizes)
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),
                     '-I' + str(a.runtime / 'lib/elf_loader/include'),
@@ -103,7 +106,7 @@ def build(a):
         print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
     _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
     shutil.copyfile(path,elf)
-    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4level12 size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
+    receipt['layout_selection']={'method':'Minimum LZ4HC1.9.4 levels3–12 size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
     shutil.copyfile(ROOT / 'Apps/ebook_reader.json', package / 'ebook_reader.json')
     # Upstream streamed fonts preserve all styles without mapping every size
     # into the ELF. These assets are copied to the user's SD card separately.
