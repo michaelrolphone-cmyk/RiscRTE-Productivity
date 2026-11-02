@@ -78,3 +78,47 @@ jobs:
             build/**/*.json
             build/**/*.su
           retention-days: 14
+
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 710b200021b983ea55eb86a6fbddbbf5ce10a984
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - name: Exact published baseline download and inventory
+        run: |
+          set -euo pipefail
+          mkdir -p incoming/baseline evidence
+          python3 - <<'PY'
+          import hashlib,json,urllib.request
+          from pathlib import Path
+          lock=json.loads(Path('docs/shared-daily/baseline.json').read_text())
+          for item in lock['assets']:
+              with urllib.request.urlopen(item['url'],timeout=180) as response: data=response.read()
+              assert len(data)==item['bytes'] and hashlib.sha256(data).hexdigest()==item['sha256']
+              Path('incoming/baseline',item['name']).write_bytes(data)
+          PY
+          python3 scripts/inspect_shared_daily_baseline.py --system System --baseline incoming/baseline --bootfs-tools Bootfs/scripts --output evidence/baseline-inventory.json | tee evidence/baseline.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-daily-baseline-${{ github.event.pull_request.head.sha }}
+          path: |
+            incoming/baseline/
+            evidence/
+          include-hidden-files: true
+          if-no-files-found: error
