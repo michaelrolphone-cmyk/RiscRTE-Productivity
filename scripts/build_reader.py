@@ -57,13 +57,13 @@ def build(a):
     nm = compiler.removesuffix('g++') + 'nm'
     dynamic_symbols = subprocess.check_output([nm, '-D', str(elf)])
     unstripped = {'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
-    subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', str(elf)], check=True)
+    subprocess.run([compiler.removesuffix('g++') + 'strip', '--strip-unneeded', '--remove-section=.xt.prop', '--remove-section=.xt.lit', '--remove-section=.xt.insn', '--remove-section=.comment', str(elf)], check=True)
     if runtime_image(elf) != before or subprocess.check_output([nm, '-D', str(elf)]) != dynamic_symbols:
         raise ValueError('Stripping changed loadable bytes, relocation semantics or dynamic symbols')
     if mapped_relocations(elf) != receipt['mapped_relocations']:
         raise ValueError('Stripping changed mapped relocations')
     receipt.update({'bytes': elf.stat().st_size, 'sha256': hashlib.sha256(elf.read_bytes()).hexdigest(),
-                    'production_symbols': {'method': 'strip --strip-unneeded', 'unstripped': unstripped,
+                    'production_symbols': {'method': 'strip --strip-unneeded; remove non-ALLOC Xtensa linker property/literal/instruction metadata and compiler comment', 'unstripped': unstripped,
                     'runtime_sections': before, 'runtime_bytes_and_dynamic_symbols_unchanged': True}})
     validator = a.output / 'validate-elf'
     subprocess.run(['cc', '-std=c11', '-I' + str(a.runtime / 'test/native_apps/stubs'),

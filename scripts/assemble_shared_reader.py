@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Reader-only overlay of published Home/Contexts. Existing USB is byte-preserved."""
-import argparse,copy,json,sys,zipfile
+import argparse,copy,json,sys,zipfile,ctypes,zlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser()
@@ -10,7 +10,22 @@ sys.path[:0]=[str(a.system.resolve()/'scripts'),str(a.bootfs_tools.resolve())]
 from compose_shared_app_cohort import encode,digest,safe,write_tree
 from assemble_shared_home_cohort import inventory,fingerprint,pack_candidate,providers
 from assemble_shared_usb_cohort import decode_store,storage_record
-from image_envelope import encode_image,MAGIC
+from image_envelope import decode_image,MAGIC,HEADER,MAX_IMAGE
+# Same already-published RTEIMG1/LZ4 block format, with a better build-time
+# compressor. Runtime, canonical bytes and required decoder are unchanged.
+lz4=ctypes.CDLL('liblz4.so.1')
+lz4.LZ4_versionNumber.restype=ctypes.c_int
+assert lz4.LZ4_versionNumber()==10904,'Pinned LZ4 1.9.4 build tool required'
+lz4.LZ4_compressBound.argtypes=[ctypes.c_int];lz4.LZ4_compressBound.restype=ctypes.c_int
+lz4.LZ4_compress_HC.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int]
+lz4.LZ4_compress_HC.restype=ctypes.c_int
+def encode_image(raw):
+ assert raw.startswith(b'\x7fELF') and 52<=len(raw)<=MAX_IMAGE
+ source=ctypes.create_string_buffer(raw);bound=lz4.LZ4_compressBound(len(raw));target=ctypes.create_string_buffer(bound)
+ size=lz4.LZ4_compress_HC(source,target,len(raw),bound,12);assert size>0
+ encoded=HEADER.pack(MAGIC,HEADER.size,1,len(raw),size,zlib.crc32(raw),0)+target.raw[:size]
+ assert decode_image(encoded)==raw
+ return encoded
 from current_bootfs import build
 from read_only_spiffs import read_image
 lock=json.loads((ROOT/'reader/shared-baseline.json').read_text())
@@ -111,17 +126,17 @@ for lane in ('watch','wave','x4'):
     m=json.loads(out[app['manifest']])
     name=safe(str(Path(app['manifest']).parent/m['file_name']))
     if m.get('type')!='application' or m.get('provides') or name in driver_images:continue
-    if name not in out or packed[name]!=out[name] or not out[name].startswith(b'\x7fELF'):continue
-    encoded=encode_image(out[name]);saving=len(out[name])-len(encoded)
+    if name not in out or not out[name].startswith(b'\x7fELF'):continue
+    encoded=encode_image(out[name]);saving=len(packed[name])-len(encoded)
     if saving>0:choices.append((-saving,name,encoded))
    for _,name,encoded in sorted(choices):
     packed[name]=encoded;representation_changes.append(name)
     if fit():break
-   else:raise ValueError('Ordinary application encoding cannot preserve SPIFFS reserve')
+   else:raise ValueError('Ordinary application encoding cannot preserve SPIFFS reserve: '+json.dumps({'store_bytes':len(raw),'canonical_reader_bytes':len(elf),'stored_reader_bytes':len(packed['ebook_reader.elf']),'stored_file_bytes':sum(map(len,packed.values())),'representations':representation_changes}))
  assert all(packed[n]==data for n,data in stored.items() if n not in allowed and n not in representation_changes)
  assert decode_store(packed)==out
  encoding=storage_record(out,packed)
- if encoding:encoding['selection']='Preserve existing envelopes; Reader first, then descending positive savings among raw ordinary internal applications; stop at first fixed-size pack preserving reserve'
+ if encoding:encoding['selection']='Reader first, then descending positive savings among ordinary internal applications including existing envelopes, LZ4 HC 1.9.4 level12 in existing RTEIMG1 codec; stop at first fixed-size pack preserving reserve'
  path=a.output/lane
  for name,entries in [('before',before),('before-stored',stored),('before-sd',sd),('after',out),('stored',packed),('after-sd',after_sd)]:
   write_tree(path/name,entries)
