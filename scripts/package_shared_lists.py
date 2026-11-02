@@ -41,7 +41,7 @@ def loaded(data):
    table=e.get_section(s['sh_link'])
    relocations[s.name]=[(r['r_offset'],r['r_info_type'],r.entry.get('r_addend'),table.get_symbol(r['r_info_sym']).name) for r in s.iter_relocations()]
  return (e['e_entry'],e['e_flags'],allocated,relocations)
-def locate(files,sd):
+def locate(files,sd,version='0.1.2'):
  boot=json.loads(files['boot.json'])
  rows=[r for r in boot['app_capabilities'] if r.get('manifest')=='lists.json']
  if not rows: raise ValueError('Lists not installed')
@@ -55,7 +55,7 @@ def locate(files,sd):
   blob=sd[route]
  if route and route in sd and blob!=sd[route]: raise ValueError('Conflicting Lists images')
  m=json.loads(files['lists.json'])
- if m['id']!='lists' or m['file_name']!='lists.elf' or m['version']!='0.1.2': raise ValueError('Unexpected installed Lists identity')
+ if m['id']!='lists' or m['file_name']!='lists.elf' or m['version']!=version: raise ValueError('Unexpected installed Lists identity')
  return blob,route,m
 def run(inputs,tools,output):
  if output.exists(): raise ValueError('Output exists')
@@ -114,7 +114,7 @@ def run(inputs,tools,output):
     for n,b in sorted(nextsd.items()): z.writestr(n,b)
    if unzip(d/'sd-apps.zip')!=nextsd: raise ValueError('SD roundtrip differs')
   (d/'original-lists.elf').write_bytes(blob)
-  if locate(after,nextsd)[0]!=canonical: raise ValueError('Product identity differs')
+  if locate(after,nextsd,VERSION)[0]!=canonical: raise ValueError('Product identity differs')
   results[lane]={'original_sha256':sha(blob),'original_bytes':len(blob),'canonical_sha256':sha(canonical),'canonical_bytes':len(canonical),'version':VERSION,'changed_internal':sorted(changed),'changed_sd':sorted(n for n in sd if sd[n]!=nextsd[n]),'packing':packing,'allocated_sections_entry_and_relocations_identical':True,'all_grants_providers_namespaces_and_data_unchanged':True}
  receipt={'schema':1,'inputs':INPUTS,'tools':TOOLS,'canonical_source':'original X4 complete ELF, including all Xtensa metadata','canonical_sha256':sha(canonical),'canonical_bytes':len(canonical),'full_sidecar_identical':True,'products':results,'target_instructions_executed':False,'physical_testing':'not performed'}
  (output/'receipt.json').write_bytes(encode(receipt));print(json.dumps(receipt,indent=2),flush=True)
