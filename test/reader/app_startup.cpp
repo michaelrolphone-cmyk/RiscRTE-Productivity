@@ -18,6 +18,8 @@ extern "C" unsigned reader_test_scene_frame_count();
 extern "C" void reader_test_scene_exit_in(unsigned);
 extern "C" void risc_cpp_set_failure_handler(void(*)()) {}
 static const void *sceneApi;
+static const char* missingCapability;
+static bool unavailableSeen;
 static unsigned acquired,released;
 static bool readySeen,legacyScene,compatibilitySeen;
 static const char *sourcePath;
@@ -64,6 +66,9 @@ static int32_t resumeScene(void* c,uint64_t s,uint32_t flags){
  return rc;
 }
 static void checkDocument(const risc_components_document_v1* d){
+ if(missingCapability&&strcmp(missingCapability,"file.open")){
+  for(unsigned i=0;i<d->node_count;i++)if(strstr(d->nodes[i].label,"UNAVAILABLE")){unavailableSeen=true;reader_test_scene_allow_exit();}
+ }
  if(legacyScene&&!strcmp(d->routes[0].title,"READER UPDATE")){compatibilitySeen=true;reader_test_scene_allow_exit();}
  if(catalogTest){
   unsigned bookRows=0,emptyAuthors=0;
@@ -126,6 +131,7 @@ static bool source(char* out,size_t n){if(!sourcePath)return false;return snprin
 static const t5_file_open_api_v1 fileApi={.api_version=1,.struct_size=sizeof(fileApi),.source_path_get=source};
 static bool acquireApp(const char *name,uint32_t version,uint64_t instance,risc_runtime_capability_v1 *g){
  assert(version==1&&!instance&&g->struct_size==sizeof(*g));
+ if(missingCapability&&!strcmp(name,missingCapability))return false;
  g->api=!strcmp(name,"ui.scene")?sceneApi:!strcmp(name,"storage.volume")?static_cast<const void*>(&filesystem):!strcmp(name,"memory.heap")?static_cast<const void*>(&heap):!strcmp(name,"random.bytes")?static_cast<const void*>(&randomApi):!strcmp(name,"file.open")?static_cast<const void*>(&fileApi):nullptr;
  assert(g->api);g->slot=++acquired;return true;
 }
@@ -136,6 +142,7 @@ static bool appLog(const char *message){if(strstr(message,"scene ready page=480x
 static void *runApp(void*){app_main();return nullptr;}
 int main(int argc,char **argv){
  assert(argc>=2&&argc<=4);sourcePath=argc>=3&&strcmp(argv[2],"-")?argv[2]:nullptr;
+ if(argc==4&&!strncmp(argv[3],"missing:",8))missingCapability=argv[3]+8;
  legacyScene=argc==4&&!strcmp(argv[3],"legacy-scene");
  bool laterTest=argc==4&&!strcmp(argv[3],"resident-later");
  bool residentTurns=argc==4&&!strcmp(argv[3],"resident-turns");
@@ -153,7 +160,7 @@ int main(int argc,char **argv){
  // complements the target compiler frame budget; it is not hardware emulation.
  pthread_attr_t attr;assert(!pthread_attr_init(&attr));assert(!pthread_attr_setstacksize(&attr,32768));
  pthread_t thread;assert(!pthread_create(&thread,&attr,runApp,nullptr));assert(!pthread_attr_destroy(&attr));assert(!pthread_join(thread,nullptr));
- assert((legacyScene?compatibilitySeen:readySeen)&&!held&&acquired==5&&released==5);if(sourcePath)assert(pages);
+ assert((legacyScene?compatibilitySeen:missingCapability&&strcmp(missingCapability,"file.open")?unavailableSeen:readySeen)&&!held&&acquired==(missingCapability?4u:5u)&&released==acquired);if(sourcePath)assert(pages);
  if(residentTest)assert((controlsTest?controlsCalls==1&&restores==1:policyCalls==4&&restores==4)&&!restorePending);
  if(residentTest&&!turnsTest)assert(pages==1&&cleanRequests==1&&reader_test_scene_clean_count()==1+hostRedraws&&reader_test_scene_frame_count()==initialFrames+hostRedraws);
  if(turnsTest)assert(turnEvents==2&&pages==3&&cleanRequests==3&&reader_test_scene_clean_count()==3);

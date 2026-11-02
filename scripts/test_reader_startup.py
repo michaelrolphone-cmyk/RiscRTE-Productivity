@@ -28,6 +28,7 @@ if fixture.exists():shutil.rmtree(fixture)
 sys.path.insert(0,str(ROOT/'test/reader'))
 from make_fixture import create
 cases=[(source,None) for source in (None,'/Books/sample.epub','/Books/sample-ncx.epub','/Books/sample.txt','/Books/sample.md')]
+cases += [('-', 'missing:'+cap) for cap in ('storage.volume','memory.heap','random.bytes','file.open')]
 cases += [('-', 'catalog'),('-', 'bad-catalog'),('-', 'legacy-scene')]
 cases += [(source,'resident') for source in ('/Books/sample.epub','/Books/sample.txt','/Books/sample.md')]
 cases += [('/Books/sample.epub','resident-redraw')]

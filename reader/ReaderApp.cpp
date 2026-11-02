@@ -329,9 +329,9 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
  bind(rt,nullptr);setTerminal(terminalReturn);risc_cpp_set_failure_handler(reader::retain);
  auto* a=new App; a->rt=rt;
  for(const char* name:{"ui.scene","storage.volume","memory.heap","random.bytes","file.open"}){
-  auto& g=a->grants[a->acquired];g.struct_size=sizeof(g);bool ok=a->rt->acquire(name,1,0,&g);if(!alive())return;if(!ok){LOG_ERR("startup","capability unavailable: %s",name);break;}++a->acquired;
+  auto& g=a->grants[a->acquired];g.struct_size=sizeof(g);bool ok=a->rt->acquire(name,1,0,&g);if(!alive())return;if(!ok){g.api=nullptr;LOG_ERR("startup","capability unavailable: %s",name);}++a->acquired;
  }
- if(a->acquired==5){
+ if(a->grants[0].api){
   a->scene=static_cast<const risc_scene_api_v1*>(a->grants[0].api);a->presenter=risc_scene_page_get_v1(a->scene);
   a->refreshPresenter=risc_scene_page_refresh_get_v1(a->scene);
   a->checkpointScene=risc_scene_checkpoint_get_v1(a->scene);
@@ -368,7 +368,7 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
     {
      if(a->initialized){a->engine->openLibrary();a->show(Screen::Library);}else a->error("SD card unavailable");
      {
-      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.1.8",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
+      LOG_INF("startup","scene ready page=%ux%u sd=%s reader=0.2.0",a->geometry.width,a->geometry.height,a->initialized?"ready":"unavailable");
       const auto* files=static_cast<const t5_file_open_api_v1*>(a->grants[4].api);char source[512]{};
       if(a->initialized&&files&&files->struct_size>=sizeof(*files)&&files->source_path_get&&files->source_path_get(source,sizeof(source))){if(!strncmp(source,"/sd/",4))a->openBook(source+3);else a->error("Unsupported book location");}
       unsigned ticks=0;
@@ -412,12 +412,28 @@ extern "C" __attribute__((visibility("default"))) void app_main(){
     }
    }
    }
-  }else LOG_ERR("startup","required scene/storage/memory/random interface or resident binding unavailable");
+  }else {
+   LOG_ERR("startup","required scene/storage/memory/random interface or resident binding unavailable");
+   if(a->presenter&&a->openScene()){
+    a->begin("READER");
+    a->node(RISC_COMPONENT_EMPTY,!v?"STORAGE UNAVAILABLE":!heap?"MEMORY SERVICE UNAVAILABLE":!random?"RANDOM SERVICE UNAVAILABLE":"READER SERVICE UNAVAILABLE",
+     !v?"Reading needs a storage provider. Books and saved data are unchanged.":"Install matching capability providers to read books. Saved data is unchanged.",0);
+    a->node(RISC_SCENE_ACTION,"CLOSE READER","",Exit);
+    int rc=a->presenter->components.update(a->scene->context,a->session,&a->doc);
+    while(a->checked(rc)&&rc==RISC_SCENE_OK&&alive()){
+     risc_scene_event_v1 e{};e.struct_size=sizeof(e);
+     rc=a->scene->next(a->scene->context,a->session,&e);
+     if(rc==RISC_SCENE_OK&&(e.kind==RISC_SCENE_SUSPEND_EVENT||(a->valid(e)&&(e.action==Exit||e.action==Back))))break;
+     if(rc==RISC_SCENE_IDLE)rc=RISC_SCENE_OK;
+     a->rt->yield_ms(5);
+    }
+   }
+  }
  }
  setService(nullptr,nullptr);
  if(a->closeScene()){
   delete a->engine;
-  while(a->acquired){bool ok=a->rt->release(&a->grants[--a->acquired]);if(!alive())return;if(!ok){retain();return;}}
+  while(a->acquired){auto& grant=a->grants[--a->acquired];if(!grant.api)continue;bool ok=a->rt->release(&grant);if(!alive())return;if(!ok){retain();return;}}
  }
  delete a;setTerminal(nullptr);risc_cpp_set_failure_handler(nullptr);
 }
