@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse,hashlib,json,os,subprocess,sys,shutil
+import argparse,hashlib,json,os,subprocess,sys,shutil,shlex
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from reader_sources import inputs,ROOT
@@ -27,7 +27,7 @@ def compile_one(source):
  # Keep the historically stack-budgeted entry/engine translation units native.
  # GCC's linker plugin optimizes all remaining units together without removing
  # features; the exact rich-engine and GUI regressions still gate publication.
- if a.target and source.name not in ('ReaderApp.cpp','ReaderEngine.cpp'):flags+=['-flto','-ffat-lto-objects']
+ if a.target and source.name not in ('ReaderApp.cpp','ReaderEngine.cpp'):flags+=['-flto','-ffat-lto-objects']+shlex.split(os.environ.get('READER_SUPPORT_OPT_FLAGS',''))
  if a.target and source.suffix in ('.cpp','.cc'):flags=['-include',str(a.runtime/'sdk/cxx/TemplateConfig.h')]+flags
  if source.suffix=='.c':flags=[x for x in flags];idx=flags.index('-include');flags[idx+1]=str(ROOT/'reader/port/CCompat.h')
  cmd=[cxx if source.suffix in ('.cpp','.cc') else c,*flags,*(['-std=c++17','-fno-exceptions','-fno-rtti','-fno-threadsafe-statics'] if source.suffix in ('.cpp','.cc') else ['-std=c99']),*['-I'+str(i) for i in inc],'-c',str(source),'-o',str(dest)]

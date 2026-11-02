@@ -81,19 +81,31 @@ def build(a):
                     str(a.runtime / 'lib/elf_loader/src/esp_elf_validate.c'),
                     str(a.runtime / 'test/native_apps/validate_test.c'), '-o', str(validator)], check=True)
     candidates=[];layouts={}
-    for label,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment'])]:
-        path=a.output/'layout-candidates'/(label+'.elf')
-        try:
-            result=produce(path,flags)
-            subprocess.run([str(validator),str(path)],check=True)
-            stored=storage_size(path)
-        except (subprocess.CalledProcessError,ValueError) as error:
-            layouts[label]={'flags':flags,'rejected':str(error)}
-            print('REJECTED READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
-            continue
-        layouts[label]={'flags':flags,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
-        candidates.append((stored,label,path,result))
-        print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
+    for variant,optflags in [('baseline',[]),('no-sra',['-fno-tree-sra']),
+                             ('no-inline-once',['-fno-inline-functions-called-once']),
+                             ('no-pre',['-fno-tree-pre'])]:
+        if variant!='baseline':
+            objects=a.output/('objects-'+variant)
+            env=dict(os.environ,READER_SUPPORT_OPT_FLAGS=' '.join(optflags))
+            subprocess.run([sys.executable,str(ROOT/'scripts/compile_reader.py'),'--target',
+                            '--upstream',str(staged),'--runtime',str(a.runtime),'--system',str(a.system),
+                            '--png',str(a.png),'--jpeg',str(a.jpeg),'--output',str(objects)],check=True,env=env)
+        variant_frames=check(objects)
+        for layout,flags in [('default',[]),('alignment',['-Wl,--sort-section=alignment'])]:
+            label=variant+'-'+layout
+            path=a.output/'layout-candidates'/(label+'.elf')
+            try:
+                result=produce(path,flags)
+                result['support_optimization']={'variant':variant,'flags':optflags,'target_stack_frames':variant_frames}
+                subprocess.run([str(validator),str(path)],check=True)
+                stored=storage_size(path)
+            except (subprocess.CalledProcessError,ValueError) as error:
+                layouts[label]={'flags':flags,'rejected':str(error)}
+                print('REJECTED READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
+                continue
+            layouts[label]={'flags':flags,'bytes':result['bytes'],'sha256':result['sha256'],'lz4_block_bytes':stored}
+            candidates.append((stored,label,path,result))
+            print('COMPLETE READER LAYOUT '+json.dumps({'layout':label,**layouts[label]}),flush=True)
     _,selected,path,receipt=min(candidates,key=lambda x:(x[0],x[1]))
     shutil.copyfile(path,elf)
     receipt['layout_selection']={'method':'Minimum measured standard LZ4HC block size among structurally admitted deterministic complete linker layouts','selected':selected,'candidates':layouts}
@@ -120,8 +132,8 @@ def build(a):
                 shutil.copyfile(source, target)
     (licenses / 'SOURCES.json').write_text(json.dumps(lock, indent=2) + '\n')
     receipt.update({'encoder': encoder.receipt(), 'font_sharing': json.loads((staged / 'font-sharing.json').read_text()),
-                    'optimization': 'Support-unit LTO; historically stack-budgeted ReaderApp/ReaderEngine remain direct target objects',
-                    'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':stack_frames,
+                    'optimization': 'Measured complete support-unit LTO variants; historically stack-budgeted ReaderApp/ReaderEngine remain identical direct target objects',
+                    'upstream': lock, 'physical_testing': 'not performed', 'target_stack_frames':receipt['support_optimization']['target_stack_frames'],
                     'native_admission': 'requires matching native candidate verification',
                     'asset_sha256': {str(p.relative_to(package)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((package / 'sd').rglob('*')) if p.is_file()},
                     'source_trees': {name: subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD^{tree}'], text=True).strip() for name, path in [('runtime', a.runtime), ('system', a.system), ('productivity', ROOT)]},
