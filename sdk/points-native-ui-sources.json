@@ -571,7 +571,7 @@
   },
   "application_source_sha256": {
     "Apps/points_catalog_app.c": "5e28812a1a64ce684d4305d91a3e8c9d55c18795ff280d8268e71c4c78a7054d",
-    "Apps/points_catalog_controller.h": "e835d438e838fc2d2e60fb972b6d4bfc8313c1d2c296dc42d334e1bb75613b2f",
+    "Apps/points_catalog_controller.h": "d5b448820065b4fe7ecd44f3323f107c74bbbd4feac6a97fad5b69f53d8c5db9",
     "Apps/points_catalog_paper.inc": "de93a981d8c6b58728bc0c20ddd7975691c1348aed25c4d27347bcb41e0d5d82",
     "Apps/points_catalog_view.inc": "57b55d5a0369dbd5b479f0220bd1a59e137343ae5307888ee71b26c16b6667ec",
     "Apps/points_in_time.c": "843f1e6df65615681502f1f4b00830a9f28d60222c11f9059df96ffe2708db3a",
