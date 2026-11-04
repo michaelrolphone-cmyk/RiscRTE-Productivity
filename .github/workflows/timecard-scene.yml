@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -24,6 +24,48 @@ jobs:
           repository: michaelrolphone-cmyk/RiscRTE
           ref: 13eca114cb58469cf6004fafc3da84fbd9d29beb
           path: .deps/runtime
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 77c427a75e5651f03119c059fcdfd36d23df8708
+          path: .deps/composition
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: .deps/bootfs
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 712ecc3f894dba99d9c9638941778a82f5856b97
+          path: .deps/admission-runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 0052d1fc42e9cfc82d626c5a247d460919c87935
+          path: .deps/x4-runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-XTEINK-X4-PRO
+          ref: e361e73de14314bb4b8d2fb3a24eb81e2390b0ee
+          path: .deps/x4-product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: c69d7914935fccdc04749f7bfa429c74219bf88a
+          path: .deps/watch-product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Wavshare-S3-Touch-AMOLED-2.06
+          ref: 97ca6157aa9c3bba7c7fee3858aa7d0ff896d13b
+          path: .deps/wave-product
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -34,38 +76,62 @@ jobs:
       - name: Models, faults, native rendering and reproducible ELF
         run: |
           python scripts/timecard_scene.py --runtime .deps/runtime --system-apps .deps/system --build --frames dist/timecard-frames
+      - name: Preserve product bytes and qualify owning Runtime admission
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request
+          root=pathlib.Path('dist/baseline');root.mkdir()
+          for row in json.loads(pathlib.Path('docs/shared-timecard/baseline.json').read_text())['assets']:
+              with urllib.request.urlopen(row['url'],timeout=180) as response:data=response.read()
+              assert len(data)==row['size'] and hashlib.sha256(data).hexdigest()==row['sha256']
+              (root/row['name']).write_bytes(data)
+          PY
+          python scripts/assemble_timecard_scene.py --application dist/timecard-scene/timecard --baseline dist/baseline --system .deps/composition --bootfs-tools .deps/bootfs/scripts --output dist/timecard-products
+          python test/test_assemble_timecard_scene.py --assembly dist/timecard-products --application dist/timecard-scene/timecard > dist/timecard-assembly-tests.json
+          for mode in normal sanitized; do
+            flags=(); if [ "$mode" = sanitized ]; then flags=(--sanitize); fi
+            python .deps/composition/scripts/test_home_product_admission.py --runtime .deps/admission-runtime --x4-runtime .deps/x4-runtime --x4-product .deps/x4-product --watch-product .deps/watch-product --wave-product .deps/wave-product --assembly dist/timecard-products --output "dist/timecard-admission-$mode" "${flags[@]}"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: timecard-shared-${{ github.sha }}
           path: |
             dist/timecard-scene/
             dist/timecard-frames/
+            dist/timecard-products/
+            dist/timecard-admission-*/
+            dist/timecard-assembly-tests.json
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish exact shared-app prerelease
+      - name: Publish exact shared-app product candidates
         if: github.event_name == 'push' && github.ref == 'refs/heads/tasker/timecard-shared-scenes-20261104'
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.sha }}
         run: |
+          set -euo pipefail
+          mkdir release-assets
+          cp dist/timecard-scene/timecard/* release-assets/
+          cp dist/timecard-products/assembly.json dist/timecard-assembly-tests.json release-assets/
+          for lane in watch wave x4; do
+            cp "dist/timecard-products/$lane/store.bin" "release-assets/$lane-store.bin"
+            cp "dist/timecard-products/$lane/sd-apps.zip" "release-assets/$lane-sd-apps.zip"
+          done
+          git archive --format=zip -o release-assets/source.zip HEAD
+          tar -czf release-assets/timecard-qualification.tar.gz dist/timecard-frames dist/timecard-scene dist/timecard-products dist/timecard-admission-* dist/timecard-assembly-tests.json
           python - <<'PY'
           import hashlib,json,os
           from pathlib import Path
-          root=Path('dist/timecard-scene/timecard')
-          files={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir() if p.is_file()}
-          Path('dist/release-manifest.json').write_text(json.dumps({
+          root=Path('release-assets')
+          files={p.name:{'size':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in root.iterdir() if p.is_file()}
+          (root/'release-manifest.json').write_text(json.dumps({
             'application':'timecard','version':'0.3.1','source_commit':os.environ['SOURCE_SHA'],
-            'files':files,'software_tests':'passed','physical_testing':'not performed',
-            'product_integration':'Exact existing app-data/settings bindings and product cohort qualification remain required.'
+            'assets':files,'software_tests':'passed','physical_testing':'not performed',
+            'product_integration':'Preserving Watch, Waveshare 2.06 and X4 development candidates with owning Runtime admission; round 1.75C and physical execution are not claimed.'
           },indent=2)+'\n')
           PY
-          git archive --format=zip -o dist/source.zip HEAD
-          tar -czf dist/timecard-qualification.tar.gz dist/timecard-frames dist/timecard-scene
-          gh release create "timecard-shared-$SOURCE_SHA" \
-            dist/timecard-scene/timecard/timecard.elf \
-            dist/timecard-scene/timecard/timecard.json \
-            dist/timecard-scene/timecard/build.json \
-            dist/release-manifest.json dist/source.zip dist/timecard-qualification.tar.gz \
-            --target "$SOURCE_SHA" --prerelease --title "Shared Timecard 0.3.1" \
-            --notes "One byte-identical Timecard app with shared native-resolution scenes. Model, storage/custody, sanitizer, native-rendering and target-ELF checks passed. Product boot-store integration and physical testing are not claimed."
+          gh release create "timecard-shared-$SOURCE_SHA" release-assets/* \
+            --target "$SOURCE_SHA" --prerelease --latest=false --title "Shared Timecard 0.3.1 products" \
+            --notes "One identical Timecard ELF. Model, storage/custody, sanitizer, native-rendering, preserving product assembly and owning Runtime admission passed. Existing Watch, Waveshare 2.06 and X4 candidate stores are included. Physical execution, device memory fit and round 1.75C product qualification are not claimed."

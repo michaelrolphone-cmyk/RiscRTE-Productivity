@@ -59,3 +59,28 @@ This avoids ambiguous preference lookup when a product also grants context
 namespace 3. Only ui.scene is required for launch; missing data/time/preferences
 remain visible optional-feature states. Legacy regressions use their owning
 workflow pins, not the newer shared-scene adapter.
+
+## Preserving product candidates
+
+The assembly tool replaces only the Timecard image and sidecar in the pinned
+published Points cohort. All unrelated provider/app bytes, native firmware
+metadata, saved data, preference namespaces and storage representations remain
+unchanged. Watch and Waveshare 2.06 activate their already-published, identical
+shared Home resident host for Timecard; all other apps retain ordinary legacy
+handoff. X4 retains its existing resident admission.
+
+The host is verified by its exact ELF digest, HOST descriptor and the policy
+capabilities delegated by the original application. The same Timecard ELF is
+installed internally or on the existing authorized SD route. Content-addressed
+routes are updated without leaving the old executable selected.
+
+Assembly rejects ambiguous identities/providers, wrong host bytes, unreviewed
+authority removal, missing data namespaces, changed sidecars and unsafe paths.
+Positive/negative tests cover all three real product baselines. Owning Runtime
+graph/ELF admission is tested normally and under ASan/UBSan. These are development
+candidates, not evidence of physical installation, memory fit, sleep behavior,
+or round 1.75C hardware qualification.
+
+The qualification command uses System composition/admission helpers at
+77c427a75e5651f03119c059fcdfd36d23df8708. The workflow records exact native product
+and Runtime pins and publishes both full candidate stores and SD companions.
