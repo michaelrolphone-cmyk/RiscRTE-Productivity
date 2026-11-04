@@ -55,7 +55,7 @@ jobs:
           root=Path('dist/timecard-scene/timecard')
           files={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir() if p.is_file()}
           Path('dist/release-manifest.json').write_text(json.dumps({
-            'application':'timecard','version':'0.3.0','source_commit':os.environ['SOURCE_SHA'],
+            'application':'timecard','version':'0.3.1','source_commit':os.environ['SOURCE_SHA'],
             'files':files,'software_tests':'passed','physical_testing':'not performed',
             'product_integration':'Exact existing app-data/settings bindings and product cohort qualification remain required.'
           },indent=2)+'\n')
@@ -67,5 +67,5 @@ jobs:
             dist/timecard-scene/timecard/timecard.json \
             dist/timecard-scene/timecard/build.json \
             dist/release-manifest.json dist/source.zip dist/timecard-qualification.tar.gz \
-            --target "$SOURCE_SHA" --prerelease --title "Shared Timecard 0.3.0" \
+            --target "$SOURCE_SHA" --prerelease --title "Shared Timecard 0.3.1" \
             --notes "One byte-identical Timecard app with shared native-resolution scenes. Model, storage/custody, sanitizer, native-rendering and target-ELF checks passed. Product boot-store integration and physical testing are not claimed."

@@ -41,7 +41,7 @@ static const risc_scene_components_api_v1 scene_api={
  .tag=RISC_COMPONENTS_TAG,.version=1,.open=scene_open,.update=scene_update
 };
 static bool acquire_api(const char *name,uint32_t v,uint64_t instance,risc_runtime_capability_v1 *g){
- assert(!loss&&v==1);(void)instance;
+ assert(!loss&&v==1);assert(instance==((!strcmp(name,"storage.app-data")||!strcmp(name,"storage.key-value"))?1u:0u));
  if(!strcmp(name,RISC_SCENE_CAPABILITY))g->api=&scene_api;
  else if(!strcmp(name,RISC_APP_DATA_CAPABILITY)&&!absent_data)g->api=&store_api;
  else if(!strcmp(name,RISC_CIVIL_CLOCK_CAPABILITY)&&!absent_clock)g->api=&civil_api;

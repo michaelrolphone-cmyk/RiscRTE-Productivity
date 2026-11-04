@@ -1,4 +1,4 @@
-# Shared Timecard 0.3.0
+# Shared Timecard 0.3.1
 
 Timecard now has one semantic scene application, `Apps/timecard_scene.c`.
 The application has no display dimensions, device-class branches, pixel drawing,
@@ -53,3 +53,9 @@ main; the Linux test run supplies ASan evidence.
 Application publication does not by itself update a product boot store or claim
 physical acceptance. Each product must bind its existing app-data and settings
 namespaces, ui.scene and time.civil providers, and qualify its resulting cohort.
+
+The app selects existing Timecard app-data and preference namespace 1 explicitly.
+This avoids ambiguous preference lookup when a product also grants context
+namespace 3. Only ui.scene is required for launch; missing data/time/preferences
+remain visible optional-feature states. Legacy regressions use their owning
+workflow pins, not the newer shared-scene adapter.

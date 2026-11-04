@@ -204,7 +204,7 @@ static bool shell(unsigned reason){
 }
 static bool bind(void){
  const char *names[]={RISC_SCENE_CAPABILITY,RISC_APP_DATA_CAPABILITY,RISC_CIVIL_CLOCK_CAPABILITY,"storage.key-value"};
- for(unsigned i=0;i<4;i++){grants[acquired]=(risc_runtime_capability_v1){.struct_size=sizeof(grants[0])};bool ok=rt->acquire(names[i],1,0,&grants[acquired]);if(!alive())return false;
+ for(unsigned i=0;i<4;i++){grants[acquired]=(risc_runtime_capability_v1){.struct_size=sizeof(grants[0])};bool ok=rt->acquire(names[i],1,(i==1||i==3)?1:0,&grants[acquired]);if(!alive())return false;
   if(!ok){if(i==0)return false;continue;}
   const void *api=grants[acquired++].api;
   if(i==0){scene=api;components=risc_scene_components_get_v1(scene);if(!components||!scene->next||!scene->close||!scene->snapshot)return false;}

@@ -55,4 +55,4 @@ The NOVA-7 Lists app uses one executable on T-Watch-S3 and X4 and the shared
 intent component presenter. See [the implementation, screenshots, builds and
 deployment profiles](docs/LISTS_SCENE.md).
 
-[Shared Timecard 0.3.0](docs/TIMECARD_SCENE.md) uses one semantic scene app across native device presentations.
+[Shared Timecard 0.3.1](docs/TIMECARD_SCENE.md) uses one semantic scene app across native device presentations.
