@@ -1,0 +1,109 @@
+name: Qualify shared Points
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['Apps/points_scene*', 'Apps/points_catalog_controller.h', 'tools/*points*', 'test/**points*', 'test/points_scene/**', 'sdk/points-scene-sources.json', 'docs/shared-points/**', '.github/workflows/points-scene-delivery.yml']
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Productivity
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-System-Apps
+          ref: 77c427a75e5651f03119c059fcdfd36d23df8708
+          path: System
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Utilities
+          ref: e817612532beb613376d69a502cd1e11b94ac8c4
+          path: Utilities
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 712ecc3f894dba99d9c9638941778a82f5856b97
+          path: Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: ab9ff33975680c5bb8d9a2e7ed346d0300732a4e
+          path: Bootfs
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE
+          ref: 0052d1fc42e9cfc82d626c5a247d460919c87935
+          path: X4Runtime
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-XTEINK-X4-PRO
+          ref: e361e73de14314bb4b8d2fb3a24eb81e2390b0ee
+          path: X4Product
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-T-Watch-S3
+          ref: c69d7914935fccdc04749f7bfa429c74219bf88a
+          path: WatchProduct
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: michaelrolphone-cmyk/RiscRTE-Wavshare-S3-Touch-AMOLED-2.06
+          ref: 97ca6157aa9c3bba7c7fee3858aa7d0ff896d13b
+          path: WaveProduct
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned compiler
+        run: |
+          set -euo pipefail
+          python -m pip install pyelftools==0.32
+          bash Utilities/scripts/install_badge_catalog_toolchain.sh "$RUNNER_TEMP/points-toolchain"
+      - name: Build canonical ELF and qualify exact source
+        run: |
+          set -euo pipefail
+          python Productivity/tools/build_points_scene.py --runtime Runtime --system System --utilities Utilities --target-cc "$RUNNER_TEMP/points-toolchain/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc" --output evidence/application
+          python Productivity/tools/test_points_scene.py --build evidence/application --output evidence/host-normal
+          python Productivity/tools/test_points_scene.py --build evidence/application --output evidence/host-sanitized --sanitizers
+      - name: Retrieve exact baseline and qualify assembly
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request
+          p=pathlib.Path('baseline');p.mkdir()
+          for r in json.loads(pathlib.Path('Productivity/docs/shared-points/baseline.json').read_text())['assets']:
+              with urllib.request.urlopen(r['url'],timeout=180) as response:b=response.read()
+              assert len(b)==r['size'] and hashlib.sha256(b).hexdigest()==r['sha256']
+              (p/r['name']).write_bytes(b)
+          PY
+          python Productivity/tools/assemble_points_scene.py --application evidence/application --baseline baseline --bootfs-tools Bootfs/scripts --output evidence/assembly
+          python Productivity/test/test_assemble_points_scene.py --application evidence/application --baseline baseline --bootfs-tools Bootfs/scripts --report evidence/assembly-tests.json
+      - name: Qualify actual Runtime product admission
+        run: |
+          set -euo pipefail
+          for mode in normal sanitized; do
+            flags=(); if [ "$mode" = sanitized ]; then flags=(--sanitize); fi
+            python System/scripts/test_home_product_admission.py --runtime Runtime --x4-runtime X4Runtime --x4-product X4Product --watch-product WatchProduct --wave-product WaveProduct --assembly evidence/assembly --output "evidence/admission/$mode" "${flags[@]}"
+          done
+      - name: Package bound source and qualification
+        run: |
+          set -euo pipefail
+          python Productivity/tools/package_points_scene.py --runtime Runtime --system System --utilities Utilities --build evidence/application --normal evidence/host-normal --sanitized evidence/host-sanitized --assembly evidence/assembly --assembly-tests evidence/assembly-tests.json --admission evidence/admission/normal --admission-sanitized evidence/admission/sanitized --output evidence/package
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-points-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
