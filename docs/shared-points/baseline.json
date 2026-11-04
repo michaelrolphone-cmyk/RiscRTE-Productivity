@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "release": "touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708",
+  "assets": [
+    {
+      "name": "watch-store.bin",
+      "sha256": "9b5945ff7fe44c0576369c706290a923a32cafb3a566440a5127e9d1f9fef783",
+      "size": 5570560,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/watch-store.bin"
+    },
+    {
+      "name": "watch-sd-apps.zip",
+      "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
+      "size": 22,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/watch-sd-apps.zip"
+    },
+    {
+      "name": "wave-store.bin",
+      "sha256": "07bba91238a7fd2fe3e83cc7717f9f700f34ae5fdd2c4aa656c187f39faefa4e",
+      "size": 5570560,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/wave-store.bin"
+    },
+    {
+      "name": "wave-sd-apps.zip",
+      "sha256": "38500e7b9d0fc2d1ba3906b59e5939550f45f4772a8913ef2929bce156019657",
+      "size": 1706335,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/wave-sd-apps.zip"
+    },
+    {
+      "name": "x4-store.bin",
+      "sha256": "1f3b7ff8a3b18d402982bd90dc8d760a7f01132e2daf8fc54752c6ae348fac71",
+      "size": 5308416,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/x4-store.bin"
+    },
+    {
+      "name": "x4-sd-apps.zip",
+      "sha256": "036cffe449b267693b9a69baa452bcedc79dadfb5cbb268424b7b68a3694de4b",
+      "size": 5446581,
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-System-Apps/releases/download/touchpad-shared-77c427a75e5651f03119c059fcdfd36d23df8708/x4-sd-apps.zip"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "id": "points-shared-scene",
+  "manifest_source": "Apps/points_scene.json",
+  "defines": [],
+  "dependencies": {
+    "Runtime": {
+      "repository": "michaelrolphone-cmyk/RiscRTE",
+      "commit": "712ecc3f894dba99d9c9638941778a82f5856b97"
+    },
+    "System": {
+      "repository": "michaelrolphone-cmyk/RiscRTE-System-Apps",
+      "commit": "77c427a75e5651f03119c059fcdfd36d23df8708"
+    },
+    "Utilities": {
+      "repository": "michaelrolphone-cmyk/RiscRTE-Utilities",
+      "commit": "e817612532beb613376d69a502cd1e11b94ac8c4",
+      "publication_status": "published"
+    }
+  },
+  "system_sources": [
+    "Apps/files_scene_background.c",
+    "lib/PortableApps/src/PortableRealtimeClient.c",
+    "lib/PortableApps/src/PortableTimeZone.c",
+    "lib/PortableApps/src/PortableTimeZoneCatalog.c",
+    "lib/NativeApps/src/UnsignedDivisionCompat.c",
+    "lib/PortableApps/src/PortableTimeZonePreference.c"
+  ],
+  "compiler_support_members": [
+    "_ashldi3.o",
+    "_lshrdi3.o",
+    "_bswapsi2.o",
+    "_bswapdi2.o"
+  ],
+  "allowed_imports": [
+    "risc_runtime_get_api",
+    "memcpy",
+    "memset",
+    "memcmp",
+    "strcmp",
+    "strlen",
+    "strnlen",
+    "strncmp",
+    "strrchr",
+    "snprintf",
+    "malloc",
+    "free",
+    "strcpy",
+    "memchr",
+    "strchr",
+    "strstr",
+    "memmove"
+  ],
+  "scope": "One canonical shared application; no native firmware, device build variants, or deployment grants.",
+  "product_alarm_api": {
+    "watch": 1,
+    "wave": 1,
+    "x4": 2
+  },
+  "product_alarm_api_basis": "Published Touchpad baseline Points manifests: Watch/Wave alarm.service API 1, X4 API 2; exact-version Runtime grant matching, no duplicate capability declarations.",
+  "pyelftools_version": "0.32",
+  "compiler_version": "xtensa-esp-elf-gcc (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+  "compiler_note": "Use ESP32-S3 wrapper. Current shared scene target qualification uses GCC15, not historical native Points GCC8 profile.",
+  "application_sources": [
+    "Apps/points_scene.c",
+    "Apps/points_scene_schedule.c"
+  ]
+}

@@ -51,26 +51,60 @@ static inline int32_t points_editor_reindex(points_editor *e) {
     }
     POINTS_CATALOG_FREE(e->order);e->order=order;e->order_count=count;e->index_ready=true;return e->error=RISC_APP_DATA_OK;
 }
-static inline int32_t points_editor_load(points_editor *e,const risc_app_data_v1 *files,const risc_key_value_v1 *legacy,uint32_t domain) {
-    if(!e||e->store.retained)return RISC_APP_DATA_RETAINED;
+/* The declared wire-name length must not hide bytes behind an embedded NUL.
+ * Keep both existing PTM encodings, including valid short names in PTM2. */
+static inline bool points_editor_legacy_meta_decode(points_meta *out,const uint8_t *bytes,uint32_t size) {
+    points_meta candidate;
+    if(!points_meta_decode(&candidate,bytes,size))return false;
+    unsigned stride=!memcmp(bytes,"PTM1",4)?14u:15u;
+    for(unsigned slot=0;slot<POINTS_CUSTOM_COUNT;slot++) {
+        const uint8_t *name=bytes+8+slot*stride;
+        for(unsigned i=0;i<name[1];i++)if(name[2+i]<32||name[2+i]>126)return false;
+    }
+    *out=candidate;return true;
+}
+/* App-data reports terminal custody through CONTEXT/RETAINED. The legacy
+ * import additionally needs an invocation guard because KV can be wrapped by
+ * a capability owner whose callback fences the runtime while returning. */
+static inline bool points_editor_load_alive(points_editor *e,bool (*alive)(void *),void *context) {
+    if(!e)return false;
+    if(e->store.retained||(alive&&!alive(context))) {
+        e->store.retained=true;e->error=RISC_APP_DATA_RETAINED;return false;
+    }
+    return true;
+}
+static inline int32_t points_editor_load_guarded(points_editor *e,const risc_app_data_v1 *files,const risc_key_value_v1 *legacy,
+                                                uint32_t domain,bool (*alive)(void *),void *context) {
+    if(!points_editor_load_alive(e,alive,context))return RISC_APP_DATA_RETAINED;
     if(e->store.uncertain)return RISC_APP_DATA_COMMIT_UNKNOWN;
     int32_t rc=points_catalog_storage_load(&e->store,files,domain);
+    if(!points_editor_load_alive(e,alive,context))return RISC_APP_DATA_RETAINED;
     if(rc==RISC_APP_DATA_NOT_FOUND) {
         if(!legacy||legacy->api_version!=1||legacy->struct_size<sizeof(*legacy)||!legacy->get)return e->error=RISC_APP_DATA_INVALID;
         uint8_t bytes[POINTS_RECORD_SIZE];uint32_t n=0;points_config old={0};points_meta meta={0};
-        rc=legacy->get(legacy->context,POINTS_CONFIG_KEY,bytes,sizeof(bytes),&n);
+        /* Copy before the first callback; the provider table may be revoked. */
+        risc_key_value_v1 source=*legacy;
+        rc=source.get(source.context,POINTS_CONFIG_KEY,bytes,sizeof(bytes),&n);
+        if(rc==RISC_KEY_VALUE_CONTEXT)e->store.retained=true;
+        if(!points_editor_load_alive(e,alive,context))return RISC_APP_DATA_RETAINED;
         bool fresh=rc==RISC_KEY_VALUE_NOT_FOUND;
         if(fresh)old=points_default_config();
         else if(rc!=RISC_KEY_VALUE_OK||!points_config_decode(&old,bytes,n))return e->error=RISC_APP_DATA_IO;
-        n=0;rc=legacy->get(legacy->context,POINTS_META_KEY,bytes,sizeof(bytes),&n);
+        n=0;rc=source.get(source.context,POINTS_META_KEY,bytes,sizeof(bytes),&n);
+        if(rc==RISC_KEY_VALUE_CONTEXT)e->store.retained=true;
+        if(!points_editor_load_alive(e,alive,context))return RISC_APP_DATA_RETAINED;
         if(rc==RISC_KEY_VALUE_NOT_FOUND)meta=fresh?points_default_meta():(points_meta){0};
-        else if(rc!=RISC_KEY_VALUE_OK||!points_meta_decode(&meta,bytes,n))return e->error=RISC_APP_DATA_IO;
+        else if(rc!=RISC_KEY_VALUE_OK||!points_editor_legacy_meta_decode(&meta,bytes,n))return e->error=RISC_APP_DATA_IO;
         rc=points_catalog_storage_migrate(&e->store,&old,&meta,domain);
         /* A missing file remains a virtual migration until explicit Save.
          * Cancellation and ordinary entry never persist factory defaults. */
     }
     if(rc!=RISC_APP_DATA_OK)return e->error=rc;
     e->conflict=false;return points_editor_reindex(e);
+}
+/* Source-compatible unguarded entry for standalone controller users. */
+static inline int32_t points_editor_load(points_editor *e,const risc_app_data_v1 *files,const risc_key_value_v1 *legacy,uint32_t domain) {
+    return points_editor_load_guarded(e,files,legacy,domain,NULL,NULL);
 }
 static inline const points_catalog_item *points_editor_at(const points_editor *e,uint32_t index) {
     return e&&index<e->order_count?&e->store.saved.events[e->order[index]]:NULL;
