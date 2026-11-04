@@ -1,0 +1,41 @@
+{
+  "release": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/tag/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40",
+  "assets": [
+    {
+      "name": "watch-sd-apps.zip",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/watch-sd-apps.zip",
+      "size": 22,
+      "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85"
+    },
+    {
+      "name": "watch-store.bin",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/watch-store.bin",
+      "size": 5570560,
+      "sha256": "25d0f3293857c5174c66bfd77a4f3f2b79d755b0756d639f4b601673ad82bb8b"
+    },
+    {
+      "name": "wave-sd-apps.zip",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/wave-sd-apps.zip",
+      "size": 1674843,
+      "sha256": "c30d00ffe0a9579661f859809b1c3233007f68e22f7eff8ab344b407f6f198f3"
+    },
+    {
+      "name": "wave-store.bin",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/wave-store.bin",
+      "size": 5570560,
+      "sha256": "901a9a3b9c5d45c78d39f926294acba5b87af10e5f84b835223288b13c73789b"
+    },
+    {
+      "name": "x4-sd-apps.zip",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/x4-sd-apps.zip",
+      "size": 5382509,
+      "sha256": "dc3a8613ad2bed1d8bb00601400a33e1965036a459d1ed5b7325dbb3b1c389a2"
+    },
+    {
+      "name": "x4-store.bin",
+      "url": "https://github.com/michaelrolphone-cmyk/RiscRTE-Productivity/releases/download/points-shared-e6dbc9681fbd9509d1731411e3866df9fc3ade40/x4-store.bin",
+      "size": 5308416,
+      "sha256": "b58b9dc99783e363b484405a15b01d306442f7f3dfe36e324da5c14593e32121"
+    }
+  ]
+}
